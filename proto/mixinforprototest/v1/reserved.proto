@@ -1,0 +1,44 @@
+// Reserved is the D-10 conformance corpus: one message per reserved-
+// identifier category (static catalog, structural supplement), one
+// message proving the check does not over-reject ordinary names, and
+// one message carrying a real three-member oneof for the partial-
+// resolution case (MIX-10).
+syntax = "proto3";
+
+package mixinforprototest.v1;
+
+// ReservedStatic carries field names drawn from entc/gen/type.go's
+// hand-copied globalIdent/privateField union (reserved.go's
+// reservedStatic) — each of these collides with an ent-generated
+// identifier and must fail derivation.
+message ReservedStatic {
+  string config = 1;
+  string op = 2;
+  string ctx = 3;
+  string predicates = 4;
+}
+
+// ReservedStructural carries field names ent generates per entity type
+// rather than from a static list (reserved.go's reservedStructural).
+message ReservedStructural {
+  string id = 1;
+  string label = 2;
+}
+
+// NotReserved carries ordinary field names that must derive cleanly —
+// proving the reserved-identifier check does not over-reject.
+message NotReserved {
+  string display_name = 1;
+  string description = 2;
+}
+
+// PartialOneof carries a real three-member oneof so a test can exclude
+// or override only some members and assert the unresolved-oneof
+// failure names exactly the ones left unresolved.
+message PartialOneof {
+  oneof choice {
+    string alpha = 1;
+    string bravo = 2;
+    string charlie = 3;
+  }
+}

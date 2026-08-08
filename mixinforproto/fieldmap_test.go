@@ -140,7 +140,13 @@ func TestGolden(t *testing.T) {
 	})
 
 	t.Run("Oneofs", func(t *testing.T) {
-		d := assertGolden(t, "oneofs", derive[*mixinforprototestv1.Oneofs])
+		// Plan 04's unresolved-oneof gate (MIX-10) now requires every
+		// real-oneof member to be explicitly resolved; a/b are
+		// excluded here purely to keep this fixture's original intent
+		// (proving classify()'s MIX-05/MIX-10 adjacency, not the gate
+		// itself — that has its own dedicated coverage in
+		// reserved_test.go).
+		d := assertGolden(t, "oneofs", derive[*mixinforprototestv1.Oneofs], Exclude("a", "b"))
 		if len(d.fields) != 1 {
 			t.Fatalf("want exactly 1 derived field (maybe; a/b are real-oneof members), got %d", len(d.fields))
 		}
