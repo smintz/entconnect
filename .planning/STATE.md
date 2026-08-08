@@ -5,15 +5,15 @@ milestone_name: milestone
 current_phase: 1
 current_phase_name: MixinForProto Core
 status: executing
-stopped_at: Completed 01-03-PLAN.md
-last_updated: "2026-08-08T10:53:56.547Z"
+stopped_at: Completed 01-04-PLAN.md
+last_updated: "2026-08-08T11:12:14.266Z"
 last_activity: 2026-08-08
 last_activity_desc: Roadmap created from 62 v1 requirements across 5 phases
 progress:
   total_phases: 1
   completed_phases: 0
   total_plans: 5
-  completed_plans: 3
+  completed_plans: 4
 ---
 
 # Project State
@@ -28,11 +28,11 @@ See: .planning/PROJECT.md (updated 2026-08-08)
 ## Current Position
 
 Phase: 1 (MixinForProto Core) — EXECUTING
-Plan: 4 of 5
+Plan: 5 of 5
 Status: Ready to execute
 Last activity: 2026-08-08 — Phase 1 execution started
 
-Progress: [██████░░░░] 60%
+Progress: [████████░░] 80%
 
 ## Performance Metrics
 
@@ -61,6 +61,7 @@ Progress: [██████░░░░] 60%
 | Phase 01 P01 | 55min | 3 tasks | 16 files |
 | Phase 01 P02 | 16min | 2 tasks | 32 files |
 | Phase 01 P03 | 10min | 2 tasks | 8 files |
+| Phase 01 P04 | 45min | 3 tasks | 12 files |
 
 ## Accumulated Context
 
@@ -83,6 +84,9 @@ Recent decisions affecting current work:
 - [Phase ?]: Phase 01 Plan 03: Makefile vet/test targets probe go list ./... first and skip visibly on zero-package modules, since go vet/go test (unlike go build) exit 1 on an empty module
 - [Phase ?]: Phase 01 Plan 03: mixinforproto/README.md usage example omits Exclude/Override (not shipped until 01-04) despite mixinforproto.md's own example using them
 - [Phase ?]: Phase 01 Plan 03: CI's pipeline-script invocation added to the modules job (Rule 2 follow-up) so CI actually runs scripts/pipeline.sh, not just its individual steps
+- [Phase ?]: Phase 01 Plan 04: failure struct + derivationError aggregate replaces ad-hoc []string error collection; every failure path (option validation, fieldmap errors, reserved collisions, oneof gate) now produces the same self-sufficient-first-line, deterministically-sorted shape
+- [Phase ?]: Phase 01 Plan 04: reservedStructural ships as exactly {id, label} (R3) — type/edge/where deliberately not added, unverified against ent's source; documented as an open follow-up
+- [Phase ?]: Phase 01 Plan 04: reserved-identifier check runs only on fields that survive mapField; Override installs verbatim before mapField/classify runs, remaining the sole escape hatch for both reserved collisions and unresolved oneof members
 
 ### Pending Todos
 
@@ -104,6 +108,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-08-08T10:53:56.535Z
-Stopped at: Completed 01-03-PLAN.md
+Last session: 2026-08-08T11:12:07.035Z
+Stopped at: Completed 01-04-PLAN.md
 Resume file: None
