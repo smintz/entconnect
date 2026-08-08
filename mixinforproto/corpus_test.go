@@ -160,3 +160,123 @@ func TestCorpusExercisesEveryFieldClass(t *testing.T) {
 		}
 	})
 }
+
+// requiredResultNames is the explicit, hand-maintained name table
+// TestCorpusExercisesEveryRequiredResult's exhaustiveness check runs
+// against, mirroring fieldClassNames's shape for requiredResult
+// (fieldmap.go lines 320-326, also a contiguous iota run).
+var requiredResultNames = map[requiredResult]string{
+	requiredNone:          "requiredNone",
+	requiredExactPresence: "requiredExactPresence",
+	requiredExactNotEmpty: "requiredExactNotEmpty",
+	requiredResidualZero:  "requiredResidualZero",
+	requiredOptionalPlain: "requiredOptionalPlain",
+}
+
+// TestCorpusExercisesEveryRequiredResult guards the branch gap 3
+// (01-VERIFICATION.md / 01-REVIEW.md CR-03) lived in: classifyRequired's
+// pre-01-08 branch order tested `required && hasNotEmpty` BEFORE
+// `optional && required`, which made requiredExactPresence unreachable
+// for string/bytes — invisible because no corpus fixture combined
+// `optional string`/`optional bytes` with `required` until 01-08 added
+// RequiredOptionalString/RequiredOptionalBytes. This guard makes that
+// combination a standing, checked property rather than a one-time fix.
+//
+// Coverage at time of writing:
+//   - RequiredOptionalString / RequiredOptionalBytes -> requiredExactPresence
+//   - RequiredString                                 -> requiredExactNotEmpty
+//   - RequiredPlainNonString                          -> requiredResidualZero
+//   - presence.proto's optional_string/optional_int32 -> requiredOptionalPlain
+//   - everything else (no `required`, no `optional`)   -> requiredNone
+//
+// A future failure can be diagnosed by comparing against this list: if
+// one of these five stops producing its outcome, something in
+// classifyRequired's branch order or the corpus itself regressed.
+func TestCorpusExercisesEveryRequiredResult(t *testing.T) {
+	t.Run("table is exhaustive against the requiredResult constant block", func(t *testing.T) {
+		const wantLen = int(requiredOptionalPlain) + 1
+		if len(requiredResultNames) != wantLen {
+			t.Fatalf("requiredResultNames has %d entries, want %d (== requiredOptionalPlain+1) — a new outcome was added to fieldmap.go's requiredResult constant block without registering it here; add the missing entry, do not delete this assertion", len(requiredResultNames), wantLen)
+		}
+		for i := 0; i < wantLen; i++ {
+			if _, ok := requiredResultNames[requiredResult(i)]; !ok {
+				t.Fatalf("requiredResultNames is missing an entry for requiredResult(%d) — a new outcome was added to fieldmap.go's constant block without registering it here", i)
+			}
+		}
+	})
+
+	t.Run("every requiredResult outcome is reachable through a real corpus fixture", func(t *testing.T) {
+		produced := map[requiredResult]protoreflect.FieldDescriptor{}
+		// producedPresenceByHasNotEmpty is the guard's load-bearing extra
+		// granularity, beyond plain per-outcome existence: gap 3 was not
+		// "requiredExactPresence is unreachable" in the aggregate (a plain
+		// non-string optional+required field like
+		// RequiredOptionalNonString.value already reached it, hasNotEmpty
+		// being false for that kind either way) — it was specifically
+		// "requiredExactPresence is unreachable for a hasNotEmpty=true
+		// (string/bytes) field", because the pre-01-08 branch order tested
+		// required && hasNotEmpty BEFORE optional && required. A guard that
+		// only asked "is requiredExactPresence produced by ANY field"
+		// would have stayed green under gap 3's original order (the
+		// non-string witness alone satisfies it) — which is exactly the
+		// false-confidence failure mode this whole file exists to close.
+		// So requiredExactPresence must be witnessed separately by a
+		// hasNotEmpty=true field AND a hasNotEmpty=false field.
+		producedPresenceByHasNotEmpty := map[bool]protoreflect.FieldDescriptor{}
+
+		for _, md := range corpusMessages(t) {
+			fds := md.Fields()
+			for i := 0; i < fds.Len(); i++ {
+				fd := fds.Get(i)
+				// Only classScalar/classOptionalScalar fields ever reach a
+				// scalar builder (buildInt32Field, buildStringField, ...) —
+				// the only place classifyRequired is called.
+				class := classify(fd)
+				if class != classScalar && class != classOptionalScalar {
+					continue
+				}
+
+				optional := fd.HasOptionalKeyword()
+				required, _, _, err := resolvedFieldRules(fd)
+				if err != nil {
+					t.Fatalf("resolvedFieldRules(%s.%s): %v", md.FullName(), fd.Name(), err)
+				}
+				// hasNotEmpty is true exactly when fd.Kind() is StringKind
+				// or BytesKind — the two builders (buildStringField,
+				// buildBytesField) that pass hasNotEmpty=true to
+				// classifyRequired. If a third builder ever starts passing
+				// true, THIS LINE must change with it: the previous shape
+				// of this condition — required && hasNotEmpty checked
+				// before optional && required — is precisely what made
+				// requiredExactPresence unreachable for string/bytes and is
+				// gap 3's root cause (01-VERIFICATION.md / 01-REVIEW.md
+				// CR-03).
+				hasNotEmpty := fd.Kind() == protoreflect.StringKind || fd.Kind() == protoreflect.BytesKind
+
+				r := classifyRequired(optional, required, hasNotEmpty)
+				if _, ok := produced[r]; !ok {
+					produced[r] = fd
+				}
+				if r == requiredExactPresence {
+					if _, ok := producedPresenceByHasNotEmpty[hasNotEmpty]; !ok {
+						producedPresenceByHasNotEmpty[hasNotEmpty] = fd
+					}
+				}
+			}
+		}
+		for r, name := range requiredResultNames {
+			fd, ok := produced[r]
+			if !ok {
+				t.Fatalf("no corpus field produces classifyRequired outcome %s (requiredResult=%d) — add a fixture with the (optional,required,kind) combination that reaches it, then record it in this test's coverage comment; do NOT delete or weaken this assertion", name, r)
+			}
+			t.Logf("requiredResult %s covered by %s.%s", name, fd.ContainingMessage().FullName(), fd.Name())
+		}
+		for _, hasNotEmpty := range []bool{true, false} {
+			fd, ok := producedPresenceByHasNotEmpty[hasNotEmpty]
+			if !ok {
+				t.Fatalf("requiredExactPresence is never witnessed by a field with hasNotEmpty=%v — this is exactly the axis gap 3 hid in (01-VERIFICATION.md/CR-03): presence must win for EVERY kind, not just the ones without a hasNotEmpty=true builder. Add an `optional <kind> ... [(buf.validate.field).required = true]` fixture for this hasNotEmpty value.", hasNotEmpty)
+			}
+			t.Logf("requiredExactPresence with hasNotEmpty=%v covered by %s.%s", hasNotEmpty, fd.ContainingMessage().FullName(), fd.Name())
+		}
+	})
+}
