@@ -1,107 +1,20 @@
 ---
 phase: 01-mixinforproto-core
-verified: 2026-08-08T12:21:55Z
-status: gaps_found
-score: 3/5 roadmap success criteria verified (22/25 requirement IDs satisfied)
+verified: 2026-08-08T14:17:41Z
+status: passed
+score: 5/5 roadmap success criteria verified (26/26 requirement IDs satisfied)
 behavior_unverified: 0
 overrides_applied: 0
-gaps:
-  - truth: "Mixin maps proto scalar types to their corresponding ent field builders (MIX-02), and the roadmap's SC1 claim that 'scalars ... materialize at schema load' holds without qualification"
-    status: failed
-    reason: >
-      classify() in mixinforproto/fieldmap.go has no IsList() branch. A `repeated string tags`
-      (or repeated int32/enum) is not a map, not a real oneof, has no optional keyword, so it
-      falls to classScalar/classEnum and derives a SINGULAR field, silently dropping cardinality.
-      Independently reproduced by executing mapField against a synthesized `repeated string tags`
-      descriptor: IsList=true, classify()=classScalar(6), derived field Info=string (not a list).
-      Worse, a repeated string carrying a format rule (buf.validate string.uri/email/etc.) produces
-      a validator whose closure calls msg.Set(fd, protoreflect.ValueOfString(s)) against a
-      list-cardinality field descriptor, which panics at ent MUTATION time (not schema load) per
-      the code review's reproduction. The corpus contains exactly one repeated field
-      (messages.proto's `repeated Inner repeated_message`), and it is a repeated MESSAGE field,
-      which is skipped by an unrelated code path (MIX-10's message-skip-by-default), so this defect
-      is invisible to the entire test suite. README's field-mapping table has no row for repeated
-      fields at all — this is not a documented boundary, it is a silent gap.
-    artifacts:
-      - path: "mixinforproto/fieldmap.go"
-        issue: "classify() (lines ~43-61) never tests fd.IsList(); mapField's classScalar/classEnum paths derive a singular field for a repeated proto field"
-    missing:
-      - "Add an explicit list branch to classify() ahead of the scalar/enum kind branches"
-      - "Either map repeated scalars/enums to a real list-typed field, or fail loudly at schema load with an Exclude/Override remedy — never silently derive a scalar column"
-      - "Add a `repeated string` and/or `repeated <Enum>` fixture to the corpus (scalars.proto/enums.proto) so this can never regress silently again"
-  - truth: "protovalidate string constraints (min_len/max_len/len/pattern/format validators) become native ent builder calls (VAL-01), correctly enforcing the same rule protovalidate enforces"
-    status: failed
-    reason: >
-      delegatingFormatValidator (mixinforproto/validate.go:374-388) builds a synthetic
-      dynamicpb.Message carrying ONLY the candidate field and calls v.Validate(msg) — a
-      WHOLE-MESSAGE validation. Every other field on that message is left at its zero value, so
-      any other rule on the message (required, another string.* format, a message-level CEL rule)
-      produces a violation and the closure reports the candidate value as invalid regardless of
-      whether it actually violates the format rule. Independently confirmed by reading the exact
-      code path (no `errors.As`/violation-path filtering exists; ANY non-nil verr becomes a
-      rejection). Result: for hostname/uri/ip/uuid format constraints, the derived validator
-      rejects effectively 100% of inputs, including valid ones, on any message with more than the
-      one field the corpus deliberately tests. The corpus (constraints.proto) declares every
-      StringFormat* message with exactly one field ("value"), by its own doc comment, which is why
-      TestStringFormatValidators passes while the behavior is broken for realistic multi-field
-      messages. This is silent data-loss at write time, not a documented boundary.
-    artifacts:
-      - path: "mixinforproto/validate.go"
-        issue: "delegatingFormatValidator (~lines 374-388) treats any non-nil protovalidate.Validate() error as a rejection of the candidate field, without filtering violations to the field under validation"
-    missing:
-      - "Filter protovalidate's *protovalidate.ValidationError.Violations down to the violation whose field path names the candidate field before treating it as a rejection"
-      - "Add a corpus message carrying a delegated format field alongside an unrelated `required` field, to serve as the regression guard this bug slipped through for lack of"
-  - truth: "protovalidate presence/required constraints become NotEmpty or non-optional field construction, matching protovalidate's own presence semantics (VAL-03)"
-    status: failed
-    reason: >
-      classifyRequired (mixinforproto/fieldmap.go) tests `required && hasNotEmpty` BEFORE
-      `optional && required`, and buildStringField/buildBytesField always pass hasNotEmpty=true.
-      Independently reproduced: classifyRequired(optional=true, required=true, hasNotEmpty=true)
-      returns requiredExactNotEmpty (NotEmpty()), not requiredExactPresence — so for a
-      presence-tracking `optional string value = 1 [(buf.validate.field).required = true]`,
-      protovalidate's "must be set" semantics get replaced by "must be non-empty", rejecting a
-      deliberately-set empty string that protovalidate accepts. The code review additionally
-      confirmed via direct execution: ent rejects a set-but-empty string with "value is less than
-      the required length" while protovalidate's own verdict on the same input is nil (valid).
-      The corpus tests `RequiredOptionalNonString` (optional int32 + required, which correctly
-      hits requiredExactPresence) but has no `optional string` + `required` fixture, so this
-      divergence is invisible to the test suite AND is not recorded in ResidualIDs or
-      LengthUnitDivergentIDs — unlike the length-unit divergence, which was deliberately decided
-      and machine-recorded.
-    artifacts:
-      - path: "mixinforproto/fieldmap.go"
-        issue: "classifyRequired's branch order makes the presence case (optional && required) unreachable for string/bytes, whose builders always pass hasNotEmpty=true"
-    missing:
-      - "Reorder classifyRequired so `optional && required` (presence) wins ahead of `required && hasNotEmpty`, for every kind including string/bytes"
-      - "Give buildStringField/buildBytesField a requiredExactPresence case emitting no NotEmpty() and no Nillable().Optional() (matching the non-string builders)"
-      - "Add an `optional string` + `required` corpus fixture; RequiredString (implicit presence) does not cover this path"
-  - truth: "The buf-generate-into-temp-dir-and-diff-against-committed-stubs staleness gate (Plan 03's own documented key link) actually detects staleness, using the same scoped invocation the canonical pipeline itself requires"
-    status: failed
-    reason: >
-      .github/workflows/ci.yml's `stubs` job runs `(cd "$TMP/proto" && buf generate)` with NO
-      `--path` flag. scripts/pipeline.sh's own step-2 comment (verified live during Plan 05's
-      execution, per its own text) states unscoped generation breaks because
-      proto/buf/validate/validate.proto's go_package points outside the declared module prefix,
-      and protoc-gen-go errors when a generated file's import path is not under the module
-      passed via `opt: module=...`. pipeline.sh instead runs
-      `buf generate --path mixinforprototest` specifically to avoid this. The stubs CI job uses
-      the exact unscoped invocation the codebase's own pipeline script and comment say is broken
-      — so the job either fails at the generate step, or (if it somehow succeeds) diffs against
-      output that never matches what the canonical pipeline itself would produce. Either way this
-      documented key link ("buf generate into a temp dir + diff against committed stubs ->
-      staleness gate", 01-03-PLAN.md must_haves.key_links) does not function as specified. `buf`
-      is not installed in this environment so the CI job itself could not be executed to observe
-      the literal failure output; this finding is derived from the codebase's own internally
-      contradictory configuration (pipeline.sh's own recorded verification vs. ci.yml's divergent
-      invocation), which is sufficient to call the key link broken as designed regardless of the
-      exact failure mode.
-    artifacts:
-      - path: ".github/workflows/ci.yml"
-        issue: "the `stubs` job's buf generate invocation (around line 106) omits --path mixinforprototest, contradicting scripts/pipeline.sh's own documented, live-verified requirement for that scoping"
-    missing:
-      - "Scope the stubs job's buf generate call to --path mixinforprototest, matching pipeline.sh exactly"
-      - "Have both call sites invoke one shared script so they cannot drift again (the review's own suggested fix)"
-      - "Also clear $TMP/mixinforproto/internal/gen before diffing (WR-03), so the gate can catch stale/orphaned generated files, not only modified ones"
+re_verification:
+  previous_status: gaps_found
+  previous_score: "3/5 roadmap success criteria (22/25 requirement IDs, corrected count 23/26 — see note below); 4 gaps"
+  gaps_closed:
+    - "Gap 1 (MIX-02/CR-01): repeated scalar/enum fields silently derived as singular fields"
+    - "Gap 2 (VAL-01/CR-02): delegatingFormatValidator rejected ~100% of inputs on multi-field messages"
+    - "Gap 3 (VAL-03/CR-03): optional string/bytes + required wrongly derived NotEmpty() instead of presence"
+    - "Gap 4 (PIPE-03/CR-04): CI stubs job used an unscoped buf generate, contradicting pipeline.sh's own scoping requirement"
+  gaps_remaining: []
+  regressions: []
 deferred: []
 human_verification: []
 ---
@@ -109,162 +22,272 @@ human_verification: []
 # Phase 1: MixinForProto Core Verification Report
 
 **Phase Goal:** Developers can derive a complete, validated ent schema directly from a protobuf message type, with zero codegen and full provenance for later drift checking
-**Verified:** 2026-08-08T12:21:55Z
-**Status:** gaps_found
-**Re-verification:** No — initial verification
+**Verified:** 2026-08-08T14:17:41Z
+**Status:** passed
+**Re-verification:** Yes — after gap closure (plans 01-06 through 01-09)
 
 ## Goal Achievement
 
-A code review completed immediately before this verification (`01-REVIEW.md`) found 4 blockers.
-This verification independently re-executed the load-bearing claims behind three of them
-(CR-01, CR-03, and a direct reading confirming CR-02's code path) against the live codebase
-rather than trusting the review's narrative, and confirms all three are real. CR-04 was
-confirmed by reading the CI YAML against the pipeline script's own documented, self-contradicting
-requirement (buf itself is not installed in this environment, so the CI job could not be executed
-directly).
+All four gaps from the initial `01-VERIFICATION.md` were independently re-executed against the
+live codebase in this session — not re-read from the gap-closure SUMMARYs. `buf@v1.72.0` and
+`protoc-gen-go@v1.36.11` were available at `$(go env GOPATH)/bin` (exported onto `PATH` for this
+session), which let this pass execute Gap 4's CI staleness gate directly, something the initial
+verification could only reason about indirectly.
+
+**Note on the initial verification's own score:** `01-VERIFICATION.md`'s frontmatter stated
+"22/25 requirement IDs satisfied," but its own Requirements Coverage table lists 26 rows (14
+MIX + 4 ANNO + 3 VAL + 5 PIPE) with 3 BLOCKED, i.e. 23 satisfied — the "22/25" figure was an
+arithmetic slip in that report, not a real discrepancy in the codebase. This re-verification
+uses the correct denominator of 26.
+
+### Independent Reproductions (executed fresh in this session, not inferred from SUMMARYs)
+
+**Gap 1 — repeated cardinality now fails loudly, not silently:**
+```
+$ go test ./... -run 'TestRepeatedCardinality' -count=1 -v
+--- PASS: TestRepeatedCardinality (all 6 subtests)
+```
+Read `classify()`/`mapField()`/`mapRepeated()` directly: `IsList()` is checked immediately after
+`IsMap()` (map-before-list ordering confirmed load-bearing and correct — a map field also reports
+`IsList()==true` in protoreflect). Every repeated scalar/enum kind returns an error naming the
+field and its repeated cardinality; only repeated message-typed fields delegate to the
+pre-existing `mapMessageField` (MIX-09/MIX-10 unchanged).
+
+**Gap 2 — delegated format validator, both directions independently exercised:**
+Wrote and ran a standalone test (not part of the plan's own test file) that re-derives
+`StringFormatWithSibling` and calls the derived `endpoint` validator directly:
+```
+$ go test -run 'TestIndependentGap2Verifier' -count=1 -v
+--- PASS: TestIndependentGap2Verifier
+```
+- A valid URI (`https://valid.example/x`) on a message whose sibling field (`owner`, unset,
+  carrying `required`) independently violates protovalidate is **accepted** — confirms the fix.
+- An invalid URI (`totally not a uri!!`) on the same multi-field message is **still rejected** —
+  confirms the fix did not become an over-aggressive filter / validation bypass (the exact
+  failure mode the phase brief warned to check for).
+Read `delegatingFormatValidator` directly: violations are filtered by `FieldDescriptor.FullName()
+== fieldName`; a non-`*ValidationError` result is surfaced as a genuine evaluator error rather
+than silently treated as "no rejection."
+
+**Gap 3 — presence-first branch order, verified with a standalone unit call and a counterfactual:**
+```
+$ go test -run 'TestIndependentGap3Verifier' -count=1 -v
+--- PASS: TestIndependentGap3Verifier
+```
+Direct call: `classifyRequired(optional=true, required=true, hasNotEmpty=true)` now returns
+`requiredExactPresence`, not `requiredExactNotEmpty`. `buildStringField`/`buildBytesField` have a
+`requiredExactPresence` arm emitting no `NotEmpty()`.
+
+**Adversarial check of Plan 09's own guard-strengthening claim (counterfactual, executed
+independently):** restored `classifyRequired`'s pre-01-08 branch order (`required && hasNotEmpty`
+checked before `optional && required`) via a scratch edit, then re-ran the corpus-adequacy guard:
+```
+$ go test -run 'TestCorpusExercisesEveryRequiredResult|TestRequiredTranslation' -count=1 -v
+--- FAIL: TestCorpusExercisesEveryRequiredResult
+    corpus_test.go:281: requiredExactPresence is never witnessed by a field with
+    hasNotEmpty=true — this is exactly the axis gap 3 hid in ...
+--- FAIL: TestRequiredTranslation
+    (optional_string / optional_bytes subtests both fail)
+```
+Confirms the claim in `01-09-SUMMARY.md`'s Deviations section: a plain per-outcome-existence
+guard would have stayed green under gap 3's original defect (a non-string `optional`+`required`
+field alone satisfies `requiredExactPresence` regardless of branch order), and the guard as
+actually shipped is strengthened specifically to close that blind spot. File was restored
+byte-identical afterward (`git status --porcelain` empty, full suite re-run green).
+
+**Gap 4 — CI staleness gate, both destructive scenarios re-run independently:**
+```
+$ make check-stubs                      # clean tree
+[check-stubs] OK: committed generated stubs match a fresh regeneration from proto/ sources.
+
+$ echo "// verifier-drift-probe" >> mixinforproto/internal/gen/mixinforprototestv1/tracer.pb.go
+$ make check-stubs; echo $?
+Files .../tracer.pb.go and /tmp/.../tracer.pb.go differ
+::error::Committed generated stubs ... are stale ...
+2
+$ git checkout -- mixinforproto/internal/gen/mixinforprototestv1/tracer.pb.go   # restored
+
+$ cp .../tracer.pb.go .../zz_verifier_orphan_probe.pb.go
+$ make check-stubs; echo $?
+Only in mixinforproto/internal/gen/mixinforprototestv1: zz_verifier_orphan_probe.pb.go
+2
+$ rm -f .../zz_verifier_orphan_probe.pb.go                                      # restored
+```
+`git status --porcelain` confirmed empty after each scenario. Read `.github/workflows/ci.yml`
+directly: the `stubs` job now runs `make check-stubs` (line ~117), which invokes
+`scripts/check-stubs.sh`, which in turn calls `scripts/generate-stubs.sh` — the single canonical
+`buf generate --path mixinforprototest` invocation. `grep -rln -e 'buf generate' scripts .github
+Makefile` returns exactly `scripts/generate-stubs.sh`. The key link is now genuinely wired.
+
+**Full-suite health, run fresh in this session:**
+```
+$ go test -race -count=5 ./...                              # all packages, green
+$ cd mixinforproto && GOWORK=off go build ./... && GOWORK=off go test ./...   # green
+$ make check-modules                                         # both go.mod, no Replace
+$ make check-goversion                                       # go 1.24.0 pin intact
+$ make build && make vet                                     # both modules clean
+```
 
 ### Observable Truths (Roadmap Success Criteria)
 
 | # | Truth | Status | Evidence |
 |---|-------|--------|----------|
-| 1 | Developer declares `MixinForProto[*orderv1.Order]()` and sees ent fields (scalars, enums, WKTs, presence-correct optionals, scalar maps) materialized at schema load — no descriptor file, no string names, deterministic order | ✗ FAILED | Non-repeated scalars/enums/WKTs/optionals/maps all verified correct (see Requirements Coverage). But "scalars" as a category is not correctly mapped for `repeated` cardinality — CR-01, independently reproduced by executing `mapField` against a synthesized `repeated string tags` descriptor: derives a singular `field.String`, silently dropping the repeated marker, and panics at ent mutation time when combined with a format rule. |
-| 2 | Developer excludes/overrides fields via `Exclude()`/`Override()`/`AsJSON()`; unknown field or unresolved `oneof` fails schema load naming message/field/option + fix; reproducible in-process via `Validate[M]` | ✓ VERIFIED | `derive.go`'s `validateOptionNames`/`checkOneofResolution` confirmed by reading; `mixin.go`'s `Validate[M]` bypasses `entc.LoadGraph` entirely (never touches the gorun subprocess), giving a true in-process debug path; `failure_test.go` asserts specific message content, not just "it panicked". |
-| 3 | `gen.Graph` carries per-schema and per-field provenance annotations surviving entc's JSON schema-load boundary | ✓ VERIFIED | `mixinforproto/internal/boundarytest/boundary_test.go` runs a real `entc.LoadGraph` subprocess against a real schema package and decodes both `SourceMessage` and `SourceField` back out of the resulting `*gen.Graph` — confirmed this is a genuine subprocess crossing (not an in-memory struct assertion) by reading the package doc comment and the `entc.LoadGraph` call itself. Ran `go test ./...` with `GOWORK=off`: `internal/boundarytest` package passes. |
-| 4 | protovalidate string/numeric/presence constraints show up as native ent builder calls (`MaxLen`, `Match`, `Min`/`Max`/`Range`/`Positive`, `NotEmpty`) | ✗ FAILED | Numeric translation (VAL-02) independently confirmed clean via code reading (overflow-guarded +1/-1 adjustment). But string format delegation (CR-02, `delegatingFormatValidator`) rejects effectively all inputs on any message with more than the one field the corpus deliberately tests, and presence translation (CR-03) emits the wrong constraint (`NotEmpty` instead of presence-only) for `optional string`/`bytes` + `required`, both independently reproduced below. |
-| 5 | `mixinforproto` ships as an independently buildable, independently tagged module with its own `go.mod` (ent + protobuf + protovalidate only); documented pipeline + CI enumerate both modules, run a `GOWORK=off` job, and docs cover proto3 presence/zero-collapse prominently | ✓ VERIFIED (with a related CI gap — see gap 4 below) | Ran `cd mixinforproto && GOWORK=off go build ./... && GOWORK=off go test ./...` directly: build and all tests pass standalone. `make check-modules` confirms no `Replace` directive in either `go.mod`. `mixinforproto/README.md`'s "Proto3 presence and the zero-collapse" section is positioned above the API reference, with a `doc.go` pointer. `ci.yml` has a dedicated `standalone` job running the same `GOWORK=off` proof. The separate `stubs` CI job (a related but not identical D-22 staleness gate) is broken per gap 4 below — it does not invalidate this SC's literal wording but is a real defect in CI infrastructure this same phase delivered. |
+| 1 | Developer declares `MixinForProto[*orderv1.Order]()` and sees ent fields (scalars, enums, WKTs, presence-correct optionals, scalar maps) materialized at schema load — no descriptor file, no string names, deterministic order | ✓ VERIFIED (with a recorded, documented boundary) | All non-repeated scalars/enums/WKTs/optionals/maps verified correct. Repeated scalars/enums do NOT materialize as fields — they now fail loudly at schema load with a self-sufficient message and an Exclude/Override remedy (Broken Window #3, deliberate v0.1 boundary per D-10's no-silent-approximation posture). **Judgment call, stated plainly:** this closes CR-01's silent-corruption/mutation-time-panic defect completely, and is VERIFIED under the "materializes correctly or fails loudly, never corrupts silently" reading that MIX-11/D-10 establish as this project's actual contract. It is NOT verified under a stricter "every listed category, including repeated, produces a mapped field" reading — that reading remains unmet by design, tracked as an open Broken Window, not a silent gap. |
+| 2 | Developer excludes/overrides fields via `Exclude()`/`Override()`/`AsJSON()`; unknown field or unresolved `oneof` fails schema load naming message/field/option + fix; reproducible in-process via `Validate[M]` | ✓ VERIFIED | Unchanged from initial verification; re-confirmed via full suite pass and direct reading of `derive.go`/`mixin.go`. |
+| 3 | `gen.Graph` carries per-schema and per-field provenance annotations surviving entc's JSON schema-load boundary | ✓ VERIFIED | Unchanged; `internal/boundarytest` re-run green in this session as part of the full-suite pass. |
+| 4 | protovalidate string/numeric/presence constraints show up as native ent builder calls (`MaxLen`, `Match`, `Min`/`Max`/`Range`/`Positive`, `NotEmpty`) | ✓ VERIFIED | Both blockers closed and independently re-executed above (Gaps 2 and 3). Numeric translation (VAL-02) unchanged from initial verification (already clean). |
+| 5 | `mixinforproto` ships as an independently buildable, independently tagged module with its own `go.mod`; documented pipeline + CI enumerate both modules, run a `GOWORK=off` job, and docs cover proto3 presence/zero-collapse prominently | ✓ VERIFIED | The one open item from the initial pass — the CI staleness gate (gap 4) — is now genuinely wired and independently re-proven above with fresh destructive scenarios. `GOWORK=off` build+test re-run green. |
 
-**Score:** 3/5 roadmap success criteria verified
-
-### Independent Reproductions (executed, not inferred)
-
-Ran against the live codebase in this session (test files added temporarily, then removed —
-repo is unmodified):
-
-```
-IsList=true classify=6 (classScalar)
-derived field descriptor: Info:string ... (repeated string field derives as singular)
-```
-
-```
-classifyRequired(optional=true, required=true, hasNotEmpty=true) = 2 (requiredExactNotEmpty)
-   want requiredExactPresence(1) for a presence-tracking field's "must be set" semantics
-```
-
-```
-$ cd mixinforproto && GOWORK=off go build ./... && GOWORK=off go test ./...
-ok  	github.com/smintz/entconnect/mixinforproto	0.034s
-ok  	github.com/smintz/entconnect/mixinforproto/internal/boundarytest	0.766s
-ok  	github.com/smintz/entconnect/mixinforproto/internal/fieldproj	(cached)
-$ go test -race -count=5 ./...   # MIX-13 determinism + concurrency
-ok (all packages)
-```
+**Score:** 5/5 roadmap success criteria verified
 
 ### Required Artifacts
 
 | Artifact | Expected | Status | Details |
 |----------|----------|--------|---------|
-| `mixinforproto/go.mod` | module `github.com/smintz/entconnect/mixinforproto`, ent+protobuf+protovalidate toolchain only | ⚠️ VERIFIED (documentation drift) | 5 direct requires in the main block: `buf.build/gen/go/.../protovalidate/protocolbuffers/go`, `buf.build/go/protovalidate`, `entgo.io/ent`, `github.com/sebdah/goldie/v2` (test-only), `google.golang.org/protobuf`. All four non-test requires fall within "ent + protobuf + protovalidate toolchain" per MIX-14's actual wording, so MIX-14 itself is satisfied — but the plan's own must-have artifact description ("exactly three direct non-test requires") is already false (WR-06 in the code review), and `validate.go`'s file-doc comment cites that false invariant to justify ~100 lines of structural-interface indirection. Not a blocker for MIX-14, but a documentation-accuracy warning worth fixing before it misleads the next maintainer. |
-| `mixinforproto/annotation.go` | `SourceMessage`, `SourceField`, `ContractVersion`, `MixinForProtoMessage`, `MixinForProtoField` | ✓ VERIFIED | All five present, `ContractVersion = 1`, both structs implement `schema.Annotation`. |
-| `mixinforproto/derive.go` | pure derive core returning `(*derivation, error)` | ✓ VERIFIED | `derive[M]` confirmed; validates Exclude/Override names, checks oneof resolution, collects failures rather than failing fast. |
-| `mixinforproto/mixin.go` | `MixinForProto[M]` + panicking `ent.Mixin` adapter | ✓ VERIFIED | `Fields()`/`Annotations()` panic; `Validate[M]` returns the error, bypassing `entc.LoadGraph`. |
-| `proto/mixinforprototest/v1/*.proto` + committed stubs | corpus covering scalars, enums, WKTs, maps, oneofs, presence, reserved, constraints | ✓ VERIFIED | 10 proto files, `internal/gen/mixinforprototestv1/*.pb.go` committed; `constraints.proto` covers one message per protovalidate constraint class per its own header. |
-| `mixinforproto/internal/boundarytest/` | ent schema + test crossing the real entc subprocess boundary | ✓ VERIFIED | Confirmed genuinely crosses the boundary (see SC3 above), not an in-memory assertion. |
-| `go.work` | lists root module + `./mixinforproto` | ✓ VERIFIED | `use (. ./mixinforproto)`, `go 1.26`. |
-| `mixinforproto/fieldmap.go` | scalar/enum/WKT/map/optional classification | ⚠️ STUB (for `repeated` cardinality) | Substantive and wired for every non-repeated shape; silently mis-derives repeated scalars/enums (CR-01/gap 1). |
-| `mixinforproto/validate.go` | Tier 1 translation + residual recording | ⚠️ STUB (for delegated string formats on multi-field messages, and for presence+required on string/bytes) | Substantive and correct for numeric/length/plain-presence translation; functionally broken for the two paths in gaps 2 and 3. |
-| `scripts/pipeline.sh` | five canonical steps, correctly scoped `buf generate --path mixinforprototest` | ✓ VERIFIED | Read directly; step ordering, `set -euo pipefail` abort-on-first-failure, and the scoping rationale are all present and internally consistent. |
-| `.github/workflows/ci.yml` | workspace job, GOWORK=off job, staleness job | ⚠️ ORPHANED LOGIC (staleness job diverges from its own dependency's documented requirement) | `modules` and `standalone` jobs verified correct by direct local reproduction of their commands. `stubs` job's `buf generate` invocation omits `--path mixinforprototest`, contradicting `pipeline.sh`'s own recorded live verification (gap 4). |
+| `mixinforproto/fieldmap.go` | scalar/enum/WKT/map/optional/repeated classification | ✓ VERIFIED | `classRepeated` fieldClass and `mapRepeated` present, wired, tested; `classifyRequired`'s presence-first branch order confirmed by direct call and by a live counterfactual that fails the corpus guard when reverted. |
+| `mixinforproto/validate.go` | Tier 1 translation + residual recording | ✓ VERIFIED | `delegatingFormatValidator`'s per-field violation filtering confirmed by an independently-authored test exercising both the accept and reject directions on the same multi-field message. WR-06's stale "exactly three direct dependencies" comment corrected in place. |
+| `proto/mixinforprototest/v1/repeated.proto` + `constraints.proto` additions | Corpus fixtures making both prior defect shapes permanently observable | ✓ VERIFIED | `RepeatedScalar`/`RepeatedEnum`/`RepeatedItemsFormat`/`RepeatedMessage`, `RequiredOptionalString`/`RequiredOptionalBytes`/`StringFormatWithSibling` all present, committed, and covered by golden fixtures. |
+| `scripts/generate-stubs.sh` + `scripts/check-stubs.sh` | Single canonical scoped generation invocation + orphan-aware staleness gate | ✓ VERIFIED | Re-executed all three detection scenarios (clean/modified/orphaned) independently in this session; all three matched the SUMMARY's claims exactly, including exit codes and named files. |
+| `mixinforproto/corpus_test.go` | Structural corpus-adequacy guards (fieldClass exhaustiveness, requiredResult exhaustiveness incl. hasNotEmpty split, per-message coverage) | ✓ VERIFIED | The `requiredResult` guard's counterfactual claim (would have caught gap 3) independently re-executed and confirmed true — this is the one claim in the gap-closure SUMMARYs most worth distrusting on narrative alone, and it holds. |
+| `.github/workflows/ci.yml` | workspace job, GOWORK=off job, staleness job, goversion check | ✓ VERIFIED | `stubs` job runs `make check-stubs` (confirmed by direct read); `modules` job runs `make check-goversion` (confirmed by direct read and local re-run). |
+| `.planning/WINDOWS.md` | Open Broken Windows tracked, closed ones marked fixed via the CLI verb | ✓ VERIFIED | 3 open (unsigned-int intervals, `bytes.*` translation, repeated-cardinality list mapping — all deliberate, documented, none silent), 1 fixed (descriptor-set staleness, closed via `gsd-tools windows fixed 4`, not a hand-edit). |
 
 ### Key Link Verification
 
 | From | To | Via | Status | Details |
 |------|-----|-----|--------|---------|
-| `mixin.Annotations()` | `entc/load` JSON | schema annotation channel | ✓ WIRED | Boundary test proves this crosses the real subprocess. |
-| field builder `.Annotations(SourceField{...})` | `gen.Field.Annotations` | field annotation channel | ✓ WIRED | Same boundary test, field-level assertion. |
-| `(*new(M)).ProtoReflect().Descriptor()` | `protoreflect.FieldDescriptors` iterated by index | declaration-order iteration | ✓ WIRED | Confirmed via `TestDerive_FieldOrderMatchesDeclarationOrder`/`TestDerive_DeterministicAcrossRepeatedCalls`, and independently via `go test -race -count=5`. |
-| `derive[M]` core | `Fields()` (panic) and `Validate[M]` (error) | shared core, two surfaces | ✓ WIRED | Both call the identical `derive[M]`; `mixin.go` confirmed by reading. |
-| `protovalidate.ResolveFieldRules(fd)` | Tier 1 builder call OR residual record | nil-safe resolution | ✓ WIRED | Confirmed nil-safe at every call site (code review's own adversarial probe, spot-checked). |
-| `buf generate` (temp dir, scoped) | committed `mixinforproto/internal/gen` | staleness diff gate | ✗ NOT_WIRED | CI's `stubs` job uses an unscoped `buf generate`, contradicting the scoped invocation `pipeline.sh` itself requires and documents as load-bearing (gap 4). This is a must-have key link from `01-03-PLAN.md`'s own frontmatter. |
+| `mixin.Annotations()` | `entc/load` JSON | schema annotation channel | ✓ WIRED | Unchanged; re-confirmed via full-suite pass. |
+| `derive[M]` core | `Fields()` (panic) and `Validate[M]` (error) | shared core, two surfaces | ✓ WIRED | Unchanged. |
+| `protovalidate.ResolveFieldRules(fd)` | Tier 1 builder call OR residual record | nil-safe resolution | ✓ WIRED | Unchanged. |
+| `buf generate` (temp dir, scoped) | committed `mixinforproto/internal/gen` | staleness diff gate | ✓ WIRED | **Was NOT_WIRED in the initial verification (gap 4). Now confirmed wired**: CI's `stubs` job calls `make check-stubs`, which delegates to the exact same `scripts/generate-stubs.sh` `pipeline.sh` uses — independently re-proven via `grep -rln -e 'buf generate'` returning exactly one file, plus live execution of the CI job's own command locally. |
+| `classify()`'s `IsList()` branch | `mapRepeated` / loud schema-load failure | cardinality-aware dispatch | ✓ WIRED (new) | Confirmed via direct test execution against a synthesized `repeated string` descriptor path (`TestRepeatedCardinality`), not merely a code read. |
+| `delegatingFormatValidator`'s violation filter | per-field verdict | `FieldDescriptor.FullName()` comparison | ✓ WIRED (new) | Confirmed via an independently-authored test exercising accept AND reject on the same multi-field message. |
 
 ### Requirements Coverage
 
 | Requirement | Source Plan | Description (abbreviated) | Status | Evidence |
 |---|---|---|---|---|
-| MIX-01 | 01-01 | Declare mixin, get fields, no descriptor file/string names | ✓ SATISFIED | Boundary test + `mixin.go` reading |
-| MIX-02 | 01-02 | Scalar type mapping | ✗ BLOCKED | CR-01, independently reproduced |
-| MIX-03 | 01-02 | Enum mapping | ⚠️ SATISFIED for non-repeated (repeated enum shares CR-01's root cause) | `classify`/`mapEnum` reading; not independently re-executed for enums (same code path as CR-01) |
-| MIX-04 | 01-02 | WKT mapping (Timestamp/Struct/Value/FieldMask) | ✓ SATISFIED | `mapWellKnownType` reading, correctly checks `IsList()` and routes repeated WKTs to the message-field skip path rather than mis-deriving them |
-| MIX-05 | 01-02 | Optional/presence + zero-collapse defaults | ✓ SATISFIED | `classify`'s documented branch ordering (`IsSynthetic()` check) + README's zero-collapse section |
-| MIX-06 | 01-02 | Scalar maps → JSON, message maps skipped | ⚠️ SATISFIED (WR-01 warning: enum-valued maps silently become `map[K]any` with value type lost — not corpus-covered) | `mapScalarMap`/`classify` reading |
-| MIX-07 | 01-04 | `Exclude()`, unknown name fails | ✓ SATISFIED | `validateOptionNames` reading |
-| MIX-08 | 01-04 | `Override()`, unknown name fails | ✓ SATISFIED | `validateOptionNames` reading |
-| MIX-09 | 01-02 | `AsJSON()` for message fields | ✓ SATISFIED | `mapAsJSON` reading |
-| MIX-10 | 01-04 | Message fields skipped by default; oneof gate | ✓ SATISFIED | `checkOneofResolution` reading |
-| MIX-11 | 01-04 | Self-sufficient failure first line, names message/field/option/fix | ✓ SATISFIED | `errors.go` reading, code review's adversarial probe confirms no double-prefixing |
-| MIX-12 | 01-01/01-04 | In-process reproduction via `Validate[M]` | ✓ SATISFIED | `mixin.go`'s `Validate[M]` never calls `entc.LoadGraph` |
-| MIX-13 | 01-01 | Deterministic field order | ✓ SATISFIED | `go test -race -count=5` passes |
-| MIX-14 | 01-01 | Independent module, minimal deps | ✓ SATISFIED (with WR-06 documentation-accuracy warning) | `go.mod` reading; `GOWORK=off` build/test |
-| ANNO-01 | 01-01 | Schema-level provenance survives JSON boundary | ✓ SATISFIED | Boundary test |
-| ANNO-02 | 01-02/01-05 | Field-level provenance readable from `gen.Graph` | ✓ SATISFIED | Boundary test + `annotation.go` |
-| ANNO-03 | 01-04 | Exclude/Override recorded as annotations | ✓ SATISFIED | `SourceMessage.Excluded`/`.Overridden` populated in `derive.go` |
-| ANNO-04 | 01-01 | Version marker for mismatch detection | ✓ SATISFIED | `ContractVersion` const + boundary test's non-zero assertion |
-| VAL-01 | 01-05 | String constraints → native builder calls | ✗ BLOCKED | CR-02, confirmed by direct code reading of `delegatingFormatValidator` |
-| VAL-02 | 01-05 | Numeric constraints, open/closed adjustment | ✓ SATISFIED | `applySignedRange` reading; overflow guard present at type bounds |
-| VAL-03 | 01-05 | Presence/required → `NotEmpty`/non-optional | ✗ BLOCKED | CR-03, independently reproduced |
-| PIPE-01 | 01-03 | Documented pipeline script, CI runs it in order | ✓ SATISFIED | `pipeline.sh` reading; `modules` CI job runs it |
-| PIPE-02 | 01-03 | `go.work` + `GOWORK=off` job proves standalone consumption | ✓ SATISFIED | Reproduced locally |
-| PIPE-03 | 01-03 | CI enumerates + tests both modules explicitly | ✓ SATISFIED | `Makefile`'s `MODULES` list + `make build/vet/test` reproduced locally |
-| PIPE-04 | 01-03 | Nested-module tag convention, no `replace` | ✓ SATISFIED | `make check-modules` passes; `CONTRIBUTING.md` documents convention |
-| PIPE-08 | 01-03 | Docs cover presence/zero-collapse prominently | ✓ SATISFIED | README section ordering confirmed |
+| MIX-01 | 01-01 | Declare mixin, get fields, no descriptor file/string names | ✓ SATISFIED | Unchanged from initial verification. |
+| MIX-02 | 01-02, 01-06 | Scalar type mapping | ✓ SATISFIED (documented boundary for repeated cardinality — see SC1 judgment call above) | `TestRepeatedCardinality` re-run green; independent counterfactual confirms the guard behind it. |
+| MIX-03 | 01-02, 01-06 | Enum mapping | ✓ SATISFIED (same repeated-cardinality boundary as MIX-02) | Same code path (`classify`/`mapField`), same test. |
+| MIX-04 | 01-02 | WKT mapping (Timestamp/Struct/Value/FieldMask) | ✓ SATISFIED | Unchanged. |
+| MIX-05 | 01-02 | Optional/presence + zero-collapse defaults | ✓ SATISFIED | Unchanged. |
+| MIX-06 | 01-02 | Scalar maps → JSON, message maps skipped | ✓ SATISFIED (WR-01 enum-valued-map warning remains open, unaddressed — pre-existing, not part of this gap-closure scope) | Unchanged; `WR-01` in `01-REVIEW.md` was not adjudicated by plans 01-06..01-09 (not in scope) and remains a live code-review warning. |
+| MIX-07 | 01-04 | `Exclude()`, unknown name fails | ✓ SATISFIED | Unchanged. |
+| MIX-08 | 01-04 | `Override()`, unknown name fails | ✓ SATISFIED | Unchanged. |
+| MIX-09 | 01-02 | `AsJSON()` for message fields | ✓ SATISFIED | Re-confirmed unaffected by the repeated-cardinality change (`TestRepeatedCardinality`'s AsJSON subtest). |
+| MIX-10 | 01-04 | Message fields skipped by default; oneof gate | ✓ SATISFIED | Re-confirmed unaffected by the repeated-cardinality change. |
+| MIX-11 | 01-04 | Self-sufficient failure first line, names message/field/option/fix | ✓ SATISFIED | The new repeated-cardinality failure and the (unchanged) other failure paths both comply. |
+| MIX-12 | 01-01/01-04 | In-process reproduction via `Validate[M]` | ✓ SATISFIED | `TestRepeatedCardinality`'s "Validate parity with derive" subtest re-run green. |
+| MIX-13 | 01-01 | Deterministic field order | ✓ SATISFIED | `go test -race -count=5 ./...` re-run green. |
+| MIX-14 | 01-01 | Independent module, minimal deps | ✓ SATISFIED (WR-06 doc-drift warning now corrected, per 01-08) | `GOWORK=off` re-run green; `validate.go`'s file header comment now states the correct dependency count. |
+| ANNO-01 | 01-01 | Schema-level provenance survives JSON boundary | ✓ SATISFIED | Unchanged. |
+| ANNO-02 | 01-02/01-05 | Field-level provenance readable from `gen.Graph` | ✓ SATISFIED | Unchanged. |
+| ANNO-03 | 01-04 | Exclude/Override recorded as annotations | ✓ SATISFIED | Unchanged. |
+| ANNO-04 | 01-01 | Version marker for mismatch detection | ✓ SATISFIED | Unchanged. |
+| VAL-01 | 01-05, 01-08 | String constraints → native builder calls | ✓ SATISFIED | Independently re-executed both directions (accept valid / reject invalid) on a multi-field message; CR-02 closed. |
+| VAL-02 | 01-05 | Numeric constraints, open/closed adjustment | ✓ SATISFIED | Unchanged (already clean in initial verification). |
+| VAL-03 | 01-05, 01-08 | Presence/required → `NotEmpty`/non-optional | ✓ SATISFIED | Independently re-executed via direct `classifyRequired` call and via a counterfactual proving the closure is real, not narrative. CR-03 closed. |
+| PIPE-01 | 01-03 | Documented pipeline script, CI runs it in order | ✓ SATISFIED | Unchanged; `pipeline.sh` now delegates step 2 to `scripts/generate-stubs.sh`. |
+| PIPE-02 | 01-03 | `go.work` + `GOWORK=off` job proves standalone consumption | ✓ SATISFIED | Re-run green in this session. |
+| PIPE-03 | 01-03, 01-07, 01-09 | CI enumerates + tests both modules explicitly; staleness gate genuinely functions | ✓ SATISFIED | CR-04/gap 4 closed and independently re-proven with fresh destructive scenarios (both modified-stub and orphaned-stub cases), not merely re-read. |
+| PIPE-04 | 01-03 | Nested-module tag convention, no `replace` | ✓ SATISFIED | `make check-modules` re-run clean. |
+| PIPE-08 | 01-03 | Docs cover presence/zero-collapse prominently | ✓ SATISFIED | Unchanged. |
 
-**22/25 requirement IDs satisfied; 3 BLOCKED (MIX-02, VAL-01, VAL-03).**
+**26/26 requirement IDs satisfied.** (The initial verification's frontmatter said "22/25" but its
+own table showed 26 rows with 23 satisfied/3 blocked — a reporting arithmetic error in that prior
+report, not a codebase discrepancy; corrected here.)
 
 ### Anti-Patterns Found
 
-No `TBD`/`FIXME`/`XXX`/`TODO`/`HACK`/`PLACEHOLDER` markers found in any non-test `.go` file, `scripts/pipeline.sh`, `Makefile`, or `.github/workflows/ci.yml`. The four blockers above are logic defects, not debt markers — they are not visible via static debt-marker scanning, which is exactly why they required code execution to surface.
+No `TBD`/`FIXME`/`XXX`/`TODO`/`HACK`/`PLACEHOLDER` markers found in any non-test `.go` file,
+`scripts/*.sh`, `Makefile`, or `.github/workflows/ci.yml` (re-scanned in this session).
+
+**Pre-existing code-review warnings not required by this gap-closure scope, still open (not
+regressions, not newly discovered, informational only):**
+- WR-01 (enum-valued maps silently degrade to `map[K]any` with the value type unrecorded) — unfixed, confirmed by reading `classify()`'s map branch still routes any non-`MessageKind` map value (including `EnumKind`) to `classScalarMap`.
+- WR-02 (unchecked `uint64 → int` narrowing on string length bounds) — unfixed, confirmed by reading `validate.go`'s `MinLen`/`MaxLen`/`Len` translation still narrows without a range guard.
+- WR-04 (reserved-identifier catalog case-sensitivity/justification issue) — not independently re-checked this session; status unchanged from `01-REVIEW.md`.
+- WR-05 (`ResolveFieldRules` called twice per field, six builders) — cosmetic/performance duplication, not independently re-checked this session; status unchanged.
+- WR-07 (`fieldproj.Project` decodes the first annotation of any kind) — test-infrastructure risk, not independently re-checked this session; status unchanged.
+
+None of these five block any of the 26 requirement IDs or the 5 roadmap success criteria — they
+were warnings in `01-REVIEW.md`, not gaps in `01-VERIFICATION.md`, and none of the four
+gap-closure plans (01-06..01-09) claimed to address them (WR-03 and WR-06 were addressed as
+in-scope side effects and are separately confirmed fixed above). Flagged here for visibility, not
+as blockers.
 
 ### Behavioral Spot-Checks
 
 | Behavior | Command | Result | Status |
 |---|---|---|---|
-| Repeated scalar field mapping | synthesized `repeated string tags` descriptor through `classify`/`mapField` | derives singular `field.String`, drops cardinality | ✗ FAIL (CR-01) |
-| `classifyRequired` for presence-tracking string+required | `classifyRequired(true, true, true)` | returns `requiredExactNotEmpty`, not `requiredExactPresence` | ✗ FAIL (CR-03) |
-| GOWORK=off standalone build+test | `cd mixinforproto && GOWORK=off go build ./... && GOWORK=off go test ./...` | all packages build and pass | ✓ PASS |
+| Repeated scalar field fails loudly (not silently) | `go test -run TestRepeatedCardinality -v` | all 6 subtests pass | ✓ PASS |
+| Delegated format validator, multi-field message, valid input | standalone independently-authored test | valid URI accepted | ✓ PASS |
+| Delegated format validator, multi-field message, invalid input (anti-bypass) | standalone independently-authored test | invalid URI still rejected | ✓ PASS |
+| `classifyRequired` presence-first for string/bytes | standalone independently-authored test | `requiredExactPresence` returned | ✓ PASS |
+| Corpus guard counterfactual (gap 3 branch order reverted) | `go test -run TestCorpusExercisesEveryRequiredResult\|TestRequiredTranslation` after a scratch revert | both FAIL as required, confirming the guard's real detection power | ✓ PASS |
+| CI staleness gate, clean tree | `make check-stubs` | exit 0 | ✓ PASS |
+| CI staleness gate, modified stub | `make check-stubs` after deliberate edit | exit 2, names the file | ✓ PASS |
+| CI staleness gate, orphaned stub | `make check-stubs` after deliberate copy | exit 2, "Only in ..." line names the orphan | ✓ PASS |
 | Determinism + race safety | `go test -race -count=5 ./...` | all packages pass | ✓ PASS |
-| No local-path module substitution | `make check-modules` | both modules OK | ✓ PASS |
+| GOWORK=off standalone build+test | `cd mixinforproto && GOWORK=off go build ./... && GOWORK=off go test ./...` | pass | ✓ PASS |
+| Module hygiene | `make check-modules && make check-goversion` | pass | ✓ PASS |
+
+Working tree confirmed clean (`git status --porcelain` empty) after every destructive scratch
+edit made during this verification session.
 
 ### Human Verification Required
 
-None. All four blockers were confirmed by direct code execution or by reading self-contradicting
-configuration in the repository itself (CR-04); none require subjective/visual/runtime judgment
-this verifier cannot make.
+None. All four original gaps were confirmed closed by direct code execution in this session,
+including two adversarial checks explicitly requested by the phase brief (the anti-bypass
+direction on Gap 2, and the counterfactual on Plan 09's guard-strengthening claim for Gap 3),
+both of which held.
 
 ### Gaps Summary
 
-Three of four code-review blockers strike directly at requirements this phase claims complete in
-REQUIREMENTS.md (MIX-02, VAL-01, VAL-03) and at two of the five roadmap Success Criteria (SC1, SC4).
-All three were independently reproduced by executing synthesized code against the live
-`mixinforproto` package in this session, not merely re-read from the prior code review. The fourth
-(CI staleness gate, CR-04) breaks a must-have key link this phase's own Plan 03 declared, confirmed
-by the codebase's own internal contradiction (`pipeline.sh`'s documented, live-verified scoping
-requirement vs. `ci.yml`'s unscoped invocation).
+All four gaps from the initial `01-VERIFICATION.md` are closed and independently re-verified
+against the live codebase in this session:
 
-The phase's foundational architecture — the annotation contract crossing the real entc subprocess
-boundary, the Exclude/Override/oneof failure surface, deterministic field ordering, module
-isolation and `GOWORK=off` standalone consumption — is genuinely sound and independently verified
-working. The defects are narrow but real: every one of them is invisible to the current test suite
-specifically because the corpus avoids the exact shape that triggers it (no repeated scalar
-fixture, every format-validator fixture single-field, no `optional string`+`required` fixture, and
-a CI job whose command diverges from the script it is supposed to mirror). This is precisely the
-"tests pass because the corpus avoids the failing shape" pattern the verification brief called out
-in advance, and it held in all three cases.
+1. **Gap 1 (MIX-02/MIX-03/CR-01, repeated cardinality)** — closed by making `classify()` total
+   over cardinality. **Judgment call, stated explicitly per the phase brief's request:** this
+   converts a silent defect (data corruption + mutation-time panic risk) into a documented,
+   loud-failure v0.1 limitation (Broken Window #3) — it satisfies MIX-02/MIX-03 and roadmap SC1
+   under the "never silently corrupt, materialize correctly or fail loudly" reading this project's
+   own conventions (D-10, MIX-11) establish as the actual contract. It does **not** satisfy a
+   stricter "every listed field category, no exceptions, produces a mapped field" reading of SC1's
+   literal wording — repeated scalars/enums still do not materialize as ent fields in v0.1. Both
+   readings are defensible; this report adopts the former because it matches the project's own
+   recorded precedent for how the phase treats intentionally-scoped-out translation gaps
+   (unsigned-integer intervals, `bytes.*` length/pattern — Broken Windows #1/#2, both graded
+   SATISFIED-with-caveat the same way in the initial verification).
+2. **Gap 2 (VAL-01/CR-02, delegated format validator)** — closed by per-field violation
+   filtering. Independently re-verified in both directions: accepts a valid value despite an
+   unrelated sibling-field violation, and still rejects an actually-invalid value on the same
+   message — ruling out the "filter became a no-op" failure mode the phase brief specifically
+   warned to check for.
+3. **Gap 3 (VAL-03/CR-03, presence-first required)** — closed by reordering
+   `classifyRequired`'s branches. Independently re-verified via direct call and via a live
+   counterfactual restoring the original (buggy) branch order, which correctly fails both
+   `TestRequiredTranslation` and the strengthened corpus-adequacy guard — confirming Plan 09's own
+   claim that the guard, as literally specified by the plan text, would NOT have caught this
+   defect, and that the strengthening was both real and necessary.
+4. **Gap 4 (PIPE-03/CR-04, CI staleness gate)** — closed by collapsing to one canonical
+   `buf generate` invocation and rebuilding the gate on an empty-output-tree design. Independently
+   re-executed all three detection scenarios (clean, modified, orphaned) against the live gate in
+   this session — something the initial verification could not do because `buf` was not on `PATH`
+   in that session.
 
-None of these four gaps are recorded as deliberate decisions anywhere (README, `doc.go`,
-`ResidualIDs`/`LengthUnitDivergentIDs`, or WINDOWS.md) — they are unrecorded defects, not documented
-trade-offs, which is the distinction that separates them from the length-unit divergence and the
-two already-logged Broken Windows.
+No regressions were found. The phase's foundational architecture (annotation provenance crossing
+the real entc subprocess boundary, Exclude/Override/oneof failure surface, deterministic field
+ordering, module isolation, GOWORK=off standalone consumption) remains sound, as it was in the
+initial verification, and the four narrow defects that verification found are now closed with
+genuine, independently-reproduced evidence rather than narrative claims.
+
+Five pre-existing code-review warnings (WR-01, WR-02, WR-04, WR-05, WR-07) remain open — they were
+never gaps in the initial `01-VERIFICATION.md` and were out of scope for the four gap-closure
+plans; they are noted above for visibility but do not affect this phase's status.
 
 ---
 
-_Verified: 2026-08-08T12:21:55Z_
+_Verified: 2026-08-08T14:17:41Z_
 _Verifier: Claude (gsd-verifier)_
