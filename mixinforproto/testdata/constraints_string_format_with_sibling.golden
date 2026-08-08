@@ -1,0 +1,48 @@
+[
+  {
+    "name": "endpoint",
+    "typeKind": "string",
+    "nillable": false,
+    "optional": false,
+    "immutable": false,
+    "default": "\"\"",
+    "validatorCount": 1,
+    "storageKey": "",
+    "comment": "",
+    "sourceField": {
+      "contractVersion": 1,
+      "name": "endpoint",
+      "number": 1,
+      "kind": "scalar",
+      "translatedIDs": [
+        "string.uri"
+      ],
+      "residualIDs": [],
+      "residualFingerprint": "",
+      "lengthUnitDivergentIDs": []
+    }
+  },
+  {
+    "name": "owner",
+    "typeKind": "string",
+    "nillable": false,
+    "optional": false,
+    "immutable": false,
+    "default": "",
+    "validatorCount": 1,
+    "storageKey": "",
+    "comment": "",
+    "sourceField": {
+      "contractVersion": 1,
+      "name": "owner",
+      "number": 2,
+      "kind": "scalar",
+      "translatedIDs": [
+        "required"
+      ],
+      "residualIDs": [],
+      "residualFingerprint": "",
+      "lengthUnitDivergentIDs": []
+    }
+  }
+]

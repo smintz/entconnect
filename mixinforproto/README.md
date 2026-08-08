@@ -224,7 +224,16 @@ singular column, and a repeated message field keeps its pre-existing skip/`AsJSO
 | `repeated` scalar or `repeated` enum | **Fails at schema load**, naming the message, the field, its repeated cardinality, and the `Exclude`/`Override` remedy — never silently derived as a singular column (closes the gap the initial verification pass found) |
 | `repeated` field carrying `repeated.items` protovalidate rules | Same loud schema-load failure as any other repeated scalar/enum — the constraints are never silently discarded |
 | Real `oneof` member | Skipped unless every member is `Exclude`d or `Override`n — an unresolved real `oneof` fails at schema load (never silently guessed) |
-| `string`/numeric field with a translatable protovalidate rule (`min_len`/`max_len`/`len`/`min_bytes`/`max_bytes`/`len_bytes`/`pattern`/`email`/`hostname`/`uri`/`ip`/`uuid`/`gt`/`gte`/`lt`/`lte`/`required`) | A real native ent validator call (`MinLen`/`MaxLen`/`Match`/`Validate`/`Min`/`Max`/`Range`/`NotEmpty`) — see "Relatedly" above and the string-length-unit section |
+| `string`/numeric field with a translatable protovalidate rule (`min_len`/`max_len`/`len`/`min_bytes`/`max_bytes`/`len_bytes`/`pattern`/`email`/`hostname`/`uri`/`ip`/`uuid`/`gt`/`gte`/`lt`/`lte`) | A real native ent validator call (`MinLen`/`MaxLen`/`Match`/`Validate`/`Min`/`Max`/`Range`) — see "Relatedly" above and the string-length-unit section |
+| `required` on a presence-tracking (`optional`) field, any kind including `string`/`bytes` | Non-optional construction — no `NotEmpty()`, no `Nillable().Optional()`, no `Default`. This is a presence assertion ("must be *set*"), not a non-emptiness one: a deliberately-set empty string/bytes value is admissible, matching protovalidate's own verdict (01-VERIFICATION.md gap 3 / 01-REVIEW.md CR-03) |
+| `required` on an implicit-presence (plain, non-`optional`) `string`/`bytes` field | `NotEmpty()` — protovalidate's "can't be the zero value" semantics for a field with no separate presence bit |
+
+Delegated format validators (`hostname`/`uri`/`ip`/`uuid`) judge only the field under
+validation: `delegatingFormatValidator` evaluates the whole synthetic message but filters
+protovalidate's violations down to the one attributed to the candidate field, so an
+unrelated rule elsewhere on the same message (another `required` field, a different format
+rule) never causes the candidate value to be rejected (01-VERIFICATION.md gap 2 /
+01-REVIEW.md CR-02).
 
 Derived field order always matches proto declaration order and is stable across repeated
 runs and concurrent goroutines — `mixinforproto` never ranges a map directly into

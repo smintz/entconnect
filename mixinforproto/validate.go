@@ -3,6 +3,7 @@ package mixinforproto
 import (
 	"crypto/sha256"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"regexp"
 	"sort"
@@ -23,13 +24,23 @@ import (
 //
 // protovalidate.ResolveFieldRules(fd) returns a concrete
 // *validate.FieldRules (from
-// buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate,
-// already an INDIRECT dependency of mixinforproto via buf.build/go/
-// protovalidate itself). Naming that type directly in this file would
-// promote it to a DIRECT import, and `go mod tidy` would then list it as
-// a fourth direct dependency in go.mod — breaking MIX-14's "exactly
-// three direct dependencies" invariant (verified live this session:
-// Plan 01's D6 coverage asserts exactly three).
+// buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate).
+// CORRECTION (01-REVIEW.md WR-06, 01-08-PLAN.md): that package is
+// ALREADY a direct, non-test dependency of mixinforproto — go.mod's
+// first require block lists it with no `// indirect` marker, alongside
+// entgo.io/ent, buf.build/go/protovalidate, github.com/sebdah/goldie/v2
+// (test-only) and google.golang.org/protobuf, because the generated
+// corpus (constraints.pb.go et al.) imports it directly to reference
+// buf.validate's field options. So naming *validate.FieldRules here
+// would NOT add a new direct dependency; MIX-14's actual invariant is
+// "ent + protobuf + protovalidate toolchain only" (satisfied either
+// way), not "exactly three direct dependencies" — that narrower count
+// was already false before this file's own indirection was written, not
+// something this file's structure protects. This file nonetheless still
+// avoids naming that type (see below) — that choice is a real, if
+// unpaid-for, dependency-surface preference, not a MIX-14 requirement.
+// De-indirecting this layer is a refactor for a future plan, not a gap
+// fix; not attempted here.
 //
 // Every function below therefore either (a) calls methods on a locally
 // `:=`-inferred value without ever spelling its type name, or (b) accepts
@@ -365,10 +376,26 @@ func applyStringFormat[T stringBuilderIface[T]](
 // regex approximation (D-13). It builds a real protovalidate.Validator
 // once, at schema-derivation time (never per-call), and the returned
 // closure constructs a synthetic dynamicpb.Message carrying only the
-// candidate value for fd — every corpus StringFormat* message deliberately
-// carries exactly one field so no unrelated rule on the same message can
-// produce a false rejection (see constraints.proto's doc comment). The
-// verdict is protovalidate's own, not a lossy reimplementation — this is
+// candidate value for fd, then calls protovalidate's own Validate on
+// that WHOLE message.
+//
+// That whole-message call can surface violations for fields OTHER than
+// fd (every other field on the synthetic message sits at its zero
+// value, so an unrelated `required` or any other rule can produce its
+// own violation). The mechanism this function actually relies on is NOT
+// "the corpus keeps format-validator messages single-field" — an
+// earlier version of this comment claimed that, and it was wrong
+// (01-VERIFICATION.md gap 2 / 01-REVIEW.md CR-02: on any multi-field
+// message it rejected effectively 100% of inputs, valid ones included).
+// The real mechanism is per-field verdict extraction: on a non-nil
+// error, the violations are filtered down to the one (if any) whose
+// FieldDescriptor names fd, by FullName comparison. A violation on any
+// OTHER field is discarded — it is not this field's verdict. A
+// violation ON fd is still, and must remain, a rejection: this half of
+// the contract is what stops the filter from becoming a validation
+// bypass (T-01G-10) — see TestDelegatedFormatIgnoresUnrelatedViolations
+// for both assertions exercised together. The verdict returned for fd
+// is still protovalidate's own, not a lossy reimplementation — this is
 // what makes it "delegating to protovalidate's own predicate" in fact,
 // not just in name.
 func delegatingFormatValidator(fd protoreflect.FieldDescriptor, formatName string) (func(string) error, error) {
@@ -377,12 +404,28 @@ func delegatingFormatValidator(fd protoreflect.FieldDescriptor, formatName strin
 		return nil, fmt.Errorf("building protovalidate validator for %s format delegation: %w", formatName, err)
 	}
 	md := fd.ContainingMessage()
+	fieldName := fd.FullName()
 	return func(s string) error {
 		msg := dynamicpb.NewMessage(md)
 		msg.Set(fd, protoreflect.ValueOfString(s))
-		if verr := v.Validate(msg); verr != nil {
-			return fmt.Errorf("value does not satisfy the %s format constraint", formatName)
+		verr := v.Validate(msg)
+		if verr == nil {
+			return nil
 		}
+		var ve *protovalidate.ValidationError
+		if !errors.As(verr, &ve) {
+			// Not a rule-violation verdict at all — a genuine evaluator
+			// failure (e.g. a CEL evaluation error). Surface it as such
+			// rather than masquerading as "invalid value".
+			return fmt.Errorf("evaluating the %s format constraint: %w", formatName, verr)
+		}
+		for _, viol := range ve.Violations {
+			if viol.FieldDescriptor != nil && viol.FieldDescriptor.FullName() == fieldName {
+				return fmt.Errorf("value does not satisfy the %s format constraint", formatName)
+			}
+		}
+		// Every violation belonged to some other field on the synthetic
+		// message — not this field's business.
 		return nil
 	}, nil
 }
