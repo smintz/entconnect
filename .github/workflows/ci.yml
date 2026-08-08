@@ -39,6 +39,22 @@ jobs:
       - name: Verify no committed go.mod declares a local-path substitution
         run: make check-modules
 
+      - name: Install buf (pinned)
+        run: go install github.com/bufbuild/buf/cmd/buf@v1.72.0
+
+      - name: Install protoc-gen-go (pinned)
+        run: go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.36.11
+
+      # PIPE-01's own must-have is "CI runs it" — not just a script that
+      # exists and is exercised locally. This job's checkout is ephemeral
+      # (nothing here is committed back), so running the pipeline against
+      # it directly is fine; that is different from the stubs job below,
+      # which must not mutate the checkout IT is diffing against.
+      - name: Run the canonical pipeline script (PIPE-01)
+        run: |
+          export PATH="$PATH:$(go env GOPATH)/bin"
+          bash scripts/pipeline.sh
+
   # standalone: the dedicated GOWORK=off job required by D-17/PIPE-02.
   # Runs in a checkout that still CONTAINS go.work, relying on the
   # GOWORK=off environment variable to ignore it — proving standalone
