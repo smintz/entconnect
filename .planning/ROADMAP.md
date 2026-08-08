@@ -13,7 +13,7 @@ entconnect inverts entproto's generation direction: a protobuf contract drives e
 
 Decimal phases appear between their surrounding integers in numeric order.
 
-- [ ] **Phase 1: MixinForProto Core** - Contract-derived ent fields, provenance annotations, Tier 1 validation, and the two-module CI scaffold
+- [x] **Phase 1: MixinForProto Core** - Contract-derived ent fields, provenance annotations, Tier 1 validation, and the two-module CI scaffold
 - [ ] **Phase 2: CRUD Handlers & Interceptor Chain** - Generated Get/List/Create/Update/Delete Connect handlers with FieldMask-gated updates and a fixed, privacy-aware interceptor chain
 - [ ] **Phase 3: Validation Fidelity** - Tier 2/3 CEL passthrough, structured schema-layer errors, and a differential validation harness
 - [ ] **Phase 4: Flow Binding** - RPC-to-flow matching, generated flow-bound handlers, and long-running run status
