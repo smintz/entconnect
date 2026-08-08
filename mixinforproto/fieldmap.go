@@ -28,18 +28,31 @@ const (
 	classMessageField
 	classEnum
 	classScalar
+	// classRepeated is appended at the end of the iota run (01-06-PLAN.md
+	// gap closure) so every pre-existing value keeps its numbering — the
+	// code review's reproduction and 01-09's corpus-adequacy guard both
+	// cite the prior numeric values verbatim.
+	classRepeated
 )
 
 // classify sorts fd into exactly one fieldClass, in the exact order
-// 01-RESEARCH.md verified: IsMap() first; then real-oneof membership
+// 01-RESEARCH.md verified: IsMap() first; then IsList() (01-06-PLAN.md
+// gap closure, MIX-02/CR-01); then real-oneof membership
 // (ContainingOneof() != nil && !ContainingOneof().IsSynthetic()); then
 // HasOptionalKeyword(); then MessageKind; then EnumKind; then plain
-// scalar. The order matters because the branches overlap: a proto3
-// `optional` scalar is wrapped by the compiler in a synthetic
-// one-member oneof, so ContainingOneof() is non-nil for it too — only
-// IsSynthetic() (checked as part of the real-oneof branch, ahead of the
-// optional-keyword branch) separates MIX-05 from MIX-10. A field cannot
-// satisfy both.
+// scalar. The order matters because the branches overlap:
+//   - IsMap() MUST be checked before IsList(): in protoreflect a map
+//     field also reports IsList() == true, so inverting these two would
+//     silently reclassify every map field as classRepeated instead of
+//     classScalarMap/classMessageMap — this exact ordering hazard is
+//     T-01G-01 in this plan's threat model.
+//   - a proto3 `optional` scalar is wrapped by the compiler in a
+//     synthetic one-member oneof, so ContainingOneof() is non-nil for it
+//     too — only IsSynthetic() (checked as part of the real-oneof
+//     branch, ahead of the optional-keyword branch) separates MIX-05
+//     from MIX-10.
+//
+// A field cannot satisfy both of any overlapping pair above.
 func classify(fd protoreflect.FieldDescriptor) fieldClass {
 	switch {
 	case fd.IsMap():
@@ -47,6 +60,8 @@ func classify(fd protoreflect.FieldDescriptor) fieldClass {
 			return classMessageMap
 		}
 		return classScalarMap
+	case fd.IsList():
+		return classRepeated
 	case fd.ContainingOneof() != nil && !fd.ContainingOneof().IsSynthetic():
 		return classRealOneofMember
 	case fd.HasOptionalKeyword():
@@ -76,7 +91,9 @@ const (
 // what is unsupported, and the fix (D-08, MIX-11). A nil, nil return
 // means the field is deliberately skipped (a real-oneof member left
 // unresolved by this plan, a message-valued map, an un-opted-in message
-// field, or a skipped well-known type) — not a silent failure.
+// field, a skipped well-known type, or an un-opted-in repeated message
+// field — MIX-09/MIX-10, unchanged by 01-06-PLAN.md's gap closure) —
+// not a silent failure.
 //
 // o carries the effective Option set for this derivation (Exclude,
 // Override, AsJSON) so AsJSON's message-field opt-in (MIX-09) can be
@@ -103,9 +120,35 @@ func mapField(msgName string, fd protoreflect.FieldDescriptor, o *options) (ent.
 		return mapMessageField(fd, o)
 	case classEnum:
 		return mapEnum(fd), nil
+	case classRepeated:
+		return mapRepeated(fd, o)
 	default: // classScalar
 		return mapScalar(msgName, name, fd)
 	}
+}
+
+// mapRepeated handles the classRepeated branch (01-06-PLAN.md, closing
+// 01-VERIFICATION.md gap 1 / CR-01): a `repeated` field never derives a
+// scalar/enum ent field in v0.1 — that would silently drop the
+// contract's cardinality, and worse, could build a validator closure
+// that panics at ent mutation time against a list-cardinality
+// descriptor (T-01G-02). A repeated MESSAGE-typed field is the one
+// exception: it delegates to mapMessageField, preserving MIX-09's
+// AsJSON opt-in and MIX-10's skip-by-default exactly as before
+// (mapWellKnownType already returns handled=false for lists, so a
+// repeated well-known type keeps falling through to the same skip).
+// Every other repeated kind returns a plain error; derive.go's existing
+// mapField-error wrapper turns it into a failure{rule:"fieldmap"} with
+// the standard Exclude/Override remedy (D-08/D-09), and MIX-12's
+// Validate[M] surfaces the identical message — no new error machinery.
+func mapRepeated(fd protoreflect.FieldDescriptor, o *options) (ent.Field, error) {
+	if fd.Kind() == protoreflect.MessageKind {
+		return mapMessageField(fd, o)
+	}
+	return nil, fmt.Errorf(
+		"repeated field has no supported ent mapping in v0.1 (element kind %s) — cardinality would be silently dropped",
+		fd.Kind(),
+	)
 }
 
 // sourceFieldFor builds the SourceField annotation every derived field
