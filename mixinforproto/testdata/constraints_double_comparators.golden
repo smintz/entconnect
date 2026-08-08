@@ -1,41 +1,46 @@
 [
   {
-    "name": "string_map",
-    "typeKind": "json.RawMessage",
+    "name": "gt_field",
+    "typeKind": "float64",
     "nillable": false,
     "optional": false,
     "immutable": false,
-    "default": "",
+    "default": "0",
     "validatorCount": 0,
     "storageKey": "",
     "comment": "",
     "sourceField": {
       "contractVersion": 1,
-      "name": "string_map",
+      "name": "gt_field",
       "number": 1,
-      "kind": "scalarMap",
+      "kind": "scalar",
       "translatedIDs": [],
-      "residualIDs": [],
-      "residualFingerprint": "",
+      "residualIDs": [
+        "double.gt"
+      ],
+      "residualFingerprint": "f63571ce9a8b5346c433cc6d8f61f5f9aa05003ef69d49eee1211e71e589d462",
       "lengthUnitDivergentIDs": []
     }
   },
   {
-    "name": "int_map",
-    "typeKind": "json.RawMessage",
+    "name": "gte_lte_field",
+    "typeKind": "float64",
     "nillable": false,
     "optional": false,
     "immutable": false,
-    "default": "",
-    "validatorCount": 0,
+    "default": "0",
+    "validatorCount": 1,
     "storageKey": "",
     "comment": "",
     "sourceField": {
       "contractVersion": 1,
-      "name": "int_map",
+      "name": "gte_lte_field",
       "number": 2,
-      "kind": "scalarMap",
-      "translatedIDs": [],
+      "kind": "scalar",
+      "translatedIDs": [
+        "double.gte",
+        "double.lte"
+      ],
       "residualIDs": [],
       "residualFingerprint": "",
       "lengthUnitDivergentIDs": []

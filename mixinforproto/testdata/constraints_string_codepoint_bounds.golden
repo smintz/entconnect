@@ -1,0 +1,77 @@
+[
+  {
+    "name": "min_len_field",
+    "typeKind": "string",
+    "nillable": false,
+    "optional": false,
+    "immutable": false,
+    "default": "\"\"",
+    "validatorCount": 1,
+    "storageKey": "",
+    "comment": "",
+    "sourceField": {
+      "contractVersion": 1,
+      "name": "min_len_field",
+      "number": 1,
+      "kind": "scalar",
+      "translatedIDs": [
+        "string.min_len"
+      ],
+      "residualIDs": [],
+      "residualFingerprint": "",
+      "lengthUnitDivergentIDs": [
+        "string.min_len"
+      ]
+    }
+  },
+  {
+    "name": "max_len_field",
+    "typeKind": "string",
+    "nillable": false,
+    "optional": false,
+    "immutable": false,
+    "default": "\"\"",
+    "validatorCount": 1,
+    "storageKey": "",
+    "comment": "",
+    "sourceField": {
+      "contractVersion": 1,
+      "name": "max_len_field",
+      "number": 2,
+      "kind": "scalar",
+      "translatedIDs": [
+        "string.max_len"
+      ],
+      "residualIDs": [],
+      "residualFingerprint": "",
+      "lengthUnitDivergentIDs": [
+        "string.max_len"
+      ]
+    }
+  },
+  {
+    "name": "len_field",
+    "typeKind": "string",
+    "nillable": false,
+    "optional": false,
+    "immutable": false,
+    "default": "\"\"",
+    "validatorCount": 2,
+    "storageKey": "",
+    "comment": "",
+    "sourceField": {
+      "contractVersion": 1,
+      "name": "len_field",
+      "number": 3,
+      "kind": "scalar",
+      "translatedIDs": [
+        "string.len"
+      ],
+      "residualIDs": [],
+      "residualFingerprint": "",
+      "lengthUnitDivergentIDs": [
+        "string.len"
+      ]
+    }
+  }
+]

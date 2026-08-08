@@ -16,7 +16,8 @@
       "kind": "scalar",
       "translatedIDs": [],
       "residualIDs": [],
-      "residualFingerprint": ""
+      "residualFingerprint": "",
+      "lengthUnitDivergentIDs": []
     }
   },
   {
@@ -36,7 +37,8 @@
       "kind": "scalar",
       "translatedIDs": [],
       "residualIDs": [],
-      "residualFingerprint": ""
+      "residualFingerprint": "",
+      "lengthUnitDivergentIDs": []
     }
   },
   {
@@ -56,7 +58,8 @@
       "kind": "optionalScalar",
       "translatedIDs": [],
       "residualIDs": [],
-      "residualFingerprint": ""
+      "residualFingerprint": "",
+      "lengthUnitDivergentIDs": []
     }
   },
   {
@@ -76,7 +79,8 @@
       "kind": "optionalScalar",
       "translatedIDs": [],
       "residualIDs": [],
-      "residualFingerprint": ""
+      "residualFingerprint": "",
+      "lengthUnitDivergentIDs": []
     }
   }
 ]

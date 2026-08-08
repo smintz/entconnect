@@ -13,7 +13,21 @@ version: v2
 managed:
   enabled: true
   override:
+    # Plan 05 scopes this override to mixinforprototest/** only (it was
+    # previously unrestricted — see this file's git history). buf/validate
+    # (the vendored protovalidate corpus dependency, see
+    # buf/validate/validate.proto's own header) already carries its own
+    # correct go_package option pointing at the real, already-published
+    # buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate
+    # Go package — the one buf.build/go/protovalidate's ResolveFieldRules
+    # already depends on transitively. Overriding it too would make
+    # protoc-gen-go treat buf/validate's types as local to
+    # mixinforprototestv1 instead of importing the real published package,
+    # producing an undefined `file_buf_validate_validate_proto_init`
+    # reference the moment any corpus file imports it (verified live this
+    # session — constraints.proto is the first file that does).
     - file_option: go_package
+      path: mixinforprototest
       value: github.com/smintz/entconnect/mixinforproto/internal/gen/mixinforprototestv1
 plugins:
   - local: protoc-gen-go

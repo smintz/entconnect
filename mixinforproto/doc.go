@@ -10,6 +10,14 @@
 // — a non-optional proto3 scalar collapses "unset" and "zero" to the same
 // value, and this package cannot fix that for you at this layer.
 //
+// If your contract has non-ASCII string data, read the README's "String
+// length: Unicode code points vs. bytes" section
+// (https://github.com/smintz/entconnect/blob/main/mixinforproto/README.md#string-length-unicode-code-points-vs-bytes-read-this-if-your-contract-has-non-ascii-string-data)
+// — string.min_len/max_len/len count Unicode code points; the derived
+// ent field's MinLen/MaxLen count bytes. This package maps them directly
+// anyway (a deliberate, recorded decision, not an oversight); the
+// divergence is machine-visible on SourceField.LengthUnitDivergentIDs.
+//
 // A mixin's Hooks, Interceptors, and Policy all run before the ones a
 // schema author declares directly on the schema — see the README's
 // "Mixin hook and policy ordering" section for the full note, including

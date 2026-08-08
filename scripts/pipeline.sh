@@ -53,9 +53,20 @@ require_buf
 log "step 1/5: OK"
 
 # --- Step 2: buf generate -----------------------------------------------------
+# --path mixinforprototest scopes Go generation to this repo's own corpus
+# files. proto/buf/validate/validate.proto (Plan 05's vendored protovalidate
+# corpus dependency — see that file's own header) must stay out of this
+# scope: it already carries its own go_package option pointing at the real,
+# published buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go
+# package (the same one buf.build/go/protovalidate depends on transitively).
+# Generating a second, local copy of its Go types would either collide at
+# proto-registry init (duplicate registration of buf.validate.FieldRules
+# etc.) or, if buf.gen.yaml's managed-mode override also renamed its
+# go_package, leave a dangling reference to an un-generated init symbol —
+# both verified live during Plan 05's execution.
 log "step 2/5: buf generate"
 require_buf
-(cd "$PROTO_DIR" && buf generate)
+(cd "$PROTO_DIR" && buf generate --path mixinforprototest)
 log "step 2/5: OK"
 
 # --- Step 3: descriptor-set build (a SEPARATE invocation, never a plugin) ----

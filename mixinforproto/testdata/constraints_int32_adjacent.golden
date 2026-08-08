@@ -1,41 +1,47 @@
 [
   {
-    "name": "string_map",
-    "typeKind": "json.RawMessage",
+    "name": "coincident_field",
+    "typeKind": "int32",
     "nillable": false,
     "optional": false,
     "immutable": false,
-    "default": "",
-    "validatorCount": 0,
+    "default": "0",
+    "validatorCount": 1,
     "storageKey": "",
     "comment": "",
     "sourceField": {
       "contractVersion": 1,
-      "name": "string_map",
+      "name": "coincident_field",
       "number": 1,
-      "kind": "scalarMap",
-      "translatedIDs": [],
+      "kind": "scalar",
+      "translatedIDs": [
+        "int32.gt",
+        "int32.lt"
+      ],
       "residualIDs": [],
       "residualFingerprint": "",
       "lengthUnitDivergentIDs": []
     }
   },
   {
-    "name": "int_map",
-    "typeKind": "json.RawMessage",
+    "name": "crossed_field",
+    "typeKind": "int32",
     "nillable": false,
     "optional": false,
     "immutable": false,
-    "default": "",
-    "validatorCount": 0,
+    "default": "0",
+    "validatorCount": 1,
     "storageKey": "",
     "comment": "",
     "sourceField": {
       "contractVersion": 1,
-      "name": "int_map",
+      "name": "crossed_field",
       "number": 2,
-      "kind": "scalarMap",
-      "translatedIDs": [],
+      "kind": "scalar",
+      "translatedIDs": [
+        "int32.gt",
+        "int32.lt"
+      ],
       "residualIDs": [],
       "residualFingerprint": "",
       "lengthUnitDivergentIDs": []

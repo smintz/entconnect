@@ -3,6 +3,7 @@ package mixinforproto
 import (
 	"encoding/json"
 	"fmt"
+	"math"
 	"reflect"
 
 	"entgo.io/ent"
@@ -116,91 +117,564 @@ func mapField(msgName string, fd protoreflect.FieldDescriptor, o *options) (ent.
 // Tier 1 translation is Plan 04's job.
 func sourceFieldFor(fd protoreflect.FieldDescriptor, class string) SourceField {
 	return SourceField{
-		ContractVersion: ContractVersion,
-		FieldName:       string(fd.Name()),
-		Number:          int32(fd.Number()),
-		Kind:            class,
-		TranslatedIDs:   []string{},
-		ResidualIDs:     []string{},
+		ContractVersion:        ContractVersion,
+		FieldName:              string(fd.Name()),
+		Number:                 int32(fd.Number()),
+		Kind:                   class,
+		TranslatedIDs:          []string{},
+		ResidualIDs:            []string{},
+		LengthUnitDivergentIDs: []string{},
 	}
 }
 
-// mapScalar handles MIX-02 (the exhaustive proto-scalar-kind switch) and
-// MIX-05's non-optional branch: a plain proto3 scalar gets
-// .Default(<Go zero of its type>) and stays non-optional, matching the
-// wire's own collapse of unset and zero (D-26 documents the
-// consequence). No widening: each kind maps to its same-width ent
-// builder, including the sint/fixed/sfixed variants of the same width.
-func mapScalar(msgName, name string, fd protoreflect.FieldDescriptor) (ent.Field, error) {
-	sf := sourceFieldFor(fd, "scalar")
-
-	switch fd.Kind() {
-	case protoreflect.DoubleKind:
-		return field.Float(name).Default(0).Annotations(sf), nil
-	case protoreflect.FloatKind:
-		return field.Float32(name).Default(0).Annotations(sf), nil
-	case protoreflect.Int32Kind, protoreflect.Sint32Kind, protoreflect.Sfixed32Kind:
-		return field.Int32(name).Default(0).Annotations(sf), nil
-	case protoreflect.Int64Kind, protoreflect.Sint64Kind, protoreflect.Sfixed64Kind:
-		return field.Int64(name).Default(0).Annotations(sf), nil
-	case protoreflect.Uint32Kind, protoreflect.Fixed32Kind:
-		return field.Uint32(name).Default(0).Annotations(sf), nil
-	case protoreflect.Uint64Kind, protoreflect.Fixed64Kind:
-		return field.Uint64(name).Default(0).Annotations(sf), nil
-	case protoreflect.BoolKind:
-		return field.Bool(name).Default(false).Annotations(sf), nil
-	case protoreflect.StringKind:
-		// ResolveFieldRules returns (nil, nil) for a constraint-free
-		// field — verified (Plan 01). Tier 1 translation (turning
-		// resolved rules into TranslatedIDs/ResidualIDs) is Plan 04's
-		// job; this corpus carries no protovalidate constraints, so
-		// rules is always nil here. The guard exists so the nil is
-		// handled, never dereferenced, and buf.build/go/protovalidate
-		// stays a genuine, actually-imported direct dependency (Plan
-		// 01 deviation 2).
-		rules, err := protovalidate.ResolveFieldRules(fd)
-		if err != nil {
-			return nil, fmt.Errorf("resolving protovalidate field rules: %w", err)
-		}
-		_ = rules
-		return field.String(name).Default("").Annotations(sf), nil
-	case protoreflect.BytesKind:
-		return field.Bytes(name).Default(nil).Annotations(sf), nil
-	default:
-		return nil, fmt.Errorf("unsupported field kind %q — this mapping rule lands in a later plan", fd.Kind())
+// finalizeSourceField builds the SourceField annotation for a field Tier
+// 1 actually translated constraints for (string/numeric scalars):
+// translated/residual/divergent are deduplicated and sorted (D-24) and
+// entries feed the residual fingerprint (T-01-24). Kinds Tier 1 does not
+// translate (enum, WKT, scalar-map, AsJSON, message-typed) keep using
+// plain sourceFieldFor above, with empty (not absent) ID lists.
+func finalizeSourceField(
+	fd protoreflect.FieldDescriptor, class string,
+	translated, residual, divergent []string, entries []residualEntry,
+) SourceField {
+	return SourceField{
+		ContractVersion:        ContractVersion,
+		FieldName:              string(fd.Name()),
+		Number:                 int32(fd.Number()),
+		Kind:                   class,
+		TranslatedIDs:          sortUnique(translated),
+		ResidualIDs:            sortUnique(residual),
+		LengthUnitDivergentIDs: sortUnique(divergent),
+		ResidualFingerprint:    residualFingerprint(entries),
 	}
+}
+
+// resolvedFieldRules resolves fd's protovalidate FieldRules, its CEL
+// residual entries (custom (buf.validate.field).cel/cel_expression rules
+// — Tier 1 never compiles or evaluates CEL, R1), and its `required` flag,
+// all in one place so every scalar-kind case below (mapScalar,
+// mapOptionalScalar) shares the same nil-safe resolution and the same
+// CEL-residual extraction rather than duplicating either per Kind case.
+// A constraint-free field yields a nil rules value (ResolveFieldRules's
+// verified (nil, nil) return, Plan 01) — celResidual/celEntries/required
+// are all zero-valued in that case, never dereferenced.
+func resolvedFieldRules(fd protoreflect.FieldDescriptor) (
+	required bool, celResidual []string, celEntries []residualEntry, err error,
+) {
+	rules, err := protovalidate.ResolveFieldRules(fd)
+	if err != nil {
+		return false, nil, nil, fmt.Errorf("resolving protovalidate field rules: %w", err)
+	}
+	if rules == nil {
+		return false, nil, nil, nil
+	}
+	required = rules.HasRequired() && rules.GetRequired()
+	for _, r := range rules.GetCel() {
+		id, entry := celRuleResidual(r.GetId(), r.GetExpression())
+		celResidual = append(celResidual, id)
+		celEntries = append(celEntries, entry)
+	}
+	for _, expr := range rules.GetCelExpression() {
+		id, entry := celRuleResidual("", expr)
+		celResidual = append(celResidual, id)
+		celEntries = append(celEntries, entry)
+	}
+	return required, celResidual, celEntries, nil
+}
+
+// mapScalar handles MIX-02 (the exhaustive proto-scalar-kind switch) and
+// MIX-05's non-optional branch, now layering Tier 1 constraint
+// translation (01-05-PLAN.md) on top: a plain proto3 scalar without
+// `required` still gets .Default(<Go zero of its type>) and stays
+// non-optional, matching the wire's own collapse of unset and zero
+// (D-26 documents the consequence). No widening: each kind maps to its
+// same-width ent builder, including the sint/fixed/sfixed variants of
+// the same width. Delegates to the buildXxxField(name, fd, optional)
+// functions below, shared with mapOptionalScalar (optional=false here).
+func mapScalar(msgName, name string, fd protoreflect.FieldDescriptor) (ent.Field, error) {
+	return buildScalarField(name, fd, false)
 }
 
 // mapOptionalScalar handles MIX-05's optional-keyword branch: a proto3
 // `optional` scalar gets .Nillable().Optional() and no default —
 // HasOptionalKeyword() being true here (verified by classify's caller,
 // classOptionalScalar) is exactly the presence signal that means the
-// wire distinguishes unset from zero, so nothing may be collapsed.
+// wire distinguishes unset from zero, so nothing may be collapsed —
+// UNLESS `required` is also set (VAL-03), in which case the exact
+// translation drops Nillable/Optional/Default entirely rather than
+// approximating presence (see buildXxxField's required-handling below).
 func mapOptionalScalar(msgName, name string, fd protoreflect.FieldDescriptor) (ent.Field, error) {
-	sf := sourceFieldFor(fd, "optionalScalar")
+	return buildScalarField(name, fd, true)
+}
 
+// buildScalarField dispatches to the per-Go-type builder function
+// shared between mapScalar (optional=false) and mapOptionalScalar
+// (optional=true) — the single place both MIX-05 branches and every
+// Tier 1 translation path (VAL-01/VAL-02/VAL-03) meet.
+func buildScalarField(name string, fd protoreflect.FieldDescriptor, optional bool) (ent.Field, error) {
 	switch fd.Kind() {
 	case protoreflect.DoubleKind:
-		return field.Float(name).Nillable().Optional().Annotations(sf), nil
+		return buildFloat64Field(name, fd, optional)
 	case protoreflect.FloatKind:
-		return field.Float32(name).Nillable().Optional().Annotations(sf), nil
+		return buildFloat32Field(name, fd, optional)
 	case protoreflect.Int32Kind, protoreflect.Sint32Kind, protoreflect.Sfixed32Kind:
-		return field.Int32(name).Nillable().Optional().Annotations(sf), nil
+		return buildInt32Field(name, fd, optional)
 	case protoreflect.Int64Kind, protoreflect.Sint64Kind, protoreflect.Sfixed64Kind:
-		return field.Int64(name).Nillable().Optional().Annotations(sf), nil
+		return buildInt64Field(name, fd, optional)
 	case protoreflect.Uint32Kind, protoreflect.Fixed32Kind:
-		return field.Uint32(name).Nillable().Optional().Annotations(sf), nil
+		return buildUint32Field(name, fd, optional)
 	case protoreflect.Uint64Kind, protoreflect.Fixed64Kind:
-		return field.Uint64(name).Nillable().Optional().Annotations(sf), nil
+		return buildUint64Field(name, fd, optional)
 	case protoreflect.BoolKind:
-		return field.Bool(name).Nillable().Optional().Annotations(sf), nil
+		return buildBoolField(name, fd, optional)
 	case protoreflect.StringKind:
-		return field.String(name).Nillable().Optional().Annotations(sf), nil
+		return buildStringField(name, fd, optional)
 	case protoreflect.BytesKind:
-		return field.Bytes(name).Nillable().Optional().Annotations(sf), nil
+		return buildBytesField(name, fd, optional)
 	default:
-		return nil, fmt.Errorf("unsupported optional field kind %q — this mapping rule lands in a later plan", fd.Kind())
+		kindLabel := "field"
+		if optional {
+			kindLabel = "optional field"
+		}
+		return nil, fmt.Errorf("unsupported %s kind %q — this mapping rule lands in a later plan", kindLabel, fd.Kind())
 	}
+}
+
+// scalarClass returns the SourceField.Kind value for a scalar
+// derivation, matching D-02's documented class names.
+func scalarClass(optional bool) string {
+	if optional {
+		return "optionalScalar"
+	}
+	return "scalar"
+}
+
+// requiredResult carries the three MECE outcomes VAL-03's "required"
+// translation can take for a scalar field, computed once and applied
+// identically across every buildXxxField function below:
+//   - optional && required: exact — non-optional construction (no
+//     Nillable/Optional/Default), matching protovalidate's "must be set"
+//     semantics for a presence-tracking field.
+//   - optional && !required: MIX-05's ordinary Nillable().Optional()
+//     branch, untouched by Tier 1.
+//   - !optional && required: NOT exact for scalars without a typed
+//     .NotEmpty()-equivalent (VAL-03's flagged ambiguity) — recorded
+//     residual, never approximated; string/bytes are the one exception
+//     (handled by their own buildXxxField, since NotEmpty() IS exact
+//     there) and never reach the residual branch.
+//   - !optional && !required: MIX-05's ordinary Default(zero) branch.
+type requiredResult int
+
+const (
+	requiredNone          requiredResult = iota // !optional && !required
+	requiredExactPresence                       // optional && required
+	requiredExactNotEmpty                       // required, string/bytes (either presence)
+	requiredResidualZero                        // !optional && required, no exact translation
+	requiredOptionalPlain                       // optional && !required
+)
+
+func classifyRequired(optional, required, hasNotEmpty bool) requiredResult {
+	switch {
+	case required && hasNotEmpty:
+		return requiredExactNotEmpty
+	case optional && required:
+		return requiredExactPresence
+	case optional:
+		return requiredOptionalPlain
+	case required:
+		return requiredResidualZero
+	default:
+		return requiredNone
+	}
+}
+
+// buildInt32Field builds the derived field for Int32Kind/Sint32Kind/
+// Sfixed32Kind, sharing D-12's overflow-guarded signed-range translation
+// between mapScalar's plain path and mapOptionalScalar's `optional`
+// path via the optional parameter.
+func buildInt32Field(name string, fd protoreflect.FieldDescriptor, optional bool) (ent.Field, error) {
+	required, celResidual, celEntries, err := resolvedFieldRules(fd)
+	if err != nil {
+		return nil, err
+	}
+	sb := field.Int32(name)
+	var translated, residual []string
+	var entries []residualEntry
+
+	rules, rerr := protovalidate.ResolveFieldRules(fd)
+	if rerr != nil {
+		return nil, fmt.Errorf("resolving protovalidate field rules: %w", rerr)
+	}
+	if rules != nil {
+		switch {
+		case rules.HasInt32():
+			sb, translated, residual, entries = applySignedRange[int32](sb, rules.GetInt32(), "int32", math.MinInt32, math.MaxInt32)
+		case rules.HasSint32():
+			sb, translated, residual, entries = applySignedRange[int32](sb, rules.GetSint32(), "sint32", math.MinInt32, math.MaxInt32)
+		case rules.HasSfixed32():
+			sb, translated, residual, entries = applySignedRange[int32](sb, rules.GetSfixed32(), "sfixed32", math.MinInt32, math.MaxInt32)
+		}
+	}
+	residual = append(residual, celResidual...)
+	entries = append(entries, celEntries...)
+
+	switch classifyRequired(optional, required, false) {
+	case requiredExactPresence:
+		translated = append(translated, "required")
+	case requiredOptionalPlain:
+		sb = sb.Nillable().Optional()
+	case requiredResidualZero:
+		residual = append(residual, "required")
+		sb = sb.Default(0)
+	default: // requiredNone
+		sb = sb.Default(0)
+	}
+
+	sf := finalizeSourceField(fd, scalarClass(optional), translated, residual, nil, entries)
+	return sb.Annotations(sf), nil
+}
+
+// buildInt64Field mirrors buildInt32Field for Int64Kind/Sint64Kind/
+// Sfixed64Kind.
+func buildInt64Field(name string, fd protoreflect.FieldDescriptor, optional bool) (ent.Field, error) {
+	required, celResidual, celEntries, err := resolvedFieldRules(fd)
+	if err != nil {
+		return nil, err
+	}
+	sb := field.Int64(name)
+	var translated, residual []string
+	var entries []residualEntry
+
+	rules, rerr := protovalidate.ResolveFieldRules(fd)
+	if rerr != nil {
+		return nil, fmt.Errorf("resolving protovalidate field rules: %w", rerr)
+	}
+	if rules != nil {
+		switch {
+		case rules.HasInt64():
+			sb, translated, residual, entries = applySignedRange[int64](sb, rules.GetInt64(), "int64", math.MinInt64, math.MaxInt64)
+		case rules.HasSint64():
+			sb, translated, residual, entries = applySignedRange[int64](sb, rules.GetSint64(), "sint64", math.MinInt64, math.MaxInt64)
+		case rules.HasSfixed64():
+			sb, translated, residual, entries = applySignedRange[int64](sb, rules.GetSfixed64(), "sfixed64", math.MinInt64, math.MaxInt64)
+		}
+	}
+	residual = append(residual, celResidual...)
+	entries = append(entries, celEntries...)
+
+	switch classifyRequired(optional, required, false) {
+	case requiredExactPresence:
+		translated = append(translated, "required")
+	case requiredOptionalPlain:
+		sb = sb.Nillable().Optional()
+	case requiredResidualZero:
+		residual = append(residual, "required")
+		sb = sb.Default(0)
+	default:
+		sb = sb.Default(0)
+	}
+
+	sf := finalizeSourceField(fd, scalarClass(optional), translated, residual, nil, entries)
+	return sb.Annotations(sf), nil
+}
+
+// buildUint32Field builds Uint32Kind/Fixed32Kind. Unsigned interval
+// constraints (gt/gte/lt/lte on uint32/fixed32) are recorded as residual
+// rather than translated in this plan (recordAnyRangeResidual,
+// validate.go) — a deliberate, documented scope boundary (01-05-
+// SUMMARY.md): this plan's corpus exercises signed-integer and
+// floating-point interval translation only (Task 3's action text), and
+// recording-not-dropping an unsigned bound is still exactly correct per
+// D-11/T-01-23, just not yet exact.
+func buildUint32Field(name string, fd protoreflect.FieldDescriptor, optional bool) (ent.Field, error) {
+	required, celResidual, celEntries, err := resolvedFieldRules(fd)
+	if err != nil {
+		return nil, err
+	}
+	sb := field.Uint32(name)
+	var translated, residual []string
+	var entries []residualEntry
+
+	rules, rerr := protovalidate.ResolveFieldRules(fd)
+	if rerr != nil {
+		return nil, fmt.Errorf("resolving protovalidate field rules: %w", rerr)
+	}
+	if rules != nil {
+		switch {
+		case rules.HasUint32():
+			r, e := recordAnyRangeResidual(rules.GetUint32(), "uint32")
+			residual = append(residual, r...)
+			entries = append(entries, e...)
+		case rules.HasFixed32():
+			r, e := recordAnyRangeResidual(rules.GetFixed32(), "fixed32")
+			residual = append(residual, r...)
+			entries = append(entries, e...)
+		}
+	}
+	residual = append(residual, celResidual...)
+	entries = append(entries, celEntries...)
+
+	switch classifyRequired(optional, required, false) {
+	case requiredExactPresence:
+		translated = append(translated, "required")
+	case requiredOptionalPlain:
+		sb = sb.Nillable().Optional()
+	case requiredResidualZero:
+		residual = append(residual, "required")
+		sb = sb.Default(0)
+	default:
+		sb = sb.Default(0)
+	}
+
+	sf := finalizeSourceField(fd, scalarClass(optional), translated, residual, nil, entries)
+	return sb.Annotations(sf), nil
+}
+
+// buildUint64Field mirrors buildUint32Field for Uint64Kind/Fixed64Kind.
+func buildUint64Field(name string, fd protoreflect.FieldDescriptor, optional bool) (ent.Field, error) {
+	required, celResidual, celEntries, err := resolvedFieldRules(fd)
+	if err != nil {
+		return nil, err
+	}
+	sb := field.Uint64(name)
+	var translated, residual []string
+	var entries []residualEntry
+
+	rules, rerr := protovalidate.ResolveFieldRules(fd)
+	if rerr != nil {
+		return nil, fmt.Errorf("resolving protovalidate field rules: %w", rerr)
+	}
+	if rules != nil {
+		switch {
+		case rules.HasUint64():
+			r, e := recordAnyRangeResidual(rules.GetUint64(), "uint64")
+			residual = append(residual, r...)
+			entries = append(entries, e...)
+		case rules.HasFixed64():
+			r, e := recordAnyRangeResidual(rules.GetFixed64(), "fixed64")
+			residual = append(residual, r...)
+			entries = append(entries, e...)
+		}
+	}
+	residual = append(residual, celResidual...)
+	entries = append(entries, celEntries...)
+
+	switch classifyRequired(optional, required, false) {
+	case requiredExactPresence:
+		translated = append(translated, "required")
+	case requiredOptionalPlain:
+		sb = sb.Nillable().Optional()
+	case requiredResidualZero:
+		residual = append(residual, "required")
+		sb = sb.Default(0)
+	default:
+		sb = sb.Default(0)
+	}
+
+	sf := finalizeSourceField(fd, scalarClass(optional), translated, residual, nil, entries)
+	return sb.Annotations(sf), nil
+}
+
+// buildFloat32Field builds FloatKind, applying D-12's floating-point
+// posture: gt/lt are always residual, never widened to gte/lte; gte/lte
+// translate exactly.
+func buildFloat32Field(name string, fd protoreflect.FieldDescriptor, optional bool) (ent.Field, error) {
+	required, celResidual, celEntries, err := resolvedFieldRules(fd)
+	if err != nil {
+		return nil, err
+	}
+	sb := field.Float32(name)
+	var translated, residual []string
+	var entries []residualEntry
+
+	rules, rerr := protovalidate.ResolveFieldRules(fd)
+	if rerr != nil {
+		return nil, fmt.Errorf("resolving protovalidate field rules: %w", rerr)
+	}
+	if rules != nil && rules.HasFloat() {
+		sb, translated, residual, entries = applyFloatRange[float32](sb, rules.GetFloat(), "float")
+	}
+	residual = append(residual, celResidual...)
+	entries = append(entries, celEntries...)
+
+	switch classifyRequired(optional, required, false) {
+	case requiredExactPresence:
+		translated = append(translated, "required")
+	case requiredOptionalPlain:
+		sb = sb.Nillable().Optional()
+	case requiredResidualZero:
+		residual = append(residual, "required")
+		sb = sb.Default(0)
+	default:
+		sb = sb.Default(0)
+	}
+
+	sf := finalizeSourceField(fd, scalarClass(optional), translated, residual, nil, entries)
+	return sb.Annotations(sf), nil
+}
+
+// buildFloat64Field mirrors buildFloat32Field for DoubleKind.
+func buildFloat64Field(name string, fd protoreflect.FieldDescriptor, optional bool) (ent.Field, error) {
+	required, celResidual, celEntries, err := resolvedFieldRules(fd)
+	if err != nil {
+		return nil, err
+	}
+	sb := field.Float(name)
+	var translated, residual []string
+	var entries []residualEntry
+
+	rules, rerr := protovalidate.ResolveFieldRules(fd)
+	if rerr != nil {
+		return nil, fmt.Errorf("resolving protovalidate field rules: %w", rerr)
+	}
+	if rules != nil && rules.HasDouble() {
+		sb, translated, residual, entries = applyFloatRange[float64](sb, rules.GetDouble(), "double")
+	}
+	residual = append(residual, celResidual...)
+	entries = append(entries, celEntries...)
+
+	switch classifyRequired(optional, required, false) {
+	case requiredExactPresence:
+		translated = append(translated, "required")
+	case requiredOptionalPlain:
+		sb = sb.Nillable().Optional()
+	case requiredResidualZero:
+		residual = append(residual, "required")
+		sb = sb.Default(0)
+	default:
+		sb = sb.Default(0)
+	}
+
+	sf := finalizeSourceField(fd, scalarClass(optional), translated, residual, nil, entries)
+	return sb.Annotations(sf), nil
+}
+
+// buildBoolField builds BoolKind. No Tier 1 range/format translation
+// applies to bool (no such protovalidate constraint class); `required`
+// still follows VAL-03's matrix — exact for a presence-tracking field
+// (non-optional construction), residual for a plain one (bool has no
+// typed .Validate()/.NotEmpty()-equivalent, D-12's established posture).
+func buildBoolField(name string, fd protoreflect.FieldDescriptor, optional bool) (ent.Field, error) {
+	required, celResidual, celEntries, err := resolvedFieldRules(fd)
+	if err != nil {
+		return nil, err
+	}
+	sb := field.Bool(name)
+	var translated []string
+	residual := append([]string{}, celResidual...)
+	entries := append([]residualEntry{}, celEntries...)
+
+	switch classifyRequired(optional, required, false) {
+	case requiredExactPresence:
+		translated = append(translated, "required")
+	case requiredOptionalPlain:
+		sb = sb.Nillable().Optional()
+	case requiredResidualZero:
+		residual = append(residual, "required")
+		sb = sb.Default(false)
+	default:
+		sb = sb.Default(false)
+	}
+
+	sf := finalizeSourceField(fd, scalarClass(optional), translated, residual, nil, entries)
+	return sb.Annotations(sf), nil
+}
+
+// buildStringField builds StringKind: the full VAL-01 translation
+// (byte-semantic and code-point bounds, pattern, D-13's format-validator
+// split) plus VAL-03's required handling, which IS exact here in both
+// presence states via NotEmpty() (D-13/Task 2's behavior spec).
+func buildStringField(name string, fd protoreflect.FieldDescriptor, optional bool) (ent.Field, error) {
+	required, celResidual, celEntries, err := resolvedFieldRules(fd)
+	if err != nil {
+		return nil, err
+	}
+	sb := field.String(name)
+	var translated, divergent, residual []string
+	var entries []residualEntry
+	residual = append(residual, celResidual...)
+	entries = append(entries, celEntries...)
+
+	rules, rerr := protovalidate.ResolveFieldRules(fd)
+	if rerr != nil {
+		return nil, fmt.Errorf("resolving protovalidate field rules: %w", rerr)
+	}
+	if rules != nil {
+		if sr := rules.GetString_(); sr != nil {
+			sb, translated, divergent, err = applyStringConstraints(sb, sr)
+			if err != nil {
+				return nil, err
+			}
+			var fTranslated, fResidual string
+			var fEntry *residualEntry
+			sb, fTranslated, fResidual, fEntry, err = applyStringFormat(sb, fd, sr)
+			if err != nil {
+				return nil, err
+			}
+			if fTranslated != "" {
+				translated = append(translated, fTranslated)
+			}
+			if fResidual != "" {
+				residual = append(residual, fResidual)
+				if fEntry != nil {
+					entries = append(entries, *fEntry)
+				}
+			}
+		}
+	}
+
+	switch classifyRequired(optional, required, true) {
+	case requiredExactNotEmpty:
+		sb = sb.NotEmpty()
+		translated = append(translated, "required")
+	case requiredOptionalPlain:
+		sb = sb.Nillable().Optional()
+	default: // requiredNone (classifyRequired never returns requiredExactPresence/requiredResidualZero when hasNotEmpty is true)
+		sb = sb.Default("")
+	}
+
+	sf := finalizeSourceField(fd, scalarClass(optional), translated, residual, divergent, entries)
+	return sb.Annotations(sf), nil
+}
+
+// buildBytesField builds BytesKind. bytesBuilder shares NotEmpty() with
+// stringBuilder, so `required` is exact here too (both presence states);
+// byte-semantic min_len/max_len/pattern translation for bytes.* rules is
+// out of this plan's scope (VAL-01 names "string" specifically) and is
+// left for a follow-up — a documented boundary, not a silent drop, since
+// this plan's corpus carries no bytes.* constraints to lose.
+func buildBytesField(name string, fd protoreflect.FieldDescriptor, optional bool) (ent.Field, error) {
+	required, celResidual, celEntries, err := resolvedFieldRules(fd)
+	if err != nil {
+		return nil, err
+	}
+	sb := field.Bytes(name)
+	translated := []string{}
+	residual := append([]string{}, celResidual...)
+	entries := append([]residualEntry{}, celEntries...)
+
+	rules, rerr := protovalidate.ResolveFieldRules(fd)
+	if rerr != nil {
+		return nil, fmt.Errorf("resolving protovalidate field rules: %w", rerr)
+	}
+	if rules != nil && rules.HasBytes() {
+		r, e := recordBytesResidual(rules.GetBytes())
+		residual = append(residual, r...)
+		entries = append(entries, e...)
+	}
+
+	switch classifyRequired(optional, required, true) {
+	case requiredExactNotEmpty:
+		sb = sb.NotEmpty()
+		translated = append(translated, "required")
+	case requiredOptionalPlain:
+		sb = sb.Nillable().Optional()
+	default:
+		sb = sb.Default(nil)
+	}
+
+	sf := finalizeSourceField(fd, scalarClass(optional), translated, residual, nil, entries)
+	return sb.Annotations(sf), nil
 }
 
 // mapEnum handles MIX-03: field.Enum(name).Values(...) built by

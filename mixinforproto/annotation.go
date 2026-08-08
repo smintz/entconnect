@@ -90,6 +90,16 @@ type SourceField struct {
 	// constraints' CEL expression strings, the handoff Phase 3 uses to
 	// detect that the recorded residuals still match the contract.
 	ResidualFingerprint string `json:"residualFingerprint"`
+	// LengthUnitDivergentIDs lists the subset of TranslatedIDs that are
+	// known to compare Unicode code points (protovalidate's
+	// string.min_len/max_len/len) against bytes (ent's MinLen/MaxLen) —
+	// 01-05-PLAN.md Task 1's resolved decision (option-c): mapped
+	// directly rather than widened or treated as residual, with the
+	// divergence recorded here so it is machine-visible to Phase 3's
+	// differential harness and Phase 5's fingerprint comparison, not
+	// documentation-only. Empty for every constraint that does not carry
+	// this caveat (byte-semantic bounds, non-string constraints).
+	LengthUnitDivergentIDs []string `json:"lengthUnitDivergentIDs"`
 }
 
 // Name implements entgo.io/ent/schema.Annotation.

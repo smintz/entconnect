@@ -1,20 +1,22 @@
 [
   {
-    "name": "maybe",
+    "name": "value",
     "typeKind": "string",
-    "nillable": true,
-    "optional": true,
+    "nillable": false,
+    "optional": false,
     "immutable": false,
-    "default": "",
-    "validatorCount": 0,
+    "default": "\"\"",
+    "validatorCount": 1,
     "storageKey": "",
     "comment": "",
     "sourceField": {
       "contractVersion": 1,
-      "name": "maybe",
-      "number": 3,
-      "kind": "optionalScalar",
-      "translatedIDs": [],
+      "name": "value",
+      "number": 1,
+      "kind": "scalar",
+      "translatedIDs": [
+        "string.hostname"
+      ],
       "residualIDs": [],
       "residualFingerprint": "",
       "lengthUnitDivergentIDs": []

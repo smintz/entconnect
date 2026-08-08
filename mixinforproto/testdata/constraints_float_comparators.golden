@@ -1,62 +1,69 @@
 [
   {
-    "name": "timestamp_field",
-    "typeKind": "time.Time",
+    "name": "gt_field",
+    "typeKind": "float32",
     "nillable": false,
     "optional": false,
     "immutable": false,
-    "default": "",
+    "default": "0",
     "validatorCount": 0,
     "storageKey": "",
     "comment": "",
     "sourceField": {
       "contractVersion": 1,
-      "name": "timestamp_field",
+      "name": "gt_field",
       "number": 1,
-      "kind": "wkt",
+      "kind": "scalar",
       "translatedIDs": [],
-      "residualIDs": [],
-      "residualFingerprint": "",
+      "residualIDs": [
+        "float.gt"
+      ],
+      "residualFingerprint": "c2861199ee988926cc042cfb8a004fd086e260aaa2445e0aceb2504310948366",
       "lengthUnitDivergentIDs": []
     }
   },
   {
-    "name": "struct_field",
-    "typeKind": "json.RawMessage",
+    "name": "lt_field",
+    "typeKind": "float32",
     "nillable": false,
     "optional": false,
     "immutable": false,
-    "default": "",
+    "default": "0",
     "validatorCount": 0,
     "storageKey": "",
     "comment": "",
     "sourceField": {
       "contractVersion": 1,
-      "name": "struct_field",
+      "name": "lt_field",
       "number": 2,
-      "kind": "wkt",
+      "kind": "scalar",
       "translatedIDs": [],
-      "residualIDs": [],
-      "residualFingerprint": "",
+      "residualIDs": [
+        "float.lt"
+      ],
+      "residualFingerprint": "6960d0879f70ab5701f2f8e64f52b91f8b73fb8bd28b2c4e307dc15c2fdede72",
       "lengthUnitDivergentIDs": []
     }
   },
   {
-    "name": "value_field",
-    "typeKind": "json.RawMessage",
+    "name": "gte_lte_field",
+    "typeKind": "float32",
     "nillable": false,
     "optional": false,
     "immutable": false,
-    "default": "",
-    "validatorCount": 0,
+    "default": "0",
+    "validatorCount": 1,
     "storageKey": "",
     "comment": "",
     "sourceField": {
       "contractVersion": 1,
-      "name": "value_field",
+      "name": "gte_lte_field",
       "number": 3,
-      "kind": "wkt",
-      "translatedIDs": [],
+      "kind": "scalar",
+      "translatedIDs": [
+        "float.gte",
+        "float.lte"
+      ],
       "residualIDs": [],
       "residualFingerprint": "",
       "lengthUnitDivergentIDs": []

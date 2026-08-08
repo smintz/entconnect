@@ -1,20 +1,22 @@
 [
   {
-    "name": "as_json_target",
-    "typeKind": "json.RawMessage",
+    "name": "valid_pattern",
+    "typeKind": "string",
     "nillable": false,
     "optional": false,
     "immutable": false,
-    "default": "",
-    "validatorCount": 0,
+    "default": "\"\"",
+    "validatorCount": 1,
     "storageKey": "",
     "comment": "",
     "sourceField": {
       "contractVersion": 1,
-      "name": "as_json_target",
-      "number": 3,
-      "kind": "asJSON",
-      "translatedIDs": [],
+      "name": "valid_pattern",
+      "number": 1,
+      "kind": "scalar",
+      "translatedIDs": [
+        "string.pattern"
+      ],
       "residualIDs": [],
       "residualFingerprint": "",
       "lengthUnitDivergentIDs": []

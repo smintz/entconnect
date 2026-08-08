@@ -4,6 +4,12 @@ modules:
 lint:
   use:
     - STANDARD
+  ignore:
+    # buf/validate/validate.proto is a vendored, upstream-owned file (see
+    # buf/validate/validate.proto's own header comment for provenance) —
+    # this repo does not own its package-naming convention, so linting it
+    # against our own STANDARD ruleset is not meaningful.
+    - buf/validate
 breaking:
   use:
     - FILE
