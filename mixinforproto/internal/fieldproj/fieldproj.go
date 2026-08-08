@@ -129,6 +129,16 @@ func ProjectAll(fs []ent.Field) []Field {
 // by this plan's derivation but defensively handled here) renders as a
 // fixed placeholder rather than an address that would vary across runs
 // and break the byte-identical golden guarantee (D-24).
+//
+// Non-nil values render via the "%#v" Go-syntax verb, not fmt.Sprint:
+// a plain (non-optional) proto3 string field's Default is the Go zero
+// value "", which fmt.Sprint renders as the empty string — byte-for-byte
+// indistinguishable from "no default was set" (the nil case above).
+// "%#v" renders it as the 2-character `""`, so "a default is present"
+// is always detectable from the rendered string alone, which is exactly
+// the distinction MIX-05's plain-vs-optional golden assertions depend
+// on (a plain scalar must show a non-empty Default; an optional scalar
+// must show none at all).
 func stableDefault(v any) string {
 	if v == nil {
 		return ""
@@ -136,5 +146,5 @@ func stableDefault(v any) string {
 	if rv := reflect.ValueOf(v); rv.Kind() == reflect.Func {
 		return "<func>"
 	}
-	return fmt.Sprint(v)
+	return fmt.Sprintf("%#v", v)
 }

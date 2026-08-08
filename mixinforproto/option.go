@@ -54,6 +54,18 @@ func (o *options) isAsJSON(name string) bool {
 	return o.asJSON[name]
 }
 
+// AsJSON opts a message-typed proto field into JSON-field derivation
+// (MIX-09): by default, message-typed fields are skipped entirely.
+// Naming a field that does not exist, an empty string, or a field that
+// is not message-typed fails loudly at schema load — see
+// fieldmap.go#validateAsJSON — never silently accepted or silently
+// dropped.
+func AsJSON(name string) Option {
+	return func(o *options) {
+		o.asJSON[name] = true
+	}
+}
+
 // excludedNames returns the excluded field names in sorted order, so
 // SourceMessage.Excluded is deterministic (D-24) regardless of the map's
 // iteration order.
@@ -65,6 +77,13 @@ func (o *options) excludedNames() []string {
 // for the same reason as excludedNames.
 func (o *options) overriddenNames() []string {
 	return sortedKeys(o.overridden)
+}
+
+// asJSONNames returns the AsJSON-opted-in field names in sorted order,
+// for the same reason as excludedNames — this is what makes
+// validateAsJSON's error output diffable (D-24).
+func (o *options) asJSONNames() []string {
+	return sortedKeys(o.asJSON)
 }
 
 // sortedKeys returns m's keys in sorted order — never range a map
