@@ -41,7 +41,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 > `github.com/cel-expr/cel-go` module path was verified **non-functional** (its own `go.mod` still
 > declares the old path); Phase 3 must re-verify before choosing an import path.
 
-**Plans**: 5/5 plans executed
+**Plans**: 5/5 original plans executed; 4 gap-closure plans added after `01-VERIFICATION.md` returned `gaps_found` (3/5 success criteria verified, 22/25 requirement IDs satisfied). Failed requirement IDs: MIX-02, VAL-01, VAL-03, PIPE-03.
 Plans:
 **Wave 1**
 
@@ -56,6 +56,19 @@ Plans:
 
 - [x] 01-04-PLAN.md — Exclude/Override options, reserved-identifier and oneof gates, collected failures, and in-process reproduction
 - [x] 01-05-PLAN.md — Tier 1 validation relay: string, presence and numeric translation with residual provenance recording
+
+**Gap Closure Wave 1** *(closes `01-VERIFICATION.md` gaps; runs after the five original plans)*
+
+- [ ] 01-06-PLAN.md — Gap 1 (MIX-02/SC1): `classify()` gains the missing `IsList()` branch so repeated scalars/enums fail at schema load instead of silently deriving singular fields
+- [ ] 01-07-PLAN.md — Gap 4 (PIPE-03): one shared stub-generation script, an orphan-aware staleness gate runnable via `make check-stubs`, and three executed detection proofs
+
+**Gap Closure Wave 2** *(blocked on Gap Closure Wave 1)*
+
+- [ ] 01-08-PLAN.md — Gaps 2 and 3 (VAL-01/VAL-03): delegated format validators judge only their own field, and `required` on a presence-tracking string/bytes means presence, not non-emptiness
+
+**Gap Closure Wave 3** *(blocked on Gap Closure Wave 2)*
+
+- [ ] 01-09-PLAN.md — Root cause: corpus-adequacy guards making "the corpus avoids this shape" a detectable condition rather than a silent one
 
 ### Phase 2: CRUD Handlers & Interceptor Chain
 
