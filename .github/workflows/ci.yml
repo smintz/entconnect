@@ -1,0 +1,95 @@
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+# Concurrency note: scripts/pipeline.sh documents itself as serial-only
+# because steps 2/3 write generated output to fixed paths. These three
+# jobs never share a checkout at runtime (each gets its own GitHub Actions
+# runner and its own `actions/checkout`), so running them concurrently as
+# separate jobs does not violate that constraint — only running the
+# pipeline script itself twice against ONE checkout would.
+jobs:
+  # modules: builds/vets/tests BOTH modules from the explicit MODULES list
+  # (D-16, PIPE-03). Never `go build ./...` from the repo root alone — Go
+  # does not descend into mixinforproto's nested go.mod, so a root-only
+  # job would go green while mixinforproto is silently broken
+  # (PITFALLS.md Pitfall 12, trap 1).
+  modules:
+    name: modules
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.26"
+
+      - name: Build both modules
+        run: make build
+
+      - name: Vet both modules
+        run: make vet
+
+      - name: Test both modules
+        run: make test
+
+      - name: Verify no committed go.mod declares a local-path substitution
+        run: make check-modules
+
+  # standalone: the dedicated GOWORK=off job required by D-17/PIPE-02.
+  # Runs in a checkout that still CONTAINS go.work, relying on the
+  # GOWORK=off environment variable to ignore it — proving standalone
+  # consumption without workspace resolution papering over a missing
+  # dependency (ARCHITECTURE.md Anti-Pattern 5). Deleting go.work instead
+  # of setting GOWORK=off would test a different thing.
+  standalone:
+    name: standalone
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.26"
+
+      - name: Confirm go.work is present in this checkout
+        run: test -f go.work
+
+      - name: Build and test mixinforproto standalone (GOWORK=off)
+        run: make test-standalone
+
+  # stubs: the Pitfall 9 / D-22 staleness gate. Regenerates the corpus
+  # into a TEMPORARY directory (never the working tree — a CI job must
+  # not mutate the checkout, and this same wave's Plan 02 owns these
+  # committed files) and diffs it against the committed stubs. Any
+  # difference fails the job and names the stale file.
+  stubs:
+    name: stubs
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.26"
+
+      - name: Install buf (pinned)
+        run: go install github.com/bufbuild/buf/cmd/buf@v1.72.0
+
+      - name: Install protoc-gen-go (pinned)
+        run: go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.36.11
+
+      - name: Regenerate corpus into a temp directory and diff against committed stubs
+        run: |
+          export PATH="$PATH:$(go env GOPATH)/bin"
+          TMP="$(mktemp -d)"
+          git archive HEAD | tar -x -C "$TMP"
+          (cd "$TMP/proto" && buf generate)
+          if ! diff -rq mixinforproto/internal/gen "$TMP/mixinforproto/internal/gen"; then
+            echo "::error::Committed generated stubs under mixinforproto/internal/gen are stale relative to proto/ sources (see diff above). Run scripts/pipeline.sh and commit the result."
+            exit 1
+          fi
+          echo "Committed generated stubs match a fresh regeneration from proto/ sources."
