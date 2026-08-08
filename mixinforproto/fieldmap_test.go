@@ -260,3 +260,92 @@ func TestAsJSON(t *testing.T) {
 		}
 	})
 }
+
+// TestRepeatedCardinality closes 01-VERIFICATION.md gap 1 (MIX-02/CR-01,
+// 01-06-PLAN.md): classify() must be total over cardinality. A repeated
+// scalar or enum field must never silently derive as a singular ent
+// field, dropping the contract's cardinality — it must fail at schema
+// load with a self-sufficient, Exclude/Override-remedied first line, per
+// D-08/D-09/D-10. Repeated message fields keep their existing
+// MIX-09/MIX-10 skip-by-default/AsJSON opt-in behavior exactly as
+// before — that sub-test is the regression guard, not the gap prover,
+// and passes both before and after fieldmap.go's fix.
+func TestRepeatedCardinality(t *testing.T) {
+	t.Run("repeated scalar fails at schema load", func(t *testing.T) {
+		d, err := derive[*mixinforprototestv1.RepeatedScalar]()
+		if err == nil {
+			f := fieldByName(d, "tags")
+			t.Fatalf("want an error for a repeated scalar field, got nil (repeated cardinality silently dropped): derived field %+v", f)
+		}
+		for _, want := range []string{"mixinforprototest.v1.RepeatedScalar", "tags", "repeated", "Exclude(", "Override("} {
+			if !strings.Contains(err.Error(), want) {
+				t.Fatalf("error %q missing %q", err.Error(), want)
+			}
+		}
+		if strings.Contains(err.Error(), "\n") {
+			t.Fatalf("first line must not contain a newline (D-08): %q", err.Error())
+		}
+	})
+
+	t.Run("repeated enum fails at schema load", func(t *testing.T) {
+		_, err := derive[*mixinforprototestv1.RepeatedEnum]()
+		if err == nil {
+			t.Fatal("want an error for a repeated enum field, got nil (repeated cardinality silently dropped)")
+		}
+		for _, want := range []string{"mixinforprototest.v1.RepeatedEnum", "statuses", "repeated", "Exclude(", "Override("} {
+			if !strings.Contains(err.Error(), want) {
+				t.Fatalf("error %q missing %q", err.Error(), want)
+			}
+		}
+	})
+
+	t.Run("repeated field with constraints fails loudly, not silently discarded", func(t *testing.T) {
+		// D-11: a repeated field carrying repeated.items rules is not
+		// exempt from the loud-failure posture — its constraints must
+		// not be silently discarded by deriving anyway.
+		_, err := derive[*mixinforprototestv1.RepeatedItemsFormat]()
+		if err == nil {
+			t.Fatal("want an error for a repeated field carrying repeated.items rules, got nil")
+		}
+		for _, want := range []string{"mixinforprototest.v1.RepeatedItemsFormat", "urls", "repeated", "Exclude(", "Override("} {
+			if !strings.Contains(err.Error(), want) {
+				t.Fatalf("error %q missing %q", err.Error(), want)
+			}
+		}
+	})
+
+	t.Run("repeated message field keeps skip-by-default behavior", func(t *testing.T) {
+		d, err := derive[*mixinforprototestv1.RepeatedMessage]()
+		if err != nil {
+			t.Fatalf("derive: %v (repeated message fields must keep skipping by default)", err)
+		}
+		if len(d.fields) != 0 {
+			t.Fatalf("want zero derived fields for an un-opted-in repeated message field, got %d", len(d.fields))
+		}
+	})
+
+	t.Run("repeated message field honors AsJSON opt-in", func(t *testing.T) {
+		d, err := derive[*mixinforprototestv1.RepeatedMessage](AsJSON("items"))
+		if err != nil {
+			t.Fatalf("derive: %v", err)
+		}
+		if len(d.fields) != 1 {
+			t.Fatalf("want exactly 1 derived field, got %d", len(d.fields))
+		}
+		f := fieldByName(d, "items")
+		if f == nil || f.TypeKind != "json.RawMessage" {
+			t.Fatalf("want items to derive as a JSON field, got %+v", f)
+		}
+	})
+
+	t.Run("Validate parity with derive (MIX-12)", func(t *testing.T) {
+		_, derivErr := derive[*mixinforprototestv1.RepeatedScalar]()
+		validateErr := Validate[*mixinforprototestv1.RepeatedScalar]()
+		if derivErr == nil || validateErr == nil {
+			t.Fatalf("want both derive and Validate to error; derive=%v validate=%v", derivErr, validateErr)
+		}
+		if derivErr.Error() != validateErr.Error() {
+			t.Fatalf("derive/Validate error mismatch:\nderive:   %q\nvalidate: %q", derivErr.Error(), validateErr.Error())
+		}
+	})
+}
