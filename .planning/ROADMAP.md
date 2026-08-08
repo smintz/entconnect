@@ -41,7 +41,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 > `github.com/cel-expr/cel-go` module path was verified **non-functional** (its own `go.mod` still
 > declares the old path); Phase 3 must re-verify before choosing an import path.
 
-**Plans**: 4/5 plans executed
+**Plans**: 5/5 plans executed
 Plans:
 **Wave 1**
 
@@ -55,7 +55,7 @@ Plans:
 **Wave 3** *(blocked on Wave 2 completion)*
 
 - [x] 01-04-PLAN.md — Exclude/Override options, reserved-identifier and oneof gates, collected failures, and in-process reproduction
-- [ ] 01-05-PLAN.md — Tier 1 validation relay: string, presence and numeric translation with residual provenance recording
+- [x] 01-05-PLAN.md — Tier 1 validation relay: string, presence and numeric translation with residual provenance recording
 
 ### Phase 2: CRUD Handlers & Interceptor Chain
 
@@ -128,7 +128,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. MixinForProto Core | 4/5 | In Progress|  |
+| 1. MixinForProto Core | 5/5 | In Progress|  |
 | 2. CRUD Handlers & Interceptor Chain | 0/TBD | Not started | - |
 | 3. Validation Fidelity | 0/TBD | Not started | - |
 | 4. Flow Binding | 0/TBD | Not started | - |
