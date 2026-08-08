@@ -5,15 +5,15 @@ milestone_name: milestone
 current_phase: 1
 current_phase_name: MixinForProto Core
 status: executing
-stopped_at: Phase 1 context gathered
-last_updated: "2026-08-08T10:02:22.713Z"
+stopped_at: Completed 01-01-PLAN.md
+last_updated: "2026-08-08T10:22:12.426Z"
 last_activity: 2026-08-08
 last_activity_desc: Roadmap created from 62 v1 requirements across 5 phases
 progress:
   total_phases: 1
   completed_phases: 0
   total_plans: 5
-  completed_plans: 0
+  completed_plans: 1
 ---
 
 # Project State
@@ -28,11 +28,11 @@ See: .planning/PROJECT.md (updated 2026-08-08)
 ## Current Position
 
 Phase: 1 (MixinForProto Core) — EXECUTING
-Plan: 1 of 5
-Status: Executing Phase 1
+Plan: 2 of 5
+Status: Ready to execute
 Last activity: 2026-08-08 — Phase 1 execution started
 
-Progress: [░░░░░░░░░░] 0%
+Progress: [██░░░░░░░░] 20%
 
 ## Performance Metrics
 
@@ -54,6 +54,11 @@ Progress: [░░░░░░░░░░] 0%
 - Trend: -
 
 *Updated after each plan completion*
+**Per-Plan Metrics:**
+
+| Plan | Duration | Tasks | Files |
+|------|----------|-------|-------|
+| Phase 01 P01 | 55min | 3 tasks | 16 files |
 
 ## Accumulated Context
 
@@ -66,6 +71,9 @@ Recent decisions affecting current work:
 - Roadmap: FieldMask-gated Update (CRUD-04/05) ships in the same phase as Update RPC codegen (Phase 2) — the proto3 zero-collapse pitfall bites exactly there
 - Roadmap: Flow binding (Phase 4) sequenced after CRUD and validation phases since it depends on the external, not-yet-built entflow project
 - Roadmap: Full drift check (Phase 5) is a pure function of Phases 1-4 outputs, sequenced last
+- [Phase ?]: Task 1 checkpoint: module path github.com/smintz/entconnect/mixinforproto, nested module, mixinforproto/vX.Y.Z tag convention (no tag pushed)
+- [Phase ?]: Task 2 checkpoint: integer ContractVersion=1 on SourceMessage/SourceField, additive-only versioning
+- [Phase ?]: SourceField.Name renamed to FieldName (Go identifier only, JSON key stays 'name') to resolve a field/method name collision with schema.Annotation.Name()
 
 ### Pending Todos
 
@@ -87,6 +95,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-08-08T09:06:47.441Z
-Stopped at: Phase 1 context gathered
-Resume file: .planning/phases/01-mixinforproto-core/01-CONTEXT.md
+Last session: 2026-08-08T10:22:12.413Z
+Stopped at: Completed 01-01-PLAN.md
+Resume file: None

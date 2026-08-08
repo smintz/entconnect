@@ -9,7 +9,7 @@ Requirements for the initial release (entconnect through v0.3: MixinForProto + C
 
 ### Mixin Core (`mixinforproto`)
 
-- [ ] **MIX-01**: Developer can declare `entconnect.MixinForProto[*orderv1.Order]()` in a schema's `Mixin()` and get ent fields materialized from the message descriptor, with no committed descriptor file and no string message names
+- [x] **MIX-01**: Developer can declare `entconnect.MixinForProto[*orderv1.Order]()` in a schema's `Mixin()` and get ent fields materialized from the message descriptor, with no committed descriptor file and no string message names
 - [ ] **MIX-02**: Mixin maps proto scalar types to their corresponding ent field builders
 - [ ] **MIX-03**: Mixin maps proto `enum` fields to `field.Enum` with the enum's declared values
 - [ ] **MIX-04**: Mixin maps `google.protobuf.Timestamp` to `field.Time`, `Struct`/`Value` to `field.JSON`, and skips `FieldMask`
@@ -21,15 +21,15 @@ Requirements for the initial release (entconnect through v0.3: MixinForProto + C
 - [ ] **MIX-10**: Message-typed fields are skipped by default; a `oneof` fails at schema load unless every member is excluded or overridden
 - [ ] **MIX-11**: Every schema-load failure names the offending message, field, and option, and states the fix — not a bare Go panic (entc runs schema load in a subprocess that discards stack traces)
 - [ ] **MIX-12**: Developer can reproduce any schema-load failure in-process for debugging, without going through `go generate`
-- [ ] **MIX-13**: Fields are emitted in a deterministic order independent of Go map iteration
-- [ ] **MIX-14**: `mixinforproto` builds and tests as an independent module depending only on `ent`, `google.golang.org/protobuf`, and the protovalidate/CEL toolchain
+- [x] **MIX-13**: Fields are emitted in a deterministic order independent of Go map iteration
+- [x] **MIX-14**: `mixinforproto` builds and tests as an independent module depending only on `ent`, `google.golang.org/protobuf`, and the protovalidate/CEL toolchain
 
 ### Annotation Contract
 
-- [ ] **ANNO-01**: Mixin records source-message provenance on the schema as an ent annotation surviving entc's schema-load JSON serialization
-- [ ] **ANNO-02**: Mixin records per-field provenance (source field name, derivation kind, applied constraints) as ent annotations readable from `gen.Graph`
+- [x] **ANNO-01**: Mixin records source-message provenance on the schema as an ent annotation surviving entc's schema-load JSON serialization
+- [x] **ANNO-02**: Mixin records per-field provenance (source field name, derivation kind, applied constraints) as ent annotations readable from `gen.Graph`
 - [ ] **ANNO-03**: Mixin records `Exclude` and `Override` decisions as annotations, so codegen can distinguish deliberate omission from accidental drift
-- [ ] **ANNO-04**: Annotation structs carry a version marker so codegen can detect and report a mixin/extension version mismatch
+- [x] **ANNO-04**: Annotation structs carry a version marker so codegen can detect and report a mixin/extension version mismatch
 
 ### Validation Relay
 
@@ -85,9 +85,9 @@ Requirements for the initial release (entconnect through v0.3: MixinForProto + C
 ### Pipeline & Distribution
 
 - [ ] **PIPE-01**: A documented, scripted build pipeline runs `buf lint`, `buf generate`, the separate `buf build -o --as-file-descriptor-set` step, `go generate ./...`, and `atlas migrate diff` in order
-- [ ] **PIPE-02**: A `go.work` file makes local development across both modules work, and a `GOWORK=off` CI job proves `mixinforproto` is consumable at its tagged version
+- [x] **PIPE-02**: A `go.work` file makes local development across both modules work, and a `GOWORK=off` CI job proves `mixinforproto` is consumable at its tagged version
 - [ ] **PIPE-03**: CI enumerates and tests both modules explicitly rather than relying on `./...`
-- [ ] **PIPE-04**: `mixinforproto` releases under `mixinforproto/vX.Y.Z` tags and carries no `replace` directives
+- [x] **PIPE-04**: `mixinforproto` releases under `mixinforproto/vX.Y.Z` tags and carries no `replace` directives
 - [ ] **PIPE-05**: A conformance corpus covers every field-mapping rule and every protovalidate constraint class, golden-asserted against derived fields
 - [ ] **PIPE-06**: A differential harness generates random values per corpus message and asserts `protovalidate verdict == ent mutation verdict` for field-scoped rules
 - [ ] **PIPE-07**: A reference Order/Inventory application builds end-to-end through the full pipeline in CI, with connect-go client tests against generated handlers
@@ -143,7 +143,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| MIX-01 | Phase 1 | Pending |
+| MIX-01 | Phase 1 | Complete |
 | MIX-02 | Phase 1 | Pending |
 | MIX-03 | Phase 1 | Pending |
 | MIX-04 | Phase 1 | Pending |
@@ -155,19 +155,19 @@ Which phases cover which requirements. Updated during roadmap creation.
 | MIX-10 | Phase 1 | Pending |
 | MIX-11 | Phase 1 | Pending |
 | MIX-12 | Phase 1 | Pending |
-| MIX-13 | Phase 1 | Pending |
-| MIX-14 | Phase 1 | Pending |
-| ANNO-01 | Phase 1 | Pending |
-| ANNO-02 | Phase 1 | Pending |
+| MIX-13 | Phase 1 | Complete |
+| MIX-14 | Phase 1 | Complete |
+| ANNO-01 | Phase 1 | Complete |
+| ANNO-02 | Phase 1 | Complete |
 | ANNO-03 | Phase 1 | Pending |
-| ANNO-04 | Phase 1 | Pending |
+| ANNO-04 | Phase 1 | Complete |
 | VAL-01 | Phase 1 | Pending |
 | VAL-02 | Phase 1 | Pending |
 | VAL-03 | Phase 1 | Pending |
 | PIPE-01 | Phase 1 | Pending |
-| PIPE-02 | Phase 1 | Pending |
+| PIPE-02 | Phase 1 | Complete |
 | PIPE-03 | Phase 1 | Pending |
-| PIPE-04 | Phase 1 | Pending |
+| PIPE-04 | Phase 1 | Complete |
 | PIPE-08 | Phase 1 | Pending |
 | CRUD-01 | Phase 2 | Pending |
 | CRUD-02 | Phase 2 | Pending |
@@ -207,6 +207,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | PIPE-07 | Phase 5 | Pending |
 
 **Coverage:**
+
 - v1 requirements: 62 total (corrected from initial count of 57 during roadmap creation — recount against the checklist confirms 62 `- [ ]` v1 items)
 - Mapped to phases: 62/62 ✓
 - Unmapped: 0 ✓
