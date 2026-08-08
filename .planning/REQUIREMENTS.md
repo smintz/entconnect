@@ -84,14 +84,14 @@ Requirements for the initial release (entconnect through v0.3: MixinForProto + C
 
 ### Pipeline & Distribution
 
-- [ ] **PIPE-01**: A documented, scripted build pipeline runs `buf lint`, `buf generate`, the separate `buf build -o --as-file-descriptor-set` step, `go generate ./...`, and `atlas migrate diff` in order
+- [x] **PIPE-01**: A documented, scripted build pipeline runs `buf lint`, `buf generate`, the separate `buf build -o --as-file-descriptor-set` step, `go generate ./...`, and `atlas migrate diff` in order
 - [x] **PIPE-02**: A `go.work` file makes local development across both modules work, and a `GOWORK=off` CI job proves `mixinforproto` is consumable at its tagged version
-- [ ] **PIPE-03**: CI enumerates and tests both modules explicitly rather than relying on `./...`
+- [x] **PIPE-03**: CI enumerates and tests both modules explicitly rather than relying on `./...`
 - [x] **PIPE-04**: `mixinforproto` releases under `mixinforproto/vX.Y.Z` tags and carries no `replace` directives
 - [ ] **PIPE-05**: A conformance corpus covers every field-mapping rule and every protovalidate constraint class, golden-asserted against derived fields
 - [ ] **PIPE-06**: A differential harness generates random values per corpus message and asserts `protovalidate verdict == ent mutation verdict` for field-scoped rules
 - [ ] **PIPE-07**: A reference Order/Inventory application builds end-to-end through the full pipeline in CI, with connect-go client tests against generated handlers
-- [ ] **PIPE-08**: `mixinforproto` ships with documentation covering the proto3 presence/zero-collapse behavior prominently enough that adopters meet it before it surprises them
+- [x] **PIPE-08**: `mixinforproto` ships with documentation covering the proto3 presence/zero-collapse behavior prominently enough that adopters meet it before it surprises them
 
 ## v2 Requirements
 
@@ -164,11 +164,11 @@ Which phases cover which requirements. Updated during roadmap creation.
 | VAL-01 | Phase 1 | Pending |
 | VAL-02 | Phase 1 | Pending |
 | VAL-03 | Phase 1 | Pending |
-| PIPE-01 | Phase 1 | Pending |
+| PIPE-01 | Phase 1 | Complete |
 | PIPE-02 | Phase 1 | Complete |
-| PIPE-03 | Phase 1 | Pending |
+| PIPE-03 | Phase 1 | Complete |
 | PIPE-04 | Phase 1 | Complete |
-| PIPE-08 | Phase 1 | Pending |
+| PIPE-08 | Phase 1 | Complete |
 | CRUD-01 | Phase 2 | Pending |
 | CRUD-02 | Phase 2 | Pending |
 | CRUD-03 | Phase 2 | Pending |
