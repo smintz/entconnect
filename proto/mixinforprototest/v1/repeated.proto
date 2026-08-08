@@ -1,0 +1,46 @@
+// Repeated is the MIX-02 gap-closure corpus fixture (01-06-PLAN.md,
+// closing 01-VERIFICATION.md gap 1 / CR-01): the corpus previously
+// contained exactly one repeated field (messages.proto's
+// `repeated Inner repeated_message`), and it was a repeated MESSAGE
+// field — skipped by MIX-10's message-skip-by-default path before
+// classify() ever needed to know the field was repeated. No fixture
+// exercised repeated SCALAR or repeated ENUM cardinality, so
+// classify()'s missing `fd.IsList()` branch was invisible to five green
+// waves: a `repeated string` fell through to classScalar and derived a
+// singular field, silently dropping cardinality.
+syntax = "proto3";
+
+package mixinforprototest.v1;
+
+import "buf/validate/validate.proto";
+import "mixinforprototest/v1/enums.proto";
+import "mixinforprototest/v1/messages.proto";
+
+// RepeatedScalar proves the plain repeated-scalar shape that currently
+// (pre-fix) derives as a singular field.String, silently dropping
+// cardinality.
+message RepeatedScalar {
+  repeated string tags = 1;
+}
+
+// RepeatedEnum proves the repeated-enum shape, which shares CR-01's root
+// cause via classify()'s separate classEnum branch.
+message RepeatedEnum {
+  repeated Status statuses = 1;
+}
+
+// RepeatedItemsFormat proves a repeated field carrying a real
+// protovalidate constraint is not silently discarded (D-11) once it
+// fails loudly. `string.uri` cannot be spelled directly on a repeated
+// field (buf lint rejects it — verified live this session); the legal
+// spelling for a per-item constraint is `repeated.items.string.uri`.
+message RepeatedItemsFormat {
+  repeated string urls = 1 [(buf.validate.field).repeated.items.string.uri = true];
+}
+
+// RepeatedMessage is the regression guard for the existing
+// repeated-message skip-by-default path (MIX-09/MIX-10): this must NOT
+// change when the new cardinality branch is added to classify().
+message RepeatedMessage {
+  repeated Inner items = 1;
+}
