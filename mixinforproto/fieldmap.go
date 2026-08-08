@@ -160,17 +160,14 @@ func mapScalar(msgName, name string, fd protoreflect.FieldDescriptor) (ent.Field
 		// 01 deviation 2).
 		rules, err := protovalidate.ResolveFieldRules(fd)
 		if err != nil {
-			return nil, fmt.Errorf("mixinforproto: %s.%s: resolving protovalidate field rules: %w", msgName, name, err)
+			return nil, fmt.Errorf("resolving protovalidate field rules: %w", err)
 		}
 		_ = rules
 		return field.String(name).Default("").Annotations(sf), nil
 	case protoreflect.BytesKind:
 		return field.Bytes(name).Default(nil).Annotations(sf), nil
 	default:
-		return nil, fmt.Errorf(
-			"mixinforproto: %s.%s: unsupported field kind %q — this mapping rule lands in a later plan; use Exclude(%q) or Override(%q, ...) for now",
-			msgName, name, fd.Kind(), name, name,
-		)
+		return nil, fmt.Errorf("unsupported field kind %q — this mapping rule lands in a later plan", fd.Kind())
 	}
 }
 
@@ -202,10 +199,7 @@ func mapOptionalScalar(msgName, name string, fd protoreflect.FieldDescriptor) (e
 	case protoreflect.BytesKind:
 		return field.Bytes(name).Nillable().Optional().Annotations(sf), nil
 	default:
-		return nil, fmt.Errorf(
-			"mixinforproto: %s.%s: unsupported optional field kind %q — this mapping rule lands in a later plan; use Exclude(%q) or Override(%q, ...) for now",
-			msgName, name, fd.Kind(), name, name,
-		)
+		return nil, fmt.Errorf("unsupported optional field kind %q — this mapping rule lands in a later plan", fd.Kind())
 	}
 }
 
@@ -330,33 +324,47 @@ func mapMessageField(fd protoreflect.FieldDescriptor, o *options) (ent.Field, er
 // naming a field that does not exist on the message each fail at schema
 // load naming the message and the offending option; AsJSON naming a
 // scalar (non-message) field also fails rather than silently succeeding.
-// Errors are collected, not returned at the first offense (D-09), and
+// Failures are collected, not returned at the first offense (D-09), and
 // names are visited in sorted order (o.asJSONNames(), D-24) so error
-// output is diffable.
-func validateAsJSON(msgName string, md protoreflect.MessageDescriptor, o *options) []string {
-	var errs []string
+// output is diffable. Called from derive.go's validateOptionNames, so
+// every option-name problem (Exclude/Override/AsJSON) lands in one
+// failures slice.
+func validateAsJSON(msgName string, md protoreflect.MessageDescriptor, o *options) []failure {
+	var out []failure
 	for _, name := range o.asJSONNames() {
 		if name == "" {
-			errs = append(errs, fmt.Sprintf(
-				"mixinforproto: %s: AsJSON(\"\"): field name must not be empty — did you mean to name the message field you want serialized as JSON?",
-				msgName,
-			))
+			out = append(out, failure{
+				message:     msgName,
+				field:       "",
+				fieldIndex:  fieldIndexUnnamed,
+				rule:        "AsJSON",
+				description: "AsJSON(\"\") field name must not be empty",
+				remedy:      "name the message field you want serialized as JSON",
+			})
 			continue
 		}
 		fd := md.Fields().ByName(protoreflect.Name(name))
 		if fd == nil {
-			errs = append(errs, fmt.Sprintf(
-				"mixinforproto: %s.%s: AsJSON(%q) names a field that does not exist on this message — check for a typo or a renamed contract field",
-				msgName, name, name,
-			))
+			out = append(out, failure{
+				message:     msgName,
+				field:       name,
+				fieldIndex:  fieldIndexUnnamed,
+				rule:        "AsJSON",
+				description: fmt.Sprintf("AsJSON(%q) names a field that does not exist on this message", name),
+				remedy:      "check for a typo or a renamed contract field",
+			})
 			continue
 		}
 		if fd.Kind() != protoreflect.MessageKind {
-			errs = append(errs, fmt.Sprintf(
-				"mixinforproto: %s.%s: AsJSON(%q) names a non-message field (kind %s) — AsJSON only applies to message-typed fields",
-				msgName, name, name, fd.Kind(),
-			))
+			out = append(out, failure{
+				message:     msgName,
+				field:       name,
+				fieldIndex:  int(fd.Index()),
+				rule:        "AsJSON",
+				description: fmt.Sprintf("AsJSON(%q) names a non-message field (kind %s)", name, fd.Kind()),
+				remedy:      "AsJSON only applies to message-typed fields",
+			})
 		}
 	}
-	return errs
+	return out
 }
