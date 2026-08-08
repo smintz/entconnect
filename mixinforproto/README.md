@@ -99,6 +99,50 @@ will reproduce this bug the first time you write a naive Update.
    no generated handler layer, this fix is entirely on you to build by hand — the
    `optional` keyword above is the only mitigation this package can offer you directly.
 
+## String length: Unicode code points vs. bytes (read this if your contract has non-ASCII string data)
+
+`string.min_len`/`max_len`/`len` in `buf.validate` count **Unicode code points**
+("characters"), documented explicitly by `buf.validate` itself as a value that "may differ
+from the number of bytes in the string." Ent's `MinLen`/`MaxLen` count **bytes**
+(`len(v)` on a Go string). For any ASCII-only value these are the same number, so nothing
+below applies. For non-ASCII values, they are not.
+
+**`mixinforproto` maps these constraints directly anyway** — `string.min_len` becomes
+`MinLen(n)`, `string.max_len` becomes `MaxLen(n)`, `string.len` becomes both — rather than
+treating the mismatch as untranslatable. This was a deliberate, informed decision (not an
+oversight): the alternative was either shipping materially less Tier 1 coverage for the
+single most common string constraint pair in real-world contracts, or complicating every
+derived string field with a second, purely-defensive `.Validate(fn)` call whose only job is
+to be a safe (over-wide) byte bound. Direct mapping was chosen; the trade-off is what this
+section documents.
+
+**The concrete consequence.** Three emoji are 3 Unicode code points but 12 UTF-8 bytes.
+A contract declaring `string.max_len = 5` **accepts** a 3-emoji value at the protovalidate
+boundary (3 code points ≤ 5) — and the derived ent field's `MaxLen(5)` **rejects the exact
+same value** at the storage layer (12 bytes > 5). A value in a non-Latin script, or
+containing emoji, can pass an RPC boundary interceptor and then be rejected when the ent
+mutation runs — and a caller inspecting the two error responses can tell which layer caught
+it, which is precisely the kind of boundary-versus-schema disagreement this project exists
+to eliminate everywhere else.
+
+**Where this is recorded.** The divergence is not documentation-only. Every field whose
+translation carries this caveat lists its own constraint ID (e.g. `"string.max_len"`) in
+`SourceField.LengthUnitDivergentIDs`, in addition to `TranslatedIDs` — machine-visible to
+Phase 3's differential harness (which must decide how to treat non-ASCII inputs against
+these specific constraints) and to Phase 5's fingerprint comparison, not just this
+paragraph.
+
+**Byte-semantic constraints are unaffected.** `string.min_bytes`/`max_bytes`/`len_bytes`
+and every `bytes.*` length constraint compare bytes on both sides and translate exactly,
+under this decision or any other — nothing above applies to them, and they never appear in
+`LengthUnitDivergentIDs`.
+
+**If this matters to your contract:** either accept the divergence (many applications never
+see non-ASCII input in these specific fields), or treat `string.min_len`/`max_len`/`len` on
+fields that do carry non-ASCII data as needing an explicit, hand-written
+`Override(name, ...)` with your own exact code-point-counting validator until a future
+release closes this gap generically.
+
 ## Mixin hook and policy ordering
 
 A mixin's `Hooks()`, `Interceptors()`, and `Policy()` all run **before** the ones a
@@ -146,7 +190,7 @@ didn't ask for.
 | `MixinForProtoMessage` | `const string` | The `schema.Annotation` key `SourceMessage` is stored under on `gen.Type.Annotations`. |
 | `MixinForProtoField` | `const string` | The `schema.Annotation` key `SourceField` is stored under on `gen.Field.Annotations`. |
 | `SourceMessage` | struct, `schema.Annotation` | Schema-level provenance: the derived proto message's full name, the **complete** field inventory (name + number, regardless of exclusion/override), and the excluded/overridden field-name lists. The complete inventory exists so a later drift check can tell "deliberately excluded" apart from "silently forgotten" — both look identical as absence from `gen.Graph` without it. |
-| `SourceField` | struct, `schema.Annotation` | Field-level provenance attached to each derived `ent.Field`: source proto field name/number, the derivation kind, the protovalidate constraint IDs Tier 1 translated, and the residual (untranslated) constraint IDs plus a stable fingerprint of their CEL expression strings. |
+| `SourceField` | struct, `schema.Annotation` | Field-level provenance attached to each derived `ent.Field`: source proto field name/number, the derivation kind, the protovalidate constraint IDs Tier 1 translated, the residual (untranslated) constraint IDs plus a stable fingerprint of their CEL expression strings, and (`LengthUnitDivergentIDs`) which translated IDs carry the code-point-vs-byte string length caveat above. |
 
 `SourceMessage` and `SourceField` are the **only** channel across `entc`'s schema-load
 JSON boundary — `load.Schema.Field.Validators` is an `int` count on the other side of
@@ -170,7 +214,8 @@ a derivation has to go through one of these two structs.
 | `map<K,V>` with a message value | Skipped entirely |
 | Message-typed field (not opted into `AsJSON`) | Skipped entirely |
 | Message-typed field, `AsJSON("name")` | `field.JSON` |
-| Real `oneof` member | Not yet handled by this release — see the collision/limitation notes above; the panic-unless-resolved gate for real `oneof` members ships in a subsequent Phase 1 plan |
+| Real `oneof` member | Skipped unless every member is `Exclude`d or `Override`n — an unresolved real `oneof` fails at schema load (never silently guessed) |
+| `string`/numeric field with a translatable protovalidate rule (`min_len`/`max_len`/`len`/`min_bytes`/`max_bytes`/`len_bytes`/`pattern`/`email`/`hostname`/`uri`/`ip`/`uuid`/`gt`/`gte`/`lt`/`lte`/`required`) | A real native ent validator call (`MinLen`/`MaxLen`/`Match`/`Validate`/`Min`/`Max`/`Range`/`NotEmpty`) — see "Relatedly" above and the string-length-unit section |
 
 Derived field order always matches proto declaration order and is stable across repeated
 runs and concurrent goroutines — `mixinforproto` never ranges a map directly into

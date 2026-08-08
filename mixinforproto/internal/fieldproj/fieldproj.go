@@ -39,13 +39,14 @@ type EnumValue struct {
 // shape. See the package doc comment for why this is a hand-mirrored
 // struct rather than a direct import.
 type SourceFieldProjection struct {
-	ContractVersion     int      `json:"contractVersion"`
-	FieldName           string   `json:"name"`
-	Number              int32    `json:"number"`
-	Kind                string   `json:"kind"`
-	TranslatedIDs       []string `json:"translatedIDs"`
-	ResidualIDs         []string `json:"residualIDs"`
-	ResidualFingerprint string   `json:"residualFingerprint"`
+	ContractVersion        int      `json:"contractVersion"`
+	FieldName              string   `json:"name"`
+	Number                 int32    `json:"number"`
+	Kind                   string   `json:"kind"`
+	TranslatedIDs          []string `json:"translatedIDs"`
+	ResidualIDs            []string `json:"residualIDs"`
+	ResidualFingerprint    string   `json:"residualFingerprint"`
+	LengthUnitDivergentIDs []string `json:"lengthUnitDivergentIDs"`
 }
 
 // Field is the golden-comparable projection of one derived ent.Field's

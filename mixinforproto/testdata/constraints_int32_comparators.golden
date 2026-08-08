@@ -1,0 +1,162 @@
+[
+  {
+    "name": "gt_field",
+    "typeKind": "int32",
+    "nillable": false,
+    "optional": false,
+    "immutable": false,
+    "default": "0",
+    "validatorCount": 1,
+    "storageKey": "",
+    "comment": "",
+    "sourceField": {
+      "contractVersion": 1,
+      "name": "gt_field",
+      "number": 1,
+      "kind": "scalar",
+      "translatedIDs": [
+        "int32.gt"
+      ],
+      "residualIDs": [],
+      "residualFingerprint": "",
+      "lengthUnitDivergentIDs": []
+    }
+  },
+  {
+    "name": "gte_field",
+    "typeKind": "int32",
+    "nillable": false,
+    "optional": false,
+    "immutable": false,
+    "default": "0",
+    "validatorCount": 1,
+    "storageKey": "",
+    "comment": "",
+    "sourceField": {
+      "contractVersion": 1,
+      "name": "gte_field",
+      "number": 2,
+      "kind": "scalar",
+      "translatedIDs": [
+        "int32.gte"
+      ],
+      "residualIDs": [],
+      "residualFingerprint": "",
+      "lengthUnitDivergentIDs": []
+    }
+  },
+  {
+    "name": "lt_field",
+    "typeKind": "int32",
+    "nillable": false,
+    "optional": false,
+    "immutable": false,
+    "default": "0",
+    "validatorCount": 1,
+    "storageKey": "",
+    "comment": "",
+    "sourceField": {
+      "contractVersion": 1,
+      "name": "lt_field",
+      "number": 3,
+      "kind": "scalar",
+      "translatedIDs": [
+        "int32.lt"
+      ],
+      "residualIDs": [],
+      "residualFingerprint": "",
+      "lengthUnitDivergentIDs": []
+    }
+  },
+  {
+    "name": "lte_field",
+    "typeKind": "int32",
+    "nillable": false,
+    "optional": false,
+    "immutable": false,
+    "default": "0",
+    "validatorCount": 1,
+    "storageKey": "",
+    "comment": "",
+    "sourceField": {
+      "contractVersion": 1,
+      "name": "lte_field",
+      "number": 4,
+      "kind": "scalar",
+      "translatedIDs": [
+        "int32.lte"
+      ],
+      "residualIDs": [],
+      "residualFingerprint": "",
+      "lengthUnitDivergentIDs": []
+    }
+  },
+  {
+    "name": "positive_field",
+    "typeKind": "int32",
+    "nillable": false,
+    "optional": false,
+    "immutable": false,
+    "default": "0",
+    "validatorCount": 1,
+    "storageKey": "",
+    "comment": "",
+    "sourceField": {
+      "contractVersion": 1,
+      "name": "positive_field",
+      "number": 5,
+      "kind": "scalar",
+      "translatedIDs": [
+        "int32.gt"
+      ],
+      "residualIDs": [],
+      "residualFingerprint": "",
+      "lengthUnitDivergentIDs": []
+    }
+  },
+  {
+    "name": "range_field",
+    "typeKind": "int32",
+    "nillable": false,
+    "optional": false,
+    "immutable": false,
+    "default": "0",
+    "validatorCount": 1,
+    "storageKey": "",
+    "comment": "",
+    "sourceField": {
+      "contractVersion": 1,
+      "name": "range_field",
+      "number": 6,
+      "kind": "scalar",
+      "translatedIDs": [
+        "int32.gt",
+        "int32.lt"
+      ],
+      "residualIDs": [],
+      "residualFingerprint": "",
+      "lengthUnitDivergentIDs": []
+    }
+  },
+  {
+    "name": "no_rules_field",
+    "typeKind": "int32",
+    "nillable": false,
+    "optional": false,
+    "immutable": false,
+    "default": "0",
+    "validatorCount": 0,
+    "storageKey": "",
+    "comment": "",
+    "sourceField": {
+      "contractVersion": 1,
+      "name": "no_rules_field",
+      "number": 7,
+      "kind": "scalar",
+      "translatedIDs": [],
+      "residualIDs": [],
+      "residualFingerprint": "",
+      "lengthUnitDivergentIDs": []
+    }
+  }
+]

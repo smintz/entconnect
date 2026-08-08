@@ -1,0 +1,205 @@
+// Constraints is the VAL-01/VAL-02/VAL-03 Tier 1 conformance corpus
+// (01-05-PLAN.md): one message per protovalidate constraint class Tier 1
+// either translates into a native ent builder call or deliberately
+// records as residual provenance. Format-validator messages
+// (StringFormat*) each carry exactly one field so the delegating
+// `.Validate(fn)` path (D-13) can invoke protovalidate's own runtime
+// evaluator against a synthetic single-field message with no
+// unrelated-field interference — see mixinforproto/validate.go's
+// delegatingFormatValidator doc comment.
+syntax = "proto3";
+
+package mixinforprototest.v1;
+
+import "buf/validate/validate.proto";
+import "mixinforprototest/v1/enums.proto";
+
+// NoRules proves VAL-01's empty edge: a constraint-free string field
+// derives with zero validators and empty TranslatedIDs/ResidualIDs, and
+// protovalidate.ResolveFieldRules's (nil, nil) return for it is handled
+// without a dereference.
+message NoRules {
+  string plain = 1;
+}
+
+// StringByteBounds carries the byte-semantic string bounds that map
+// exactly onto ent's byte-comparing MinLen/MaxLen under every Task 1
+// option (R5) — min_bytes/max_bytes/len_bytes are safe Tier 1 regardless
+// of the code-point-vs-byte length-unit decision.
+message StringByteBounds {
+  string min_bytes_field = 1 [(buf.validate.field).string.min_bytes = 2];
+  string max_bytes_field = 2 [(buf.validate.field).string.max_bytes = 8];
+  string len_bytes_field = 3 [(buf.validate.field).string.len_bytes = 6];
+}
+
+// StringCodePointBounds carries the Unicode-code-point string bounds at
+// the center of Task 1's resolved decision (option-c): mapped directly
+// onto ent's byte-comparing MinLen/MaxLen, a documented, recorded
+// divergence for non-ASCII input. max_len_field is the exact field used
+// by the resolution's own worked example (3 emoji = 3 code points but 12
+// bytes: protovalidate max_len: 5 accepts, MaxLen(5) rejects).
+message StringCodePointBounds {
+  string min_len_field = 1 [(buf.validate.field).string.min_len = 3];
+  string max_len_field = 2 [(buf.validate.field).string.max_len = 5];
+  string len_field = 3 [(buf.validate.field).string.len = 4];
+}
+
+// StringPattern carries a compiling RE2 pattern, translated to Match.
+//
+// A deliberately malformed pattern is NOT a field in this corpus:
+// verified this session — buf itself refuses to compile a .proto whose
+// buf.validate.field.string.pattern value fails RE2 compilation (a
+// predefined CEL check embedded in buf/validate/validate.proto's own
+// descriptor runs at buf-build time), so an invalid pattern can never
+// reach a real derived Go field descriptor at all. mixinforproto's own
+// defensive regexp.Compile guard (never MustCompile, T-01-01) is
+// therefore proven directly against a hand-built *validate.StringRules
+// value in validate_test.go's TestPatternCompiles, not through this
+// corpus — see that test's doc comment for why.
+message StringPattern {
+  string valid_pattern = 1 [(buf.validate.field).string.pattern = "^[a-z]+$"];
+}
+
+// StringFormatEmail carries string.email (D-13: regex-defined — verified
+// against protovalidate's own emailRegex in cel/library.go, 2026-08-08 —
+// translated as a native Match(regexp) call).
+message StringFormatEmail {
+  string value = 1 [(buf.validate.field).string.email = true];
+}
+
+// StringFormatHostname carries string.hostname (D-13: procedurally
+// defined in protovalidate's evaluator, not a documented regex —
+// delegated via .Validate(fn) to protovalidate's own runtime verdict).
+message StringFormatHostname {
+  string value = 1 [(buf.validate.field).string.hostname = true];
+}
+
+// StringFormatUri carries string.uri (D-13: procedural — RFC 3986
+// parser, delegated).
+message StringFormatUri {
+  string value = 1 [(buf.validate.field).string.uri = true];
+}
+
+// StringFormatIp carries string.ip (D-13: procedural — delegated).
+message StringFormatIp {
+  string value = 1 [(buf.validate.field).string.ip = true];
+}
+
+// StringFormatUuid carries string.uuid (D-13: treated as procedural here
+// — no documented-regex source was found verified in protovalidate's own
+// Go sources this session, so it is delegated rather than risking a
+// hand-approximated regex that could diverge from protovalidate's own
+// verdict; see validate.go's doc comment).
+message StringFormatUuid {
+  string value = 1 [(buf.validate.field).string.uuid = true];
+}
+
+// RequiredString carries required on a plain (non-`optional`-keyword)
+// string field: translates exactly to NotEmpty(), which enforces
+// protovalidate's "can't be the zero value" semantics for a
+// non-presence-tracking field.
+message RequiredString {
+  string value = 1 [(buf.validate.field).required = true];
+}
+
+// RequiredOptionalNonString carries required on an `optional`
+// (presence-tracking) non-string scalar: translates exactly to
+// non-optional construction (no Nillable().Optional(), no Default) —
+// ent then requires the value at Create, matching protovalidate's "must
+// be set" semantics for presence-tracking fields exactly.
+message RequiredOptionalNonString {
+  optional int32 value = 1 [(buf.validate.field).required = true];
+}
+
+// RequiredPlainNonString carries required on a plain (non-presence-
+// tracking) non-string scalar: protovalidate's own semantics for this
+// combination are "can't be the zero value", which ent's non-optional
+// Default(zero) construction does not enforce (nothing stops an explicit
+// zero write) and no non-string numeric builder in this plan's scope
+// exposes a typed .Validate(fn) escape hatch (D-12's established
+// posture) — recorded as residual rather than approximated.
+message RequiredPlainNonString {
+  int32 value = 1 [(buf.validate.field).required = true];
+}
+
+// ResidualCel carries a deliberately untranslatable custom CEL rule —
+// Tier 1 has no mechanism for arbitrary CEL (that is Tier 2, Phase 3) —
+// so it is recorded in ResidualIDs with a non-empty ResidualFingerprint
+// and produces no builder call and no error (D-11).
+message ResidualCel {
+  string value = 1 [(buf.validate.field).cel = {
+    id: "constraints.residual_cel.starts_with_x"
+    message: "value must start with X"
+    expression: "this.startsWith('X')"
+  }];
+}
+
+// EnumDefinedOnlyField reuses enums.proto's Status enum (declared once,
+// in that file — proto packages share one namespace across files) and
+// carries enum.defined_only explicitly: satisfied by
+// the field.Enum construction itself and must produce no residual entry
+// at all (D-14) — not translated, not residual, simply not tracked.
+message EnumDefinedOnlyField {
+  Status status = 1 [(buf.validate.field).enum.defined_only = true];
+}
+
+// Int32Comparators carries VAL-02's core int32 boundary/adjacency/empty
+// cases: gt/gte/lt/lte translate per D-12's exact +1/-1 adjustment;
+// gt: 0 verdict-matches Min(1); a combined gt+lt collapses into one
+// Range over the adjusted bounds; a rules-free field gets no call at
+// all.
+message Int32Comparators {
+  int32 gt_field = 1 [(buf.validate.field).int32.gt = 5];
+  int32 gte_field = 2 [(buf.validate.field).int32.gte = 5];
+  int32 lt_field = 3 [(buf.validate.field).int32.lt = 5];
+  int32 lte_field = 4 [(buf.validate.field).int32.lte = 5];
+  int32 positive_field = 5 [(buf.validate.field).int32.gt = 0];
+  int32 range_field = 6 [(buf.validate.field).int32 = { gt: 2, lt: 9 }];
+  int32 no_rules_field = 7;
+}
+
+// Int32Adjacent covers VAL-02's adjacency edge probe: adjusted bounds
+// that coincide (a single admissible value) or cross (no admissible
+// value) are emitted faithfully rather than rejected at schema load —
+// Tier 1's contract is verdict identity with protovalidate, not contract
+// review.
+message Int32Adjacent {
+  // gt: 4, lt: 6 adjusts to Range(5, 5): exactly one admissible value.
+  int32 coincident_field = 1 [(buf.validate.field).int32 = { gt: 4, lt: 6 }];
+  // gt: 5, lt: 6 adjusts to Range(6, 5): no admissible value at all —
+  // for integers, "5 < x < 6" is already vacuous at the protovalidate
+  // level too (no integer lies strictly between two adjacent integers),
+  // so Tier 1's crossed Range(6, 5) agrees with protovalidate's own
+  // verdict rather than diverging from it. gt: 5 / lt: 5 (rejects
+  // everything even before adjustment) was tried first and rejected by
+  // buf's own lint (a real, exit-100 diagnostic, verified this session)
+  // as a distinct "equal gt/lt" smell — this adjacent-integers form
+  // exercises the same post-adjustment crossed-Range code path without
+  // tripping that unrelated lint rule.
+  int32 crossed_field = 2 [(buf.validate.field).int32 = { gt: 5, lt: 6 }];
+}
+
+// Int32Overflow sits exactly at int32's boundary: gt at the maximum and
+// lt at the minimum each would invert if adjusted (+1/-1 wraps), so both
+// are recorded residual instead of overflowing into a wrong bound
+// (T-01-22).
+message Int32Overflow {
+  int32 gt_max_field = 1 [(buf.validate.field).int32.gt = 2147483647];
+  int32 lt_min_field = 2 [(buf.validate.field).int32.lt = -2147483648];
+}
+
+// FloatComparators proves D-12's floating-point posture: gt/lt are
+// always residual, never widened to gte/lte; gte/lte need no adjustment
+// and translate exactly.
+message FloatComparators {
+  float gt_field = 1 [(buf.validate.field).float.gt = 1.5];
+  float lt_field = 2 [(buf.validate.field).float.lt = 9.5];
+  float gte_lte_field = 3 [(buf.validate.field).float = { gte: 1.5, lte: 9.5 }];
+}
+
+// DoubleComparators mirrors FloatComparators for double (VAL-02's other
+// named floating-point kind).
+message DoubleComparators {
+  double gt_field = 1 [(buf.validate.field).double.gt = 1.5];
+  double gte_lte_field = 2 [(buf.validate.field).double = { gte: 1.5, lte: 9.5 }];
+}

@@ -1,62 +1,68 @@
 [
   {
-    "name": "timestamp_field",
-    "typeKind": "time.Time",
+    "name": "min_bytes_field",
+    "typeKind": "string",
     "nillable": false,
     "optional": false,
     "immutable": false,
-    "default": "",
-    "validatorCount": 0,
+    "default": "\"\"",
+    "validatorCount": 1,
     "storageKey": "",
     "comment": "",
     "sourceField": {
       "contractVersion": 1,
-      "name": "timestamp_field",
+      "name": "min_bytes_field",
       "number": 1,
-      "kind": "wkt",
-      "translatedIDs": [],
+      "kind": "scalar",
+      "translatedIDs": [
+        "string.min_bytes"
+      ],
       "residualIDs": [],
       "residualFingerprint": "",
       "lengthUnitDivergentIDs": []
     }
   },
   {
-    "name": "struct_field",
-    "typeKind": "json.RawMessage",
+    "name": "max_bytes_field",
+    "typeKind": "string",
     "nillable": false,
     "optional": false,
     "immutable": false,
-    "default": "",
-    "validatorCount": 0,
+    "default": "\"\"",
+    "validatorCount": 1,
     "storageKey": "",
     "comment": "",
     "sourceField": {
       "contractVersion": 1,
-      "name": "struct_field",
+      "name": "max_bytes_field",
       "number": 2,
-      "kind": "wkt",
-      "translatedIDs": [],
+      "kind": "scalar",
+      "translatedIDs": [
+        "string.max_bytes"
+      ],
       "residualIDs": [],
       "residualFingerprint": "",
       "lengthUnitDivergentIDs": []
     }
   },
   {
-    "name": "value_field",
-    "typeKind": "json.RawMessage",
+    "name": "len_bytes_field",
+    "typeKind": "string",
     "nillable": false,
     "optional": false,
     "immutable": false,
-    "default": "",
-    "validatorCount": 0,
+    "default": "\"\"",
+    "validatorCount": 2,
     "storageKey": "",
     "comment": "",
     "sourceField": {
       "contractVersion": 1,
-      "name": "value_field",
+      "name": "len_bytes_field",
       "number": 3,
-      "kind": "wkt",
-      "translatedIDs": [],
+      "kind": "scalar",
+      "translatedIDs": [
+        "string.len_bytes"
+      ],
       "residualIDs": [],
       "residualFingerprint": "",
       "lengthUnitDivergentIDs": []
