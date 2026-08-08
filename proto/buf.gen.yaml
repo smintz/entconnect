@@ -1,0 +1,16 @@
+version: v2
+# Managed mode computes each generated file's go_package from its proto
+# package, flattened to a single identifier segment (mixinforprototest.v1
+# -> mixinforprototestv1) so the generated tree lands at a predictable,
+# flat path under mixinforproto/internal/gen/ rather than mirroring the
+# proto package's dotted/versioned directory structure.
+managed:
+  enabled: true
+  override:
+    - file_option: go_package
+      value: github.com/smintz/entconnect/mixinforproto/internal/gen/mixinforprototestv1
+      path: mixinforprototest/v1/tracer.proto
+plugins:
+  - local: protoc-gen-go
+    out: ../mixinforproto
+    opt: module=github.com/smintz/entconnect/mixinforproto
