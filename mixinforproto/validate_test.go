@@ -806,6 +806,66 @@ func TestStringFormatValidators(t *testing.T) {
 	}
 }
 
+// TestDelegatedFormatIgnoresUnrelatedViolations proves 01-VERIFICATION.md
+// gap 2 / 01-REVIEW.md CR-02 is closed: delegatingFormatValidator must
+// filter protovalidate's whole-message verdict down to the violation
+// attributed to the field under validation, so an unrelated rule
+// elsewhere on the same message (StringFormatWithSibling's `owner`,
+// carrying `required`) never poisons `endpoint`'s format verdict. Both
+// halves are mandatory — the second is the anti-bypass guard: a filter
+// that is too aggressive (e.g. matching no violation at all) would turn
+// the validator into a no-op, silently admitting invalid data, which is
+// strictly worse than the bug being fixed (T-01G-10).
+func TestDelegatedFormatIgnoresUnrelatedViolations(t *testing.T) {
+	d := mustDerive[*mixinforprototestv1.StringFormatWithSibling](t)
+
+	endpoint := fieldByName(d, "endpoint")
+	if endpoint == nil || !contains(endpoint.SourceField.TranslatedIDs, "string.uri") {
+		t.Fatalf("want string.uri translated on endpoint, got %+v", endpoint)
+	}
+	rawEndpoint := rawFieldByName(d, "endpoint")
+	endpointFns := validatorsOf[string](rawEndpoint)
+	if len(endpointFns) != 1 {
+		t.Fatalf("want exactly 1 validator on endpoint, got %d", len(endpointFns))
+	}
+
+	// The gap: a valid URI must be accepted even though the sibling
+	// field `owner` (unset, zero value) carries an unrelated `required`
+	// rule and would independently produce a whole-message violation.
+	// Before the fix this FAILS: the unfiltered whole-message verdict
+	// blames endpoint for owner's violation.
+	if err := endpointFns[0]("https://example.com/foo"); err != nil {
+		t.Fatalf("want a valid URI accepted despite the unrelated required violation on owner, got %v", err)
+	}
+
+	// The anti-bypass guard: an actually-invalid URI on the SAME
+	// multi-field message must still be rejected. A filter that matches
+	// no violation (e.g. because FieldDescriptor comparison is wrong)
+	// would make this pass silently for the wrong reason — the validator
+	// would have become a no-op.
+	if err := endpointFns[0]("not a uri"); err == nil {
+		t.Fatal("want an invalid URI still rejected on a multi-field message — a permissive filter is a validation bypass, not a fix")
+	}
+
+	// owner (plain string + required, implicit presence — untouched by
+	// this plan's Task 2 reorder) still derives NotEmpty().
+	owner := fieldByName(d, "owner")
+	if owner == nil || !contains(owner.SourceField.TranslatedIDs, "required") {
+		t.Fatalf("want required translated on owner, got %+v", owner)
+	}
+	rawOwner := rawFieldByName(d, "owner")
+	ownerFns := validatorsOf[string](rawOwner)
+	if len(ownerFns) != 1 {
+		t.Fatalf("want exactly 1 validator on owner (NotEmpty), got %d", len(ownerFns))
+	}
+	if err := ownerFns[0](""); err == nil {
+		t.Fatal("want owner's NotEmpty to still reject the empty string")
+	}
+	if err := ownerFns[0]("someone"); err != nil {
+		t.Fatalf("want owner's NotEmpty to still accept a non-empty string, got %v", err)
+	}
+}
+
 // --- D-23/R4: golden fixtures for the constraints.proto corpus -----------
 
 // TestGoldenConstraints golden-asserts one fixture per constraints.proto
