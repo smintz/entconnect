@@ -1,0 +1,7 @@
+# Machine-local tooling state — never committed.
+# Claude Code writes per-machine preferences here (the .local.json suffix is
+# the convention for "this file is not shared"); GSD writes runtime sentinels
+# under .gsd/. Both are derived from the local environment, so committing them
+# would push one machine's setup onto every other checkout.
+.claude/settings.local.json
+.gsd/
