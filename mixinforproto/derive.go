@@ -2,6 +2,7 @@ package mixinforproto
 
 import (
 	"fmt"
+	"strings"
 
 	"entgo.io/ent"
 	"google.golang.org/protobuf/proto"
@@ -100,8 +101,26 @@ func derive[M proto.Message](opts ...Option) (*derivation, error) {
 			continue
 		}
 
+		// D-10: a derived field name colliding with an ent reserved
+		// identifier fails at schema load with an Exclude/Override
+		// remedy — never auto-renamed. Checked only for fields that
+		// actually derive (f != nil); excluded/overridden/skipped
+		// fields never reach here. An overridden field's own Go
+		// identifier is the developer's choice and is not checked
+		// here — Override is itself the remedy this check points to.
+		if isReserved(name) {
+			failures = append(failures, reservedCollisionFailure(msgName, fd))
+			continue
+		}
+
 		fields = append(fields, f)
 	}
+
+	// MIX-10's unresolved-oneof gate needs the full set of real oneofs
+	// on the message and each member's resolution status — context only
+	// available after Exclude/Override are known, so it is checked once
+	// here rather than per field inside the walk above.
+	failures = append(failures, checkOneofResolution(msgName, md, o)...)
 
 	if derr := newDerivationError(msgName, failures); derr != nil {
 		return nil, derr
@@ -190,5 +209,75 @@ func validateOptionNames(msgName string, md protoreflect.MessageDescriptor, o *o
 
 	out = append(out, validateAsJSON(msgName, md, o)...)
 
+	return out
+}
+
+// reservedCollisionFailure builds the D-10 collected failure for a
+// derived field name that collides with one of reserved.go's two
+// catalogs. Never auto-renamed: a silently renamed API-visible field
+// would defeat the entire point of the contract being the source of
+// truth.
+func reservedCollisionFailure(msgName string, fd protoreflect.FieldDescriptor) failure {
+	name := string(fd.Name())
+	return failure{
+		message:     msgName,
+		field:       name,
+		fieldIndex:  int(fd.Index()),
+		rule:        "reserved",
+		description: fmt.Sprintf("field name %q collides with an identifier ent's generated code reserves", name),
+		remedy:      fmt.Sprintf("rename is not supported; use Exclude(%q) to omit this field or Override(%q, ...) to replace it under a different Go identifier", name, name),
+	}
+}
+
+// checkOneofResolution implements MIX-10's unresolved-oneof gate: for
+// every real (non-synthetic) oneof on md, every member must be either
+// excluded or overridden — mixinforproto never guesses which
+// alternative to persist. A fully resolved oneof (every member excluded
+// and/or overridden) produces no field and no failure. The synthetic
+// one-member oneof the compiler wraps every proto3 `optional` scalar in
+// is explicitly skipped via IsSynthetic() — this is exactly what keeps
+// this gate from firing on every `optional` field (01-RESEARCH.md's
+// verified MIX-05/MIX-10 boundary: checking only "ContainingOneof() !=
+// nil" without this guard would make every optional scalar fail here).
+func checkOneofResolution(msgName string, md protoreflect.MessageDescriptor, o *options) []failure {
+	var out []failure
+	oneofs := md.Oneofs()
+	for i := 0; i < oneofs.Len(); i++ {
+		oo := oneofs.Get(i)
+		if oo.IsSynthetic() {
+			continue
+		}
+		members := oo.Fields()
+		var unresolved []string
+		firstIndex := fieldIndexUnnamed
+		for j := 0; j < members.Len(); j++ {
+			fd := members.Get(j)
+			if j == 0 {
+				firstIndex = int(fd.Index())
+			}
+			name := string(fd.Name())
+			if o.isExcluded(name) || o.isOverridden(name) {
+				continue
+			}
+			unresolved = append(unresolved, name)
+		}
+		if len(unresolved) == 0 {
+			continue
+		}
+		out = append(out, failure{
+			message:    msgName,
+			field:      string(oo.Name()),
+			fieldIndex: firstIndex,
+			rule:       "oneof",
+			description: fmt.Sprintf(
+				"oneof %q has unresolved member(s): %s",
+				oo.Name(), strings.Join(unresolved, ", "),
+			),
+			remedy: fmt.Sprintf(
+				"resolve every member of oneof %q with Exclude(...) or Override(...) — mixinforproto never guesses which alternative to persist",
+				oo.Name(),
+			),
+		})
+	}
 	return out
 }
