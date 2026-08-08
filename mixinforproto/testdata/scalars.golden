@@ -1,0 +1,302 @@
+[
+  {
+    "name": "double_field",
+    "typeKind": "float64",
+    "nillable": false,
+    "optional": false,
+    "immutable": false,
+    "default": "0",
+    "validatorCount": 0,
+    "storageKey": "",
+    "comment": "",
+    "sourceField": {
+      "contractVersion": 1,
+      "name": "double_field",
+      "number": 1,
+      "kind": "scalar",
+      "translatedIDs": [],
+      "residualIDs": [],
+      "residualFingerprint": ""
+    }
+  },
+  {
+    "name": "float_field",
+    "typeKind": "float32",
+    "nillable": false,
+    "optional": false,
+    "immutable": false,
+    "default": "0",
+    "validatorCount": 0,
+    "storageKey": "",
+    "comment": "",
+    "sourceField": {
+      "contractVersion": 1,
+      "name": "float_field",
+      "number": 2,
+      "kind": "scalar",
+      "translatedIDs": [],
+      "residualIDs": [],
+      "residualFingerprint": ""
+    }
+  },
+  {
+    "name": "int32_field",
+    "typeKind": "int32",
+    "nillable": false,
+    "optional": false,
+    "immutable": false,
+    "default": "0",
+    "validatorCount": 0,
+    "storageKey": "",
+    "comment": "",
+    "sourceField": {
+      "contractVersion": 1,
+      "name": "int32_field",
+      "number": 3,
+      "kind": "scalar",
+      "translatedIDs": [],
+      "residualIDs": [],
+      "residualFingerprint": ""
+    }
+  },
+  {
+    "name": "int64_field",
+    "typeKind": "int64",
+    "nillable": false,
+    "optional": false,
+    "immutable": false,
+    "default": "0",
+    "validatorCount": 0,
+    "storageKey": "",
+    "comment": "",
+    "sourceField": {
+      "contractVersion": 1,
+      "name": "int64_field",
+      "number": 4,
+      "kind": "scalar",
+      "translatedIDs": [],
+      "residualIDs": [],
+      "residualFingerprint": ""
+    }
+  },
+  {
+    "name": "uint32_field",
+    "typeKind": "uint32",
+    "nillable": false,
+    "optional": false,
+    "immutable": false,
+    "default": "0x0",
+    "validatorCount": 0,
+    "storageKey": "",
+    "comment": "",
+    "sourceField": {
+      "contractVersion": 1,
+      "name": "uint32_field",
+      "number": 5,
+      "kind": "scalar",
+      "translatedIDs": [],
+      "residualIDs": [],
+      "residualFingerprint": ""
+    }
+  },
+  {
+    "name": "uint64_field",
+    "typeKind": "uint64",
+    "nillable": false,
+    "optional": false,
+    "immutable": false,
+    "default": "0x0",
+    "validatorCount": 0,
+    "storageKey": "",
+    "comment": "",
+    "sourceField": {
+      "contractVersion": 1,
+      "name": "uint64_field",
+      "number": 6,
+      "kind": "scalar",
+      "translatedIDs": [],
+      "residualIDs": [],
+      "residualFingerprint": ""
+    }
+  },
+  {
+    "name": "sint32_field",
+    "typeKind": "int32",
+    "nillable": false,
+    "optional": false,
+    "immutable": false,
+    "default": "0",
+    "validatorCount": 0,
+    "storageKey": "",
+    "comment": "",
+    "sourceField": {
+      "contractVersion": 1,
+      "name": "sint32_field",
+      "number": 7,
+      "kind": "scalar",
+      "translatedIDs": [],
+      "residualIDs": [],
+      "residualFingerprint": ""
+    }
+  },
+  {
+    "name": "sint64_field",
+    "typeKind": "int64",
+    "nillable": false,
+    "optional": false,
+    "immutable": false,
+    "default": "0",
+    "validatorCount": 0,
+    "storageKey": "",
+    "comment": "",
+    "sourceField": {
+      "contractVersion": 1,
+      "name": "sint64_field",
+      "number": 8,
+      "kind": "scalar",
+      "translatedIDs": [],
+      "residualIDs": [],
+      "residualFingerprint": ""
+    }
+  },
+  {
+    "name": "fixed32_field",
+    "typeKind": "uint32",
+    "nillable": false,
+    "optional": false,
+    "immutable": false,
+    "default": "0x0",
+    "validatorCount": 0,
+    "storageKey": "",
+    "comment": "",
+    "sourceField": {
+      "contractVersion": 1,
+      "name": "fixed32_field",
+      "number": 9,
+      "kind": "scalar",
+      "translatedIDs": [],
+      "residualIDs": [],
+      "residualFingerprint": ""
+    }
+  },
+  {
+    "name": "fixed64_field",
+    "typeKind": "uint64",
+    "nillable": false,
+    "optional": false,
+    "immutable": false,
+    "default": "0x0",
+    "validatorCount": 0,
+    "storageKey": "",
+    "comment": "",
+    "sourceField": {
+      "contractVersion": 1,
+      "name": "fixed64_field",
+      "number": 10,
+      "kind": "scalar",
+      "translatedIDs": [],
+      "residualIDs": [],
+      "residualFingerprint": ""
+    }
+  },
+  {
+    "name": "sfixed32_field",
+    "typeKind": "int32",
+    "nillable": false,
+    "optional": false,
+    "immutable": false,
+    "default": "0",
+    "validatorCount": 0,
+    "storageKey": "",
+    "comment": "",
+    "sourceField": {
+      "contractVersion": 1,
+      "name": "sfixed32_field",
+      "number": 11,
+      "kind": "scalar",
+      "translatedIDs": [],
+      "residualIDs": [],
+      "residualFingerprint": ""
+    }
+  },
+  {
+    "name": "sfixed64_field",
+    "typeKind": "int64",
+    "nillable": false,
+    "optional": false,
+    "immutable": false,
+    "default": "0",
+    "validatorCount": 0,
+    "storageKey": "",
+    "comment": "",
+    "sourceField": {
+      "contractVersion": 1,
+      "name": "sfixed64_field",
+      "number": 12,
+      "kind": "scalar",
+      "translatedIDs": [],
+      "residualIDs": [],
+      "residualFingerprint": ""
+    }
+  },
+  {
+    "name": "bool_field",
+    "typeKind": "bool",
+    "nillable": false,
+    "optional": false,
+    "immutable": false,
+    "default": "false",
+    "validatorCount": 0,
+    "storageKey": "",
+    "comment": "",
+    "sourceField": {
+      "contractVersion": 1,
+      "name": "bool_field",
+      "number": 13,
+      "kind": "scalar",
+      "translatedIDs": [],
+      "residualIDs": [],
+      "residualFingerprint": ""
+    }
+  },
+  {
+    "name": "string_field",
+    "typeKind": "string",
+    "nillable": false,
+    "optional": false,
+    "immutable": false,
+    "default": "\"\"",
+    "validatorCount": 0,
+    "storageKey": "",
+    "comment": "",
+    "sourceField": {
+      "contractVersion": 1,
+      "name": "string_field",
+      "number": 14,
+      "kind": "scalar",
+      "translatedIDs": [],
+      "residualIDs": [],
+      "residualFingerprint": ""
+    }
+  },
+  {
+    "name": "bytes_field",
+    "typeKind": "[]byte",
+    "nillable": false,
+    "optional": false,
+    "immutable": false,
+    "default": "[]byte(nil)",
+    "validatorCount": 0,
+    "storageKey": "",
+    "comment": "",
+    "sourceField": {
+      "contractVersion": 1,
+      "name": "bytes_field",
+      "number": 15,
+      "kind": "scalar",
+      "translatedIDs": [],
+      "residualIDs": [],
+      "residualFingerprint": ""
+    }
+  }
+]

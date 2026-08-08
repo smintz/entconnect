@@ -1,0 +1,22 @@
+[
+  {
+    "name": "maybe",
+    "typeKind": "string",
+    "nillable": true,
+    "optional": true,
+    "immutable": false,
+    "default": "",
+    "validatorCount": 0,
+    "storageKey": "",
+    "comment": "",
+    "sourceField": {
+      "contractVersion": 1,
+      "name": "maybe",
+      "number": 3,
+      "kind": "optionalScalar",
+      "translatedIDs": [],
+      "residualIDs": [],
+      "residualFingerprint": ""
+    }
+  }
+]

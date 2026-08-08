@@ -1,7 +1,6 @@
 package mixinforproto
 
 import (
-	"fmt"
 	"reflect"
 	"strings"
 	"sync"
@@ -215,20 +214,28 @@ func TestDerive_ConcurrentSafe(t *testing.T) {
 	}
 }
 
-// TestDerive_UnsupportedKindFailsLoudly proves that a field kind this
-// slice does not map yet fails at derivation time with a self-sufficient
-// error naming the message and the field, rather than silently guessing
-// or dropping the field (D-08/D-09).
-func TestDerive_UnsupportedKindFailsLoudly(t *testing.T) {
-	_, err := derive[*mixinforprototestv1.Unsupported]()
-	if err == nil {
-		t.Fatal("want an error for an unsupported field kind")
+// TestDerive_FormerlyUnsupportedKindNowMaps proves Plan 02 closed the
+// gap Plan 01's walking skeleton deliberately left open: Unsupported's
+// one int32 field (the fixture Plan 01 used to prove an un-mapped kind
+// fails loudly) now derives successfully once fieldmap.go's exhaustive
+// scalar-kind switch (MIX-02) covers Int32Kind. This supersedes
+// TestDerive_UnsupportedKindFailsLoudly, which asserted the pre-Plan-02
+// behavior and would now be asserting a false negative — every
+// proto3-expressible scalar kind is covered by mapScalar, so a
+// still-unsupported-kind fixture cannot be constructed from valid
+// proto3 syntax (only GroupKind, a proto2-only construct, remains
+// unhandled, and proto3 has no keyword that produces it).
+func TestDerive_FormerlyUnsupportedKindNowMaps(t *testing.T) {
+	d, err := derive[*mixinforprototestv1.Unsupported]()
+	if err != nil {
+		t.Fatalf("derive: %v", err)
 	}
-	msg := err.Error()
-	for _, want := range []string{"mixinforprototest.v1.Unsupported", "count"} {
-		if !strings.Contains(msg, want) {
-			t.Fatalf("error message %q missing %q", msg, want)
-		}
+	if len(d.fields) != 1 {
+		t.Fatalf("want 1 derived field, got %d", len(d.fields))
+	}
+	desc := d.fields[0].Descriptor()
+	if desc.Name != "count" {
+		t.Fatalf("want field name %q, got %q", "count", desc.Name)
 	}
 }
 
@@ -255,41 +262,43 @@ func TestMixinForProto_FieldsAndAnnotations(t *testing.T) {
 	}
 }
 
-// TestMixinForProto_PanicsOnUnsupportedKind proves panicking is isolated
-// to the ent.Mixin adapter (D-06) and that the panic's first line is
-// self-sufficient (D-08).
-func TestMixinForProto_PanicsOnUnsupportedKind(t *testing.T) {
-	defer func() {
-		r := recover()
-		if r == nil {
-			t.Fatal("want Fields() to panic on an unsupported field kind")
-		}
-		msg := fmt.Sprint(r)
-		for _, want := range []string{"mixinforprototest.v1.Unsupported", "count"} {
-			if !strings.Contains(msg, want) {
-				t.Fatalf("panic message %q not self-sufficient, missing %q", msg, want)
-			}
-		}
-	}()
-	MixinForProto[*mixinforprototestv1.Unsupported]().Fields()
+// TestMixinForProto_FormerlyUnsupportedKindNowMaps mirrors
+// TestDerive_FormerlyUnsupportedKindNowMaps through the ent.Mixin
+// adapter: Fields() no longer panics for Unsupported now that MIX-02's
+// scalar-kind switch is exhaustive. Supersedes
+// TestMixinForProto_PanicsOnUnsupportedKind for the same reason.
+func TestMixinForProto_FormerlyUnsupportedKindNowMaps(t *testing.T) {
+	fields := MixinForProto[*mixinforprototestv1.Unsupported]().Fields()
+	if len(fields) != 1 {
+		t.Fatalf("want 1 field, got %d", len(fields))
+	}
+	if got := fields[0].Descriptor().Name; got != "count" {
+		t.Fatalf("want field name %q, got %q", "count", got)
+	}
 }
 
 // TestValidate_MirrorsDeriveWithoutSubprocess proves MIX-12/D-07:
 // Validate[M] reproduces derive's verdict in-process, for both the
 // success and failure paths, without ever going through
 // entc.LoadGraph/entc/load's gorun() subprocess (that boundary is
-// exercised only by internal/boundarytest).
+// exercised only by internal/boundarytest). The failure path now uses
+// an AsJSON(...) naming an unknown field (Plan 02's own failure
+// surface, MIX-09) rather than Plan 01's Unsupported fixture, which
+// Plan 02's exhaustive scalar mapping retired as a failure case (see
+// TestDerive_FormerlyUnsupportedKindNowMaps).
 func TestValidate_MirrorsDeriveWithoutSubprocess(t *testing.T) {
 	if err := Validate[*mixinforprototestv1.Tracer](); err != nil {
 		t.Fatalf("want nil error for Tracer, got %v", err)
 	}
 
-	err := Validate[*mixinforprototestv1.Unsupported]()
+	err := Validate[*mixinforprototestv1.Messages](AsJSON("does_not_exist"))
 	if err == nil {
-		t.Fatal("want an error for Unsupported")
+		t.Fatal("want an error for AsJSON naming an unknown field")
 	}
-	if !strings.Contains(err.Error(), "count") {
-		t.Fatalf("error %q not self-sufficient", err.Error())
+	for _, want := range []string{"mixinforprototest.v1.Messages", "does_not_exist", "AsJSON"} {
+		if !strings.Contains(err.Error(), want) {
+			t.Fatalf("error %q missing %q", err.Error(), want)
+		}
 	}
 }
 

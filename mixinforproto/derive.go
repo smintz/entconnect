@@ -94,7 +94,7 @@ func derive[M proto.Message](opts ...Option) (*derivation, error) {
 			continue
 		}
 
-		f, err := mapField(msgName, fd)
+		f, err := mapField(msgName, fd, o)
 		if err != nil {
 			errs = append(errs, err.Error())
 			continue
@@ -103,6 +103,13 @@ func derive[M proto.Message](opts ...Option) (*derivation, error) {
 			fields = append(fields, f)
 		}
 	}
+
+	// MIX-09's AsJSON failure surface needs the message's full field set
+	// (to detect an unknown name) and each named field's real kind (to
+	// detect a non-message target) — context only available here, after
+	// the per-field walk, so it is checked once against md rather than
+	// per field inside mapField (Plan 02).
+	errs = append(errs, validateAsJSON(msgName, md, o)...)
 
 	if len(errs) > 0 {
 		sort.Strings(errs)

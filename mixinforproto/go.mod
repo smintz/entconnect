@@ -7,6 +7,7 @@ toolchain go1.24.7
 require (
 	buf.build/go/protovalidate v1.2.0
 	entgo.io/ent v0.14.6
+	github.com/sebdah/goldie/v2 v2.8.0
 	google.golang.org/protobuf v1.36.11
 )
 
@@ -24,7 +25,9 @@ require (
 	github.com/google/uuid v1.3.0 // indirect
 	github.com/hashicorp/hcl/v2 v2.18.1 // indirect
 	github.com/mitchellh/go-wordwrap v1.0.1 // indirect
+	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/rogpeppe/go-internal v1.14.0 // indirect
+	github.com/sergi/go-diff v1.3.1 // indirect
 	github.com/zclconf/go-cty v1.14.4 // indirect
 	github.com/zclconf/go-cty-yaml v1.1.0 // indirect
 	golang.org/x/exp v0.0.0-20250813145105-42675adae3e6 // indirect
