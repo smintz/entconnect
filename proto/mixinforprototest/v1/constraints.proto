@@ -1,12 +1,18 @@
 // Constraints is the VAL-01/VAL-02/VAL-03 Tier 1 conformance corpus
 // (01-05-PLAN.md): one message per protovalidate constraint class Tier 1
 // either translates into a native ent builder call or deliberately
-// records as residual provenance. Format-validator messages
-// (StringFormat*) each carry exactly one field so the delegating
-// `.Validate(fn)` path (D-13) can invoke protovalidate's own runtime
-// evaluator against a synthetic single-field message with no
-// unrelated-field interference — see mixinforproto/validate.go's
-// delegatingFormatValidator doc comment.
+// records as residual provenance. Every StringFormat* message below
+// still carries exactly one field, but that single-field shape is NOT a
+// design precondition for the delegating `.Validate(fn)` path (D-13) —
+// it was a corpus property the original implementation silently
+// depended on, which is why the whole-message-poisons-the-verdict defect
+// (01-VERIFICATION.md gap 2 / 01-REVIEW.md CR-02) went undetected by a
+// fully green suite. StringFormatWithSibling below is the fixture that
+// removes that dependency: delegatingFormatValidator now evaluates the
+// whole synthetic message but filters protovalidate's violations down to
+// the one attributed to the field under validation (by FieldDescriptor
+// identity), so a delegated format field standing beside an unrelated
+// rule on the same message verdicts correctly either way.
 syntax = "proto3";
 
 package mixinforprototest.v1;
@@ -94,6 +100,20 @@ message StringFormatUuid {
   string value = 1 [(buf.validate.field).string.uuid = true];
 }
 
+// StringFormatWithSibling is 01-VERIFICATION.md gap 2's fixture: a
+// delegated format field (`endpoint`, string.uri) standing beside an
+// unrelated `required` field (`owner`) on the same message. Every other
+// StringFormat* message above is single-field, and that corpus property
+// is exactly what let the pre-fix delegatingFormatValidator's
+// whole-message verdict go untested — on a message like this one, an
+// unset `owner` produced a violation that the unfiltered implementation
+// blamed on `endpoint`, rejecting even a valid URI. This fixture exists
+// specifically so that never regresses silently again.
+message StringFormatWithSibling {
+  string endpoint = 1 [(buf.validate.field).string.uri = true];
+  string owner = 2 [(buf.validate.field).required = true];
+}
+
 // RequiredString carries required on a plain (non-`optional`-keyword)
 // string field: translates exactly to NotEmpty(), which enforces
 // protovalidate's "can't be the zero value" semantics for a
@@ -120,6 +140,27 @@ message RequiredOptionalNonString {
 // posture) — recorded as residual rather than approximated.
 message RequiredPlainNonString {
   int32 value = 1 [(buf.validate.field).required = true];
+}
+
+// RequiredOptionalString is 01-VERIFICATION.md gap 3's fixture: required
+// on an `optional` (presence-tracking) string field. Unlike
+// RequiredString above (implicit presence — no `optional` keyword),
+// protovalidate's `required` here means "must be *set*", not "must be
+// non-empty" — a deliberately-set empty string is valid. RequiredString
+// does not cover this path: classifyRequired's pre-fix branch order
+// tested `required && hasNotEmpty` before `optional && required`, so
+// this shape wrongly derived NotEmpty() and rejected a set-but-empty
+// string that protovalidate accepts.
+message RequiredOptionalString {
+  optional string value = 1 [(buf.validate.field).required = true];
+}
+
+// RequiredOptionalBytes mirrors RequiredOptionalString for bytes:
+// buildBytesField shares the same hasNotEmpty=true argument and the same
+// defect, so it needs its own fixture rather than an assumption of
+// symmetry with the string case.
+message RequiredOptionalBytes {
+  optional bytes value = 1 [(buf.validate.field).required = true];
 }
 
 // ResidualCel carries a deliberately untranslatable custom CEL rule —
