@@ -5,15 +5,15 @@ milestone_name: milestone
 current_phase: 1
 current_phase_name: MixinForProto Core
 status: executing
-stopped_at: Completed 01-08-PLAN.md (gap closure)
-last_updated: "2026-08-08T13:54:52.432Z"
+stopped_at: Completed 01-09-PLAN.md
+last_updated: "2026-08-08T14:12:05.293Z"
 last_activity: 2026-08-08
 last_activity_desc: Roadmap created from 62 v1 requirements across 5 phases
 progress:
   total_phases: 1
-  completed_phases: 0
+  completed_phases: 1
   total_plans: 9
-  completed_plans: 8
+  completed_plans: 9
 ---
 
 # Project State
@@ -28,11 +28,11 @@ See: .planning/PROJECT.md (updated 2026-08-08)
 ## Current Position
 
 Phase: 1 (MixinForProto Core) — EXECUTING
-Plan: 4 of 9
+Plan: 5 of 9
 Status: Ready to execute
 Last activity: 2026-08-08 — Phase 1 execution started
 
-Progress: [█████████░] 89%
+Progress: [██████████] 100%
 
 ## Performance Metrics
 
@@ -66,6 +66,7 @@ Progress: [█████████░] 89%
 | Phase 01 P06 | 30min | 3 tasks | 6 files |
 | Phase 01 P07 | 55min | 3 tasks | 5 files |
 | Phase 01 P08 | 25min | 3 tasks | 12 files |
+| Phase 01 P09 | 15min | 3 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -101,6 +102,8 @@ Recent decisions affecting current work:
 - [Phase ?]: Phase 01 Plan 08 (gap closure): classifyRequired's presence-first branch order now applies to every kind including string/bytes — required on a presence-tracking (optional) field is always a presence assertion, never a non-emptiness one.
 - [Phase ?]: Phase 01 Plan 08 (gap closure): delegatingFormatValidator filters protovalidate's whole-message violations down to the candidate field via FieldDescriptor.FullName comparison, closing the multi-field-message false-rejection defect while keeping the anti-bypass guarantee (an actually-invalid value on the candidate field is still rejected).
 - [Phase ?]: Phase 01 Plan 08 (gap closure): regenerated the stale proto/mixinforprototest.binpb descriptor set and closed Broken Window 4 via gsd-tools windows fixed 4.
+- [Phase ?]: TestCorpusExercisesEveryRequiredResult additionally requires requiredExactPresence to be witnessed separately by a hasNotEmpty=true (string/bytes) and hasNotEmpty=false field — plain per-outcome existence stays green under gap 3's original branch order
+- [Phase ?]: corpusMessages() filters IsMapEntry() synthetic messages; Nested/Inner (reference-only proto types never derived directly) get test:TestGolden coverage claims rather than a standalone golden
 
 ### Pending Todos
 
@@ -123,6 +126,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-08-08T13:54:52.407Z
-Stopped at: Completed 01-08-PLAN.md (gap closure)
+Last session: 2026-08-08T14:12:05.264Z
+Stopped at: Completed 01-09-PLAN.md
 Resume file: None
