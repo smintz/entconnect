@@ -196,3 +196,7 @@ None - no external service configuration required. `buf@v1.72.0` and `protoc-gen
 ---
 *Phase: 01-mixinforproto-core*
 *Completed: 2026-08-08*
+
+## Self-Check: PASSED
+
+All created/modified files (`scripts/generate-stubs.sh`, `scripts/check-stubs.sh`, `scripts/pipeline.sh`, `Makefile`, `.github/workflows/ci.yml`, this SUMMARY) confirmed present on disk. All three task commit hashes (`34455b8`, `2721f74`) and the SUMMARY commit (`c1acd45`) confirmed present in `git log --oneline --all`.
