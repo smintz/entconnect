@@ -1,0 +1,18 @@
+// Maps is the MIX-06 conformance fixture: two scalar-valued maps (which
+// must derive a JSON field each) and one message-valued map (which must
+// be skipped entirely).
+syntax = "proto3";
+
+package mixinforprototest.v1;
+
+// Nested is the message type used as a map value, to prove message maps
+// are skipped rather than mapped.
+message Nested {
+  string value = 1;
+}
+
+message Maps {
+  map<string, string> string_map = 1;
+  map<int32, int64> int_map = 2;
+  map<string, Nested> message_map = 3;
+}

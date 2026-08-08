@@ -1,0 +1,19 @@
+// Wkt is the MIX-04 conformance fixture: one field for each well-known
+// type mixinforproto.md §5 names, including the two (FieldMask,
+// Duration) that must be skipped rather than mapped.
+syntax = "proto3";
+
+package mixinforprototest.v1;
+
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/struct.proto";
+import "google/protobuf/field_mask.proto";
+import "google/protobuf/duration.proto";
+
+message Wkt {
+  google.protobuf.Timestamp timestamp_field = 1;
+  google.protobuf.Struct struct_field = 2;
+  google.protobuf.Value value_field = 3;
+  google.protobuf.FieldMask field_mask_field = 4;
+  google.protobuf.Duration duration_field = 5;
+}
