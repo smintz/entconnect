@@ -30,8 +30,21 @@ Decimal phases appear between their surrounding integers in numeric order.
   2. Developer excludes/overrides fields via `Exclude()`/`Override()`/`AsJSON()`; naming an unknown field or leaving an unresolved `oneof` fails schema load with a message naming the offending message/field/option and the fix — and the developer can reproduce that same failure in-process for debugging, without going through `go generate`
   3. Developer inspects `gen.Graph` and finds per-schema and per-field provenance annotations (source message, source field, derivation kind, exclude/override record, version marker) that survive entc's JSON schema-load boundary
   4. Protovalidate string/numeric/presence constraints on the message (min_len/max_len/pattern, gt/gte/lt/lte, required) show up as native ent builder calls (`MaxLen`, `Match`, `Min`/`Max`/`Range`/`Positive`, `NotEmpty`), introspectable by other ecosystem tools
-  5. `mixinforproto` ships as an independently buildable, independently tagged module (`mixinforproto/vX.Y.Z`, no `replace` directives) with its own `go.mod` (ent + protobuf + protovalidate/cel-go only); a documented pipeline script and CI enumerate both modules explicitly, run a `GOWORK=off` job proving standalone consumption, and its docs prominently cover proto3 presence/zero-collapse semantics before adopters hit them
-**Plans**: TBD
+  5. `mixinforproto` ships as an independently buildable, independently tagged module (`mixinforproto/vX.Y.Z`, no `replace` directives) with its own `go.mod` (ent + protobuf + protovalidate only — see note); a documented pipeline script and CI enumerate both modules explicitly, run a `GOWORK=off` job proving standalone consumption, and its docs prominently cover proto3 presence/zero-collapse semantics before adopters hit them
+
+> **Planning note (2026-08-08):** Phase 1 research verified that `mixinforproto` needs **no cel-go
+> dependency at all** — Tier 1 uses only protovalidate's constraint enumeration, never CEL
+> compilation. cel-go becomes a direct dependency in Phase 3. Separately, the announced
+> `github.com/cel-expr/cel-go` module path was verified **non-functional** (its own `go.mod` still
+> declares the old path); Phase 3 must re-verify before choosing an import path.
+
+**Plans**: 5 plans
+Plans:
+- [ ] 01-01-PLAN.md — Walking-skeleton tracer: one proto field becomes one annotated ent field, proven through a real entc schema load
+- [ ] 01-02-PLAN.md — Field-mapping expansion: scalars, enums, WKTs, presence, maps and AsJSON, golden-asserted against a synthetic corpus
+- [ ] 01-03-PLAN.md — Canonical pipeline script, two-module CI, release-tag convention, and adopter documentation
+- [ ] 01-04-PLAN.md — Exclude/Override options, reserved-identifier and oneof gates, collected failures, and in-process reproduction
+- [ ] 01-05-PLAN.md — Tier 1 validation relay: string, presence and numeric translation with residual provenance recording
 
 ### Phase 2: CRUD Handlers & Interceptor Chain
 **Goal**: Developers get generated ConnectRPC CRUD handlers wired directly to the ent client, with safe partial updates and a fixed, privacy-aware interceptor chain — no hand-written handler code, no ent client leakage
@@ -92,7 +105,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. MixinForProto Core | 0/TBD | Not started | - |
+| 1. MixinForProto Core | 0/5 | Planned | - |
 | 2. CRUD Handlers & Interceptor Chain | 0/TBD | Not started | - |
 | 3. Validation Fidelity | 0/TBD | Not started | - |
 | 4. Flow Binding | 0/TBD | Not started | - |
