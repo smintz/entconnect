@@ -214,3 +214,8 @@ Threat-model acceptance criterion (T-01G-SC) also holds: no package was installe
 ---
 *Phase: 01-mixinforproto-core*
 *Completed: 2026-08-08*
+
+## Self-Check: PASSED
+
+All 7 created/modified files confirmed present on disk; all 5 task/summary commit hashes
+(`7fbe513`, `07881d5`, `643b5b6`, `1df16ea`, `1ae3b29`) confirmed present in `git log --all`.
