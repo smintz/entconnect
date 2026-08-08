@@ -5,7 +5,8 @@ set -euo pipefail
 #
 # Runs, in a fixed, non-negotiable order:
 #   1. buf lint
-#   2. buf generate
+#   2. scripts/generate-stubs.sh (the single canonical, scoped stub-
+#      generation invocation — see that script for the scoping rationale)
 #   3. buf build -o <descriptor>.binpb --as-file-descriptor-set --exclude-source-info
 #      (a SEPARATE CLI invocation from step 2 — buf has no first-party plugin
 #      path to descriptor-set emission, so this step can never be folded into
@@ -52,21 +53,18 @@ require_buf
 (cd "$PROTO_DIR" && buf lint)
 log "step 1/5: OK"
 
-# --- Step 2: buf generate -----------------------------------------------------
-# --path mixinforprototest scopes Go generation to this repo's own corpus
-# files. proto/buf/validate/validate.proto (Plan 05's vendored protovalidate
-# corpus dependency — see that file's own header) must stay out of this
-# scope: it already carries its own go_package option pointing at the real,
-# published buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go
-# package (the same one buf.build/go/protovalidate depends on transitively).
-# Generating a second, local copy of its Go types would either collide at
-# proto-registry init (duplicate registration of buf.validate.FieldRules
-# etc.) or, if buf.gen.yaml's managed-mode override also renamed its
-# go_package, leave a dangling reference to an un-generated init symbol —
-# both verified live during Plan 05's execution.
-log "step 2/5: buf generate"
+# --- Step 2: scripts/generate-stubs.sh -----------------------------------
+# The scoping rationale (why --path mixinforprototest is required, and the
+# live-verified failure mode of an unscoped generation invocation) now
+# lives in scripts/generate-stubs.sh, the single canonical, correctly-
+# scoped generation invocation. This step delegates to it rather than
+# spelling the generation subcommand itself, so this and scripts/
+# check-stubs.sh's staleness gate can never carry two independent,
+# driftable spellings of the same command again (VERIFICATION.md gap 4 /
+# REVIEW.md CR-04).
+log "step 2/5: scripts/generate-stubs.sh"
 require_buf
-(cd "$PROTO_DIR" && buf generate --path mixinforprototest)
+"$REPO_ROOT/scripts/generate-stubs.sh" "$REPO_ROOT"
 log "step 2/5: OK"
 
 # --- Step 3: descriptor-set build (a SEPARATE invocation, never a plugin) ----
