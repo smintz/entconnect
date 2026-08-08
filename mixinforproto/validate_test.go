@@ -900,6 +900,9 @@ func TestGoldenConstraints(t *testing.T) {
 	t.Run("StringFormatUuid", func(t *testing.T) {
 		assertGolden(t, "constraints_string_format_uuid", derive[*mixinforprototestv1.StringFormatUuid])
 	})
+	t.Run("StringFormatWithSibling", func(t *testing.T) {
+		assertGolden(t, "constraints_string_format_with_sibling", derive[*mixinforprototestv1.StringFormatWithSibling])
+	})
 	t.Run("RequiredString", func(t *testing.T) {
 		assertGolden(t, "constraints_required_string", derive[*mixinforprototestv1.RequiredString])
 	})
@@ -908,6 +911,12 @@ func TestGoldenConstraints(t *testing.T) {
 	})
 	t.Run("RequiredPlainNonString", func(t *testing.T) {
 		assertGolden(t, "constraints_required_plain_non_string", derive[*mixinforprototestv1.RequiredPlainNonString])
+	})
+	t.Run("RequiredOptionalString", func(t *testing.T) {
+		assertGolden(t, "constraints_required_optional_string", derive[*mixinforprototestv1.RequiredOptionalString])
+	})
+	t.Run("RequiredOptionalBytes", func(t *testing.T) {
+		assertGolden(t, "constraints_required_optional_bytes", derive[*mixinforprototestv1.RequiredOptionalBytes])
 	})
 	t.Run("ResidualCel", func(t *testing.T) {
 		assertGolden(t, "constraints_residual_cel", derive[*mixinforprototestv1.ResidualCel])
