@@ -259,3 +259,7 @@ None - no external service configuration required. Same `buf`/`protoc-gen-go` in
 ---
 *Phase: 01-mixinforproto-core*
 *Completed: 2026-08-08*
+
+## Self-Check: PASSED
+
+All 28 files listed above verified present on disk; all three commits (`cc78ffa`, `3081485`, `e96792b`) verified present in `git log --oneline --all`.

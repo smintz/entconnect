@@ -10,14 +10,14 @@ Requirements for the initial release (entconnect through v0.3: MixinForProto + C
 ### Mixin Core (`mixinforproto`)
 
 - [x] **MIX-01**: Developer can declare `entconnect.MixinForProto[*orderv1.Order]()` in a schema's `Mixin()` and get ent fields materialized from the message descriptor, with no committed descriptor file and no string message names
-- [ ] **MIX-02**: Mixin maps proto scalar types to their corresponding ent field builders
-- [ ] **MIX-03**: Mixin maps proto `enum` fields to `field.Enum` with the enum's declared values
-- [ ] **MIX-04**: Mixin maps `google.protobuf.Timestamp` to `field.Time`, `Struct`/`Value` to `field.JSON`, and skips `FieldMask`
-- [ ] **MIX-05**: Mixin maps `optional` scalars to `Nillable().Optional()` and non-`optional` proto3 scalars to non-optional fields with `Default(zero)`, matching wire presence semantics
-- [ ] **MIX-06**: Mixin maps `map<K,V>` of scalars to `field.JSON`, and skips maps of messages
+- [x] **MIX-02**: Mixin maps proto scalar types to their corresponding ent field builders
+- [x] **MIX-03**: Mixin maps proto `enum` fields to `field.Enum` with the enum's declared values
+- [x] **MIX-04**: Mixin maps `google.protobuf.Timestamp` to `field.Time`, `Struct`/`Value` to `field.JSON`, and skips `FieldMask`
+- [x] **MIX-05**: Mixin maps `optional` scalars to `Nillable().Optional()` and non-`optional` proto3 scalars to non-optional fields with `Default(zero)`, matching wire presence semantics
+- [x] **MIX-06**: Mixin maps `map<K,V>` of scalars to `field.JSON`, and skips maps of messages
 - [ ] **MIX-07**: Developer can exclude message fields with `Exclude(names ...string)`; excluding a nonexistent field fails at schema load
 - [ ] **MIX-08**: Developer can replace a derived field wholesale with `Override(name string, f ent.Field)` to attach annotations or adjust storage; overriding a nonexistent field fails at schema load
-- [ ] **MIX-09**: Developer can map a message-typed field to `field.JSON` with `AsJSON("field")` for genuinely embedded values
+- [x] **MIX-09**: Developer can map a message-typed field to `field.JSON` with `AsJSON("field")` for genuinely embedded values
 - [ ] **MIX-10**: Message-typed fields are skipped by default; a `oneof` fails at schema load unless every member is excluded or overridden
 - [ ] **MIX-11**: Every schema-load failure names the offending message, field, and option, and states the fix — not a bare Go panic (entc runs schema load in a subprocess that discards stack traces)
 - [ ] **MIX-12**: Developer can reproduce any schema-load failure in-process for debugging, without going through `go generate`
@@ -144,14 +144,14 @@ Which phases cover which requirements. Updated during roadmap creation.
 | Requirement | Phase | Status |
 |-------------|-------|--------|
 | MIX-01 | Phase 1 | Complete |
-| MIX-02 | Phase 1 | Pending |
-| MIX-03 | Phase 1 | Pending |
-| MIX-04 | Phase 1 | Pending |
-| MIX-05 | Phase 1 | Pending |
-| MIX-06 | Phase 1 | Pending |
+| MIX-02 | Phase 1 | Complete |
+| MIX-03 | Phase 1 | Complete |
+| MIX-04 | Phase 1 | Complete |
+| MIX-05 | Phase 1 | Complete |
+| MIX-06 | Phase 1 | Complete |
 | MIX-07 | Phase 1 | Pending |
 | MIX-08 | Phase 1 | Pending |
-| MIX-09 | Phase 1 | Pending |
+| MIX-09 | Phase 1 | Complete |
 | MIX-10 | Phase 1 | Pending |
 | MIX-11 | Phase 1 | Pending |
 | MIX-12 | Phase 1 | Pending |

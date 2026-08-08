@@ -5,15 +5,15 @@ milestone_name: milestone
 current_phase: 1
 current_phase_name: MixinForProto Core
 status: executing
-stopped_at: Completed 01-01-PLAN.md
-last_updated: "2026-08-08T10:22:12.426Z"
+stopped_at: Completed 01-02-PLAN.md
+last_updated: "2026-08-08T10:40:20.321Z"
 last_activity: 2026-08-08
 last_activity_desc: Roadmap created from 62 v1 requirements across 5 phases
 progress:
   total_phases: 1
   completed_phases: 0
   total_plans: 5
-  completed_plans: 1
+  completed_plans: 2
 ---
 
 # Project State
@@ -28,11 +28,11 @@ See: .planning/PROJECT.md (updated 2026-08-08)
 ## Current Position
 
 Phase: 1 (MixinForProto Core) — EXECUTING
-Plan: 2 of 5
+Plan: 3 of 5
 Status: Ready to execute
 Last activity: 2026-08-08 — Phase 1 execution started
 
-Progress: [██░░░░░░░░] 20%
+Progress: [████░░░░░░] 40%
 
 ## Performance Metrics
 
@@ -59,6 +59,7 @@ Progress: [██░░░░░░░░] 20%
 | Plan | Duration | Tasks | Files |
 |------|----------|-------|-------|
 | Phase 01 P01 | 55min | 3 tasks | 16 files |
+| Phase 01 P02 | 16min | 2 tasks | 32 files |
 
 ## Accumulated Context
 
@@ -74,6 +75,9 @@ Recent decisions affecting current work:
 - [Phase ?]: Task 1 checkpoint: module path github.com/smintz/entconnect/mixinforproto, nested module, mixinforproto/vX.Y.Z tag convention (no tag pushed)
 - [Phase ?]: Task 2 checkpoint: integer ContractVersion=1 on SourceMessage/SourceField, additive-only versioning
 - [Phase ?]: SourceField.Name renamed to FieldName (Go identifier only, JSON key stays 'name') to resolve a field/method name collision with schema.Annotation.Name()
+- [Phase ?]: AsJSON validates against full message field set post-loop (validateAsJSON), not per-field inside mapField
+- [Phase ?]: google.protobuf.Value maps to field.JSON(json.RawMessage) for lossless round-tripping; Struct maps to field.JSON(map[string]any)
+- [Phase ?]: SourceField.Kind now carries derivation-class strings (scalar/optionalScalar/enum/wkt/scalarMap/asJSON), superseding Plan 01's raw protoreflect.Kind string
 
 ### Pending Todos
 
@@ -95,6 +99,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-08-08T10:22:12.413Z
-Stopped at: Completed 01-01-PLAN.md
+Last session: 2026-08-08T10:40:20.309Z
+Stopped at: Completed 01-02-PLAN.md
 Resume file: None

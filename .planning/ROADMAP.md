@@ -41,7 +41,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 > `github.com/cel-expr/cel-go` module path was verified **non-functional** (its own `go.mod` still
 > declares the old path); Phase 3 must re-verify before choosing an import path.
 
-**Plans**: 1/5 plans executed
+**Plans**: 2/5 plans executed
 Plans:
 **Wave 1**
 
@@ -49,7 +49,7 @@ Plans:
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
-- [ ] 01-02-PLAN.md — Field-mapping expansion: scalars, enums, WKTs, presence, maps and AsJSON, golden-asserted against a synthetic corpus
+- [x] 01-02-PLAN.md — Field-mapping expansion: scalars, enums, WKTs, presence, maps and AsJSON, golden-asserted against a synthetic corpus
 - [ ] 01-03-PLAN.md — Canonical pipeline script, two-module CI, release-tag convention, and adopter documentation
 
 **Wave 3** *(blocked on Wave 2 completion)*
@@ -128,7 +128,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. MixinForProto Core | 1/5 | In Progress|  |
+| 1. MixinForProto Core | 2/5 | In Progress|  |
 | 2. CRUD Handlers & Interceptor Chain | 0/TBD | Not started | - |
 | 3. Validation Fidelity | 0/TBD | Not started | - |
 | 4. Flow Binding | 0/TBD | Not started | - |
