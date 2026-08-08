@@ -5,15 +5,15 @@ milestone_name: milestone
 current_phase: 1
 current_phase_name: MixinForProto Core
 status: executing
-stopped_at: Completed 01-06-PLAN.md (gap closure)
-last_updated: "2026-08-08T13:32:23.526Z"
+stopped_at: Completed 01-07-PLAN.md (gap closure)
+last_updated: "2026-08-08T13:40:47.040Z"
 last_activity: 2026-08-08
 last_activity_desc: Roadmap created from 62 v1 requirements across 5 phases
 progress:
   total_phases: 1
   completed_phases: 0
   total_plans: 9
-  completed_plans: 6
+  completed_plans: 7
 ---
 
 # Project State
@@ -28,11 +28,11 @@ See: .planning/PROJECT.md (updated 2026-08-08)
 ## Current Position
 
 Phase: 1 (MixinForProto Core) — EXECUTING
-Plan: 2 of 9
+Plan: 3 of 9
 Status: Ready to execute
 Last activity: 2026-08-08 — Phase 1 execution started
 
-Progress: [███████░░░] 67%
+Progress: [████████░░] 78%
 
 ## Performance Metrics
 
@@ -64,6 +64,7 @@ Progress: [███████░░░] 67%
 | Phase 01 P04 | 45min | 3 tasks | 12 files |
 | Phase 01 P05 | 44min | 3 tasks | 42 files |
 | Phase 01 P06 | 30min | 3 tasks | 6 files |
+| Phase 01 P07 | 55min | 3 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -94,6 +95,8 @@ Recent decisions affecting current work:
 - [Phase ?]: Phase 01 Plan 05: unsigned integer intervals and bytes.* length/pattern constraints recorded residual, not translated — documented scope boundary, logged to WINDOWS.md
 - [Phase ?]: Phase 01 Plan 05: buf/validate/validate.proto vendored locally at proto/buf/validate/ (BSR unreachable from this sandboxed environment); buf.gen.yaml override scoped to mixinforprototest/** to avoid colliding with the vendored file's own published Go package
 - [Phase ?]: Phase 01 Plan 06 (gap closure): classify() now checks fd.IsList() immediately after fd.IsMap() (map-before-list ordering is load-bearing); repeated message fields alone are exempted via mapRepeated delegating to mapMessageField, preserving MIX-09/MIX-10; a real list-typed ent mapping is deferred and recorded as a new open Broken Window rather than built
+- [Phase ?]: Rebuilt the D-22 staleness gate on an empty-output-tree design (copy working tree proto/ into a fresh temp root, no pre-seeded committed stubs) instead of git archive HEAD, closing WR-03's orphaned-file blind spot and making the gate rehearsable locally against uncommitted proto/ edits.
+- [Phase ?]: Collapsed the two independently-drifting buf generate spellings (pipeline.sh's scoped call, CI's unscoped call) into scripts/generate-stubs.sh, the single canonical invocation both the pipeline and the CI staleness gate now delegate to.
 
 ### Pending Todos
 
@@ -116,6 +119,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-08-08T13:32:23.503Z
-Stopped at: Completed 01-06-PLAN.md (gap closure)
+Last session: 2026-08-08T13:40:47.018Z
+Stopped at: Completed 01-07-PLAN.md (gap closure)
 Resume file: None

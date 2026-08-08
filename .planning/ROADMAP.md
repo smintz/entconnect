@@ -41,7 +41,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 > `github.com/cel-expr/cel-go` module path was verified **non-functional** (its own `go.mod` still
 > declares the old path); Phase 3 must re-verify before choosing an import path.
 
-**Plans**: 6/9 plans executed
+**Plans**: 7/9 plans executed
 Plans:
 **Wave 1**
 
@@ -60,7 +60,7 @@ Plans:
 **Gap Closure Wave 1** *(closes `01-VERIFICATION.md` gaps; runs after the five original plans)*
 
 - [x] 01-06-PLAN.md — Gap 1 (MIX-02/SC1): `classify()` gains the missing `IsList()` branch so repeated scalars/enums fail at schema load instead of silently deriving singular fields
-- [ ] 01-07-PLAN.md — Gap 4 (PIPE-03): one shared stub-generation script, an orphan-aware staleness gate runnable via `make check-stubs`, and three executed detection proofs
+- [x] 01-07-PLAN.md — Gap 4 (PIPE-03): one shared stub-generation script, an orphan-aware staleness gate runnable via `make check-stubs`, and three executed detection proofs
 
 **Gap Closure Wave 2** *(blocked on Gap Closure Wave 1)*
 
@@ -141,7 +141,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. MixinForProto Core | 6/9 | In Progress|  |
+| 1. MixinForProto Core | 7/9 | In Progress|  |
 | 2. CRUD Handlers & Interceptor Chain | 0/TBD | Not started | - |
 | 3. Validation Fidelity | 0/TBD | Not started | - |
 | 4. Flow Binding | 0/TBD | Not started | - |
