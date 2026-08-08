@@ -9,7 +9,7 @@
 # where auto-discovery would silently do the wrong thing.
 MODULES := . ./mixinforproto
 
-.PHONY: build vet test test-standalone check-modules pipeline
+.PHONY: build vet test test-standalone check-modules check-stubs check-goversion pipeline
 
 ## build: go build ./... in every module in MODULES, cd'd into each.
 build:
@@ -71,6 +71,36 @@ check-modules:
 		fi; \
 	done; \
 	exit $$fail
+
+## check-stubs: the D-22 / Pitfall-9 staleness gate (PIPE-03). Regenerates
+## the proto corpus from the working tree into an empty temp root via
+## scripts/generate-stubs.sh and diffs it against the committed
+## mixinforproto/internal/gen. Detects modified AND orphaned generated
+## files (see scripts/check-stubs.sh for the orphan-detection rationale).
+## This is the exact command CI's `stubs` job runs — a red CI job is
+## reproducible locally with this one target.
+check-stubs:
+	bash scripts/check-stubs.sh
+
+## check-goversion: asserts mixinforproto/go.mod still declares the pinned
+## `go` directive (PIPE-03). Load-bearing: a bare `go mod tidy` silently
+## raises this pin through a transitive TEST-ONLY dependency chain
+## (entc/gen -> ariga.io/atlas -> hcl/v2 -> rogpeppe/go-internal), observed
+## during 01-01's execution and, until this target existed, recorded only
+## in SUMMARY prose rather than enforced. To deliberately raise the pin,
+## update MIXINFORPROTO_GO_PIN below in the same commit as go.mod.
+MIXINFORPROTO_GO_PIN := go 1.24.0
+check-goversion:
+	@actual=$$(grep -m1 '^go ' mixinforproto/go.mod); \
+	if [ "$$actual" != "$(MIXINFORPROTO_GO_PIN)" ]; then \
+		echo "FAIL: mixinforproto/go.mod declares '$$actual', expected '$(MIXINFORPROTO_GO_PIN)'."; \
+		echo "       This pin is load-bearing: a bare 'go mod tidy' silently raises it via"; \
+		echo "       the transitive TEST-only dependency chain entc/gen -> ariga.io/atlas ->"; \
+		echo "       hcl/v2 -> rogpeppe/go-internal. If the pin was deliberately raised,"; \
+		echo "       update MIXINFORPROTO_GO_PIN in the Makefile in the same commit."; \
+		exit 1; \
+	fi; \
+	echo "OK: mixinforproto/go.mod declares '$$actual'"
 
 ## pipeline: run the canonical five-step pipeline script (PIPE-01, D-20).
 pipeline:

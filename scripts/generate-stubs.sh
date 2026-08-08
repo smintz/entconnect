@@ -1,0 +1,51 @@
+#!/usr/bin/env bash
+set -euo pipefail
+#
+# scripts/generate-stubs.sh — the single canonical, correctly-scoped
+# protobuf stub-generation invocation (PIPE-03 gap closure).
+#
+# This is the ONLY place in the repository that spells `buf generate`.
+# scripts/pipeline.sh's step 2 and scripts/check-stubs.sh's staleness gate
+# both call this script rather than the raw command directly, so the two
+# call sites can never drift out of sync with each other again — which is
+# exactly how VERIFICATION.md gap 4 / REVIEW.md CR-04 happened: CI's
+# `stubs` job spelled an unscoped `buf generate` independently of this
+# scoped invocation and silently diverged from it.
+#
+# Usage: scripts/generate-stubs.sh [target-root]
+#   target-root defaults to the repo root (computed from BASH_SOURCE, same
+#   as pipeline.sh). Pass an alternate root (e.g. a mktemp -d tree that
+#   already contains a copied proto/ directory) to generate into it instead
+#   of the live working tree — this is what check-stubs.sh does.
+
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+TARGET_ROOT="${1:-$REPO_ROOT}"
+
+BUF_INSTALL_HINT="go install github.com/bufbuild/buf/cmd/buf@v1.72.0"
+
+require_buf() {
+  if ! command -v buf >/dev/null 2>&1; then
+    echo "[generate-stubs] ERROR: buf is required for this step but is not on PATH." >&2
+    echo "[generate-stubs]   install: ${BUF_INSTALL_HINT}" >&2
+    exit 1
+  fi
+}
+
+require_buf
+
+# --path mixinforprototest scopes Go generation to this repo's own corpus
+# files. proto/buf/validate/validate.proto (Plan 05's vendored protovalidate
+# corpus dependency — see that file's own header) must stay out of this
+# scope: it already carries its own go_package option pointing at the real,
+# published buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go
+# package (the same one buf.build/go/protovalidate depends on transitively).
+# Generating a second, local copy of its Go types would either collide at
+# proto-registry init (duplicate registration of buf.validate.FieldRules
+# etc.) or, if buf.gen.yaml's managed-mode override also renamed its
+# go_package, leave a dangling reference to an un-generated init symbol —
+# both verified live during Plan 05's execution. Leaving this scope off (as
+# CI's `stubs` job previously did) reproduces a live-verified failure:
+#   Failure: plugin protoc-gen-go: buf.build/gen/go/bufbuild/protovalidate/
+#   protocolbuffers/go/buf/validate/validate.pb.go: generated file does not
+#   match prefix "github.com/smintz/entconnect/mixinforproto"
+(cd "$TARGET_ROOT/proto" && buf generate --path mixinforprototest)
