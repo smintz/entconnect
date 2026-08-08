@@ -341,6 +341,70 @@ func TestRequiredTranslation(t *testing.T) {
 			t.Fatalf("want plain MIX-05 Default(0) behavior preserved, got no default: %+v", f)
 		}
 	})
+
+	// --- Gap 3 (VAL-03 / 01-VERIFICATION.md): a presence-tracking
+	// (`optional`) string/bytes field carrying `required` must derive
+	// PRESENCE semantics (non-optional construction, no NotEmpty), not
+	// NON-EMPTINESS semantics. classifyRequired's pre-fix branch order
+	// tested `required && hasNotEmpty` before `optional && required`, so
+	// this case was unreachable for string/bytes (whose builders always
+	// pass hasNotEmpty=true) and instead derived NotEmpty(), rejecting a
+	// deliberately-set empty string that protovalidate's own "must be
+	// set" verdict accepts.
+
+	t.Run("optional string: yields presence, not NotEmpty", func(t *testing.T) {
+		d := mustDerive[*mixinforprototestv1.RequiredOptionalString](t)
+		f := fieldByName(d, "value")
+		if f == nil {
+			t.Fatal("want a derived field named value")
+		}
+		if f.Nillable || f.Optional {
+			t.Fatalf("want Nillable=false Optional=false (non-optional construction), got Nillable=%v Optional=%v", f.Nillable, f.Optional)
+		}
+		if f.Default != "" {
+			t.Fatalf("want no Default set (a bare required field), got %q", f.Default)
+		}
+		if f.ValidatorCount != 0 {
+			t.Fatalf("want zero validators (presence, not NotEmpty), got %d", f.ValidatorCount)
+		}
+		if !contains(f.SourceField.TranslatedIDs, "required") {
+			t.Fatalf("want required translated, got %+v", f.SourceField)
+		}
+		// The ent layer must admit a deliberately-set empty string,
+		// matching protovalidate's own nil verdict on that input.
+		raw := rawFieldByName(d, "value")
+		for _, fn := range validatorsOf[string](raw) {
+			if err := fn(""); err != nil {
+				t.Fatalf("want a deliberately-set empty string admissible at the ent layer (matching protovalidate's nil verdict), got %v", err)
+			}
+		}
+	})
+
+	t.Run("optional bytes: yields presence, not NotEmpty", func(t *testing.T) {
+		d := mustDerive[*mixinforprototestv1.RequiredOptionalBytes](t)
+		f := fieldByName(d, "value")
+		if f == nil {
+			t.Fatal("want a derived field named value")
+		}
+		if f.Nillable || f.Optional {
+			t.Fatalf("want Nillable=false Optional=false (non-optional construction), got Nillable=%v Optional=%v", f.Nillable, f.Optional)
+		}
+		if f.Default != "" {
+			t.Fatalf("want no Default set (a bare required field), got %q", f.Default)
+		}
+		if f.ValidatorCount != 0 {
+			t.Fatalf("want zero validators (presence, not NotEmpty), got %d", f.ValidatorCount)
+		}
+		if !contains(f.SourceField.TranslatedIDs, "required") {
+			t.Fatalf("want required translated, got %+v", f.SourceField)
+		}
+		raw := rawFieldByName(d, "value")
+		for _, fn := range validatorsOf[[]byte](raw) {
+			if err := fn([]byte{}); err != nil {
+				t.Fatalf("want a deliberately-set empty byte slice admissible at the ent layer (matching protovalidate's nil verdict), got %v", err)
+			}
+		}
+	})
 }
 
 // --- D-11: residual recording ---------------------------------------------
