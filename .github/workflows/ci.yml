@@ -39,6 +39,14 @@ jobs:
       - name: Verify no committed go.mod declares a local-path substitution
         run: make check-modules
 
+      # PIPE-03 gap closure: mixinforproto/go.mod's `go` directive pin is
+      # load-bearing (see Makefile's check-goversion target) — a bare
+      # `go mod tidy` silently raises it through the transitive TEST-only
+      # dependency chain entc/gen -> ariga.io/atlas -> hcl/v2, which has
+      # already happened unnoticed twice this phase.
+      - name: Verify mixinforproto/go.mod's go directive pin
+        run: make check-goversion
+
       - name: Install buf (pinned)
         run: go install github.com/bufbuild/buf/cmd/buf@v1.72.0
 
@@ -77,11 +85,16 @@ jobs:
       - name: Build and test mixinforproto standalone (GOWORK=off)
         run: make test-standalone
 
-  # stubs: the Pitfall 9 / D-22 staleness gate. Regenerates the corpus
-  # into a TEMPORARY directory (never the working tree — a CI job must
-  # not mutate the checkout, and this same wave's Plan 02 owns these
-  # committed files) and diffs it against the committed stubs. Any
-  # difference fails the job and names the stale file.
+  # stubs: the Pitfall 9 / D-22 staleness gate (scripts/check-stubs.sh).
+  # Copies the working tree's proto/ into an empty temp root (never the
+  # committed checkout's generated output — a CI job must not mutate the
+  # checkout it is diffing against), regenerates from scratch via
+  # scripts/generate-stubs.sh, and diffs against the committed stubs. A
+  # from-scratch output tree is what lets this catch ORPHANED generated
+  # files (source .proto message renamed/removed), not only modified ones.
+  # This job and a developer's local `make check-stubs` run byte-identical
+  # logic (scripts/check-stubs.sh), so a red job here is reproducible
+  # locally without pushing.
   stubs:
     name: stubs
     runs-on: ubuntu-latest
@@ -98,14 +111,7 @@ jobs:
       - name: Install protoc-gen-go (pinned)
         run: go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.36.11
 
-      - name: Regenerate corpus into a temp directory and diff against committed stubs
+      - name: Run the staleness gate (scripts/check-stubs.sh)
         run: |
           export PATH="$PATH:$(go env GOPATH)/bin"
-          TMP="$(mktemp -d)"
-          git archive HEAD | tar -x -C "$TMP"
-          (cd "$TMP/proto" && buf generate)
-          if ! diff -rq mixinforproto/internal/gen "$TMP/mixinforproto/internal/gen"; then
-            echo "::error::Committed generated stubs under mixinforproto/internal/gen are stale relative to proto/ sources (see diff above). Run scripts/pipeline.sh and commit the result."
-            exit 1
-          fi
-          echo "Committed generated stubs match a fresh regeneration from proto/ sources."
+          make check-stubs
