@@ -41,7 +41,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 > `github.com/cel-expr/cel-go` module path was verified **non-functional** (its own `go.mod` still
 > declares the old path); Phase 3 must re-verify before choosing an import path.
 
-**Plans**: 8/9 plans executed
+**Plans**: 9/9 plans executed
 Plans:
 **Wave 1**
 
@@ -68,7 +68,7 @@ Plans:
 
 **Gap Closure Wave 3** *(blocked on Gap Closure Wave 2)*
 
-- [ ] 01-09-PLAN.md — Root cause: corpus-adequacy guards making "the corpus avoids this shape" a detectable condition rather than a silent one
+- [x] 01-09-PLAN.md — Root cause: corpus-adequacy guards making "the corpus avoids this shape" a detectable condition rather than a silent one
 
 ### Phase 2: CRUD Handlers & Interceptor Chain
 
@@ -141,7 +141,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. MixinForProto Core | 8/9 | In Progress|  |
+| 1. MixinForProto Core | 9/9 | In Progress|  |
 | 2. CRUD Handlers & Interceptor Chain | 0/TBD | Not started | - |
 | 3. Validation Fidelity | 0/TBD | Not started | - |
 | 4. Flow Binding | 0/TBD | Not started | - |
