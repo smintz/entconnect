@@ -295,33 +295,42 @@ func scalarClass(optional bool) string {
 // requiredResult carries the three MECE outcomes VAL-03's "required"
 // translation can take for a scalar field, computed once and applied
 // identically across every buildXxxField function below:
-//   - optional && required: exact — non-optional construction (no
-//     Nillable/Optional/Default), matching protovalidate's "must be set"
-//     semantics for a presence-tracking field.
+//   - optional && required: exact for EVERY kind — non-optional
+//     construction (no Nillable/Optional/Default), matching
+//     protovalidate's "must be set" semantics for a presence-tracking
+//     field. This case wins ahead of the NotEmpty case below: on a
+//     presence-tracking field, `required` is a presence assertion, never
+//     a non-emptiness assertion (01-VERIFICATION.md gap 3 /
+//     01-REVIEW.md CR-03 — a set-but-empty string is valid to
+//     protovalidate here, and NotEmpty() wrongly rejected it before this
+//     branch order was corrected).
+//   - required && hasNotEmpty (implicit presence: no `optional`
+//     keyword): exact via NotEmpty() — protovalidate's "can't be the
+//     zero value" semantics for a non-presence-tracking string/bytes
+//     field.
 //   - optional && !required: MIX-05's ordinary Nillable().Optional()
 //     branch, untouched by Tier 1.
-//   - !optional && required: NOT exact for scalars without a typed
+//   - !optional && required (implicit presence, no NotEmpty-equivalent
+//     for this kind): NOT exact for scalars without a typed
 //     .NotEmpty()-equivalent (VAL-03's flagged ambiguity) — recorded
-//     residual, never approximated; string/bytes are the one exception
-//     (handled by their own buildXxxField, since NotEmpty() IS exact
-//     there) and never reach the residual branch.
+//     residual, never approximated.
 //   - !optional && !required: MIX-05's ordinary Default(zero) branch.
 type requiredResult int
 
 const (
 	requiredNone          requiredResult = iota // !optional && !required
-	requiredExactPresence                       // optional && required
-	requiredExactNotEmpty                       // required, string/bytes (either presence)
+	requiredExactPresence                       // optional && required (presence wins, every kind)
+	requiredExactNotEmpty                       // required, string/bytes, implicit presence only
 	requiredResidualZero                        // !optional && required, no exact translation
 	requiredOptionalPlain                       // optional && !required
 )
 
 func classifyRequired(optional, required, hasNotEmpty bool) requiredResult {
 	switch {
-	case required && hasNotEmpty:
-		return requiredExactNotEmpty
 	case optional && required:
 		return requiredExactPresence
+	case required && hasNotEmpty:
+		return requiredExactNotEmpty
 	case optional:
 		return requiredOptionalPlain
 	case required:
@@ -625,8 +634,13 @@ func buildBoolField(name string, fd protoreflect.FieldDescriptor, optional bool)
 
 // buildStringField builds StringKind: the full VAL-01 translation
 // (byte-semantic and code-point bounds, pattern, D-13's format-validator
-// split) plus VAL-03's required handling, which IS exact here in both
-// presence states via NotEmpty() (D-13/Task 2's behavior spec).
+// split) plus VAL-03's required handling. `required` is exact here, but
+// NOT via a single uniform NotEmpty() call in both presence states —
+// classifyRequired now resolves a presence-tracking (`optional`) field
+// to requiredExactPresence (non-optional construction, no NotEmpty) and
+// an implicit-presence (plain) field to requiredExactNotEmpty
+// (NotEmpty()), matching protovalidate's own distinct semantics for the
+// two cases (01-VERIFICATION.md gap 3 / 01-REVIEW.md CR-03).
 func buildStringField(name string, fd protoreflect.FieldDescriptor, optional bool) (ent.Field, error) {
 	required, celResidual, celEntries, err := resolvedFieldRules(fd)
 	if err != nil {
@@ -667,12 +681,18 @@ func buildStringField(name string, fd protoreflect.FieldDescriptor, optional boo
 	}
 
 	switch classifyRequired(optional, required, true) {
+	case requiredExactPresence:
+		// Presence-tracking field + required: a presence assertion, not
+		// a non-emptiness one. No NotEmpty(), no Nillable().Optional(),
+		// no Default — mirrors buildInt32Field's requiredExactPresence
+		// arm exactly. String/bytes stop being special-cased here.
+		translated = append(translated, "required")
 	case requiredExactNotEmpty:
 		sb = sb.NotEmpty()
 		translated = append(translated, "required")
 	case requiredOptionalPlain:
 		sb = sb.Nillable().Optional()
-	default: // requiredNone (classifyRequired never returns requiredExactPresence/requiredResidualZero when hasNotEmpty is true)
+	default: // requiredNone (requiredResidualZero is unreachable for string/bytes: hasNotEmpty=true means required always hits requiredExactPresence or requiredExactNotEmpty above)
 		sb = sb.Default("")
 	}
 
@@ -681,11 +701,15 @@ func buildStringField(name string, fd protoreflect.FieldDescriptor, optional boo
 }
 
 // buildBytesField builds BytesKind. bytesBuilder shares NotEmpty() with
-// stringBuilder, so `required` is exact here too (both presence states);
-// byte-semantic min_len/max_len/pattern translation for bytes.* rules is
-// out of this plan's scope (VAL-01 names "string" specifically) and is
-// left for a follow-up — a documented boundary, not a silent drop, since
-// this plan's corpus carries no bytes.* constraints to lose.
+// stringBuilder for the implicit-presence case, and shares the
+// presence-only case with the non-string builders for the
+// presence-tracking case (01-VERIFICATION.md gap 3 / 01-REVIEW.md
+// CR-03) — so `required` is exact for both presence states, but not via
+// one uniform mechanism. Byte-semantic min_len/max_len/pattern
+// translation for bytes.* rules is out of this plan's scope (VAL-01
+// names "string" specifically) and is left for a follow-up — a
+// documented boundary, not a silent drop, since this plan's corpus
+// carries no bytes.* length/pattern constraints to lose.
 func buildBytesField(name string, fd protoreflect.FieldDescriptor, optional bool) (ent.Field, error) {
 	required, celResidual, celEntries, err := resolvedFieldRules(fd)
 	if err != nil {
@@ -707,6 +731,10 @@ func buildBytesField(name string, fd protoreflect.FieldDescriptor, optional bool
 	}
 
 	switch classifyRequired(optional, required, true) {
+	case requiredExactPresence:
+		// Mirrors buildStringField's requiredExactPresence arm: no
+		// NotEmpty(), no Nillable().Optional(), no Default.
+		translated = append(translated, "required")
 	case requiredExactNotEmpty:
 		sb = sb.NotEmpty()
 		translated = append(translated, "required")
