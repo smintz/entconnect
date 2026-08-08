@@ -15,12 +15,12 @@ Requirements for the initial release (entconnect through v0.3: MixinForProto + C
 - [x] **MIX-04**: Mixin maps `google.protobuf.Timestamp` to `field.Time`, `Struct`/`Value` to `field.JSON`, and skips `FieldMask`
 - [x] **MIX-05**: Mixin maps `optional` scalars to `Nillable().Optional()` and non-`optional` proto3 scalars to non-optional fields with `Default(zero)`, matching wire presence semantics
 - [x] **MIX-06**: Mixin maps `map<K,V>` of scalars to `field.JSON`, and skips maps of messages
-- [ ] **MIX-07**: Developer can exclude message fields with `Exclude(names ...string)`; excluding a nonexistent field fails at schema load
-- [ ] **MIX-08**: Developer can replace a derived field wholesale with `Override(name string, f ent.Field)` to attach annotations or adjust storage; overriding a nonexistent field fails at schema load
+- [x] **MIX-07**: Developer can exclude message fields with `Exclude(names ...string)`; excluding a nonexistent field fails at schema load
+- [x] **MIX-08**: Developer can replace a derived field wholesale with `Override(name string, f ent.Field)` to attach annotations or adjust storage; overriding a nonexistent field fails at schema load
 - [x] **MIX-09**: Developer can map a message-typed field to `field.JSON` with `AsJSON("field")` for genuinely embedded values
-- [ ] **MIX-10**: Message-typed fields are skipped by default; a `oneof` fails at schema load unless every member is excluded or overridden
-- [ ] **MIX-11**: Every schema-load failure names the offending message, field, and option, and states the fix — not a bare Go panic (entc runs schema load in a subprocess that discards stack traces)
-- [ ] **MIX-12**: Developer can reproduce any schema-load failure in-process for debugging, without going through `go generate`
+- [x] **MIX-10**: Message-typed fields are skipped by default; a `oneof` fails at schema load unless every member is excluded or overridden
+- [x] **MIX-11**: Every schema-load failure names the offending message, field, and option, and states the fix — not a bare Go panic (entc runs schema load in a subprocess that discards stack traces)
+- [x] **MIX-12**: Developer can reproduce any schema-load failure in-process for debugging, without going through `go generate`
 - [x] **MIX-13**: Fields are emitted in a deterministic order independent of Go map iteration
 - [x] **MIX-14**: `mixinforproto` builds and tests as an independent module depending only on `ent`, `google.golang.org/protobuf`, and the protovalidate/CEL toolchain
 
@@ -28,7 +28,7 @@ Requirements for the initial release (entconnect through v0.3: MixinForProto + C
 
 - [x] **ANNO-01**: Mixin records source-message provenance on the schema as an ent annotation surviving entc's schema-load JSON serialization
 - [x] **ANNO-02**: Mixin records per-field provenance (source field name, derivation kind, applied constraints) as ent annotations readable from `gen.Graph`
-- [ ] **ANNO-03**: Mixin records `Exclude` and `Override` decisions as annotations, so codegen can distinguish deliberate omission from accidental drift
+- [x] **ANNO-03**: Mixin records `Exclude` and `Override` decisions as annotations, so codegen can distinguish deliberate omission from accidental drift
 - [x] **ANNO-04**: Annotation structs carry a version marker so codegen can detect and report a mixin/extension version mismatch
 
 ### Validation Relay
@@ -149,17 +149,17 @@ Which phases cover which requirements. Updated during roadmap creation.
 | MIX-04 | Phase 1 | Complete |
 | MIX-05 | Phase 1 | Complete |
 | MIX-06 | Phase 1 | Complete |
-| MIX-07 | Phase 1 | Pending |
-| MIX-08 | Phase 1 | Pending |
+| MIX-07 | Phase 1 | Complete |
+| MIX-08 | Phase 1 | Complete |
 | MIX-09 | Phase 1 | Complete |
-| MIX-10 | Phase 1 | Pending |
-| MIX-11 | Phase 1 | Pending |
-| MIX-12 | Phase 1 | Pending |
+| MIX-10 | Phase 1 | Complete |
+| MIX-11 | Phase 1 | Complete |
+| MIX-12 | Phase 1 | Complete |
 | MIX-13 | Phase 1 | Complete |
 | MIX-14 | Phase 1 | Complete |
 | ANNO-01 | Phase 1 | Complete |
 | ANNO-02 | Phase 1 | Complete |
-| ANNO-03 | Phase 1 | Pending |
+| ANNO-03 | Phase 1 | Complete |
 | ANNO-04 | Phase 1 | Complete |
 | VAL-01 | Phase 1 | Pending |
 | VAL-02 | Phase 1 | Pending |
