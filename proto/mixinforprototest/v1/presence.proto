@@ -1,0 +1,14 @@
+// Presence is the MIX-05 conformance fixture: a plain string, a plain
+// int32, an optional string, and an optional int32, side by side so
+// both presence branches (Nillable/Optional vs Default(zero)) are
+// covered in the same message.
+syntax = "proto3";
+
+package mixinforprototest.v1;
+
+message Presence {
+  string plain_string = 1;
+  int32 plain_int32 = 2;
+  optional string optional_string = 3;
+  optional int32 optional_int32 = 4;
+}

@@ -1,0 +1,15 @@
+// Oneofs is the MIX-10 adjacency conformance fixture: a real oneof and
+// a proto3 `optional` scalar in the same message, proving the compiler's
+// synthetic one-member oneof around `maybe` is never conflated with the
+// real oneof `choice`.
+syntax = "proto3";
+
+package mixinforprototest.v1;
+
+message Oneofs {
+  oneof choice {
+    string a = 1;
+    int32 b = 2;
+  }
+  optional string maybe = 3;
+}

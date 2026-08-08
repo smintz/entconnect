@@ -1,0 +1,16 @@
+// Messages is the MIX-09 conformance fixture: a singular message field,
+// a repeated message field, and one message field intended as the
+// AsJSON opt-in target — all three skipped by default.
+syntax = "proto3";
+
+package mixinforprototest.v1;
+
+message Inner {
+  string value = 1;
+}
+
+message Messages {
+  Inner singular_message = 1;
+  repeated Inner repeated_message = 2;
+  Inner as_json_target = 3;
+}

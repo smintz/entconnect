@@ -1,0 +1,16 @@
+// Enums is the MIX-03 conformance fixture: an enum type with a
+// zero-valued unspecified member plus at least two declared values, and
+// a message carrying one field of that enum type.
+syntax = "proto3";
+
+package mixinforprototest.v1;
+
+enum Status {
+  STATUS_UNSPECIFIED = 0;
+  STATUS_ACTIVE = 1;
+  STATUS_INACTIVE = 2;
+}
+
+message Enums {
+  Status status = 1;
+}
