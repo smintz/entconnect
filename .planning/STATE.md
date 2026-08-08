@@ -5,15 +5,15 @@ milestone_name: milestone
 current_phase: 1
 current_phase_name: MixinForProto Core
 status: executing
-stopped_at: Completed 01-02-PLAN.md
-last_updated: "2026-08-08T10:40:20.321Z"
+stopped_at: Completed 01-03-PLAN.md
+last_updated: "2026-08-08T10:53:56.547Z"
 last_activity: 2026-08-08
 last_activity_desc: Roadmap created from 62 v1 requirements across 5 phases
 progress:
   total_phases: 1
   completed_phases: 0
   total_plans: 5
-  completed_plans: 2
+  completed_plans: 3
 ---
 
 # Project State
@@ -28,11 +28,11 @@ See: .planning/PROJECT.md (updated 2026-08-08)
 ## Current Position
 
 Phase: 1 (MixinForProto Core) — EXECUTING
-Plan: 3 of 5
+Plan: 4 of 5
 Status: Ready to execute
 Last activity: 2026-08-08 — Phase 1 execution started
 
-Progress: [████░░░░░░] 40%
+Progress: [██████░░░░] 60%
 
 ## Performance Metrics
 
@@ -60,6 +60,7 @@ Progress: [████░░░░░░] 40%
 |------|----------|-------|-------|
 | Phase 01 P01 | 55min | 3 tasks | 16 files |
 | Phase 01 P02 | 16min | 2 tasks | 32 files |
+| Phase 01 P03 | 10min | 2 tasks | 8 files |
 
 ## Accumulated Context
 
@@ -78,6 +79,10 @@ Recent decisions affecting current work:
 - [Phase ?]: AsJSON validates against full message field set post-loop (validateAsJSON), not per-field inside mapField
 - [Phase ?]: google.protobuf.Value maps to field.JSON(json.RawMessage) for lossless round-tripping; Struct maps to field.JSON(map[string]any)
 - [Phase ?]: SourceField.Kind now carries derivation-class strings (scalar/optionalScalar/enum/wkt/scalarMap/asJSON), superseding Plan 01's raw protoreflect.Kind string
+- [Phase ?]: Phase 01 Plan 03: Descriptor-set output path proto/mixinforprototest.binpb, sibling to proto/buf.yaml
+- [Phase ?]: Phase 01 Plan 03: Makefile vet/test targets probe go list ./... first and skip visibly on zero-package modules, since go vet/go test (unlike go build) exit 1 on an empty module
+- [Phase ?]: Phase 01 Plan 03: mixinforproto/README.md usage example omits Exclude/Override (not shipped until 01-04) despite mixinforproto.md's own example using them
+- [Phase ?]: Phase 01 Plan 03: CI's pipeline-script invocation added to the modules job (Rule 2 follow-up) so CI actually runs scripts/pipeline.sh, not just its individual steps
 
 ### Pending Todos
 
@@ -99,6 +104,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-08-08T10:40:20.309Z
-Stopped at: Completed 01-02-PLAN.md
+Last session: 2026-08-08T10:53:56.535Z
+Stopped at: Completed 01-03-PLAN.md
 Resume file: None
