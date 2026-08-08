@@ -1,0 +1,177 @@
+# mixinforproto
+
+`mixinforproto` is a standalone [ent](https://entgo.io) mixin that derives `[]ent.Field`
+— including translated validation — from a generated protobuf message *type*, so the
+protobuf contract is the single, one-time definition of a schema's API-visible fields.
+It is a **runtime mixin**: plain Go executing at schema-load time. No entc extension,
+no code generation, no committed `FileDescriptorSet`. Schema load *is* the check phase,
+so a malformed derivation panics there, not at first mutation.
+
+`mixinforproto` is independently adoptable: its own `go.mod` depends only on `ent`,
+`google.golang.org/protobuf`, and `buf.build/go/protovalidate` — nothing about the rest
+of the `entconnect` project is required to use it.
+
+## Usage
+
+```go
+import (
+    "entgo.io/ent"
+    "entgo.io/ent/schema/mixin"
+
+    orderv1 "path/to/generated/order/v1"
+    "github.com/smintz/entconnect/mixinforproto"
+)
+
+func (Order) Mixin() []ent.Mixin {
+    return []ent.Mixin{
+        mixinforproto.MixinForProto[*orderv1.Order](),
+        mixin.Time{},
+    }
+}
+```
+
+The type parameter is the generated message type. Its descriptor comes from
+`protoreflect` (`(*new(M)).ProtoReflect().Descriptor()`), so the reference is
+compile-time-checked: no string message name, no separately-loaded descriptor file, no
+load-order coupling to `buf`.
+
+A message-typed field is skipped by default; opt one in as a JSON-typed field with
+`AsJSON`:
+
+```go
+mixinforproto.MixinForProto[*orderv1.Order](
+    mixinforproto.AsJSON("metadata"),
+)
+```
+
+> **Not yet available in this release:** `mixinforproto.md` §2 also documents
+> `Exclude(names ...string)` and `Override(name string, f ent.Field)`. Neither is part
+> of this package's public API yet — they ship in a subsequent Phase 1 plan (Exclude/
+> Override, reserved-identifier and `oneof` gates). Don't copy them from the design doc
+> expecting them to compile against this release.
+
+## Proto3 presence and the zero-collapse (read this before you write an Update handler)
+
+This is the design's sharpest edge, and it is the reason this section exists above the
+API reference rather than as a footnote in the mapping table.
+
+**The mechanism.** A non-`optional` proto3 scalar field has no wire presence: `0`, `""`,
+and `false` are indistinguishable from "not set" on the wire. `mixinforproto` maps such
+a field to a **non-optional** ent field with `Default(<Go zero value>)`. This is correct
+for wire semantics — there is nothing to lose by collapsing to a DB default, because the
+wire itself already collapsed it — but it means **"unset" and "zero" are the same value**
+from this point on, both in the generated Go accessor and in the database column.
+
+**The concrete failure mode.** `mixinforproto` cannot fix this at this layer, and it will
+bite the moment you write a hand-rolled Update. If your Update handler builds an ent
+mutation by calling the generated `Set*` method for **every** field present in a decoded
+proto message —
+
+```go
+// DO NOT DO THIS — silently clears every field the caller left at zero.
+update.
+    SetName(req.GetName()).
+    SetPriority(req.GetPriority()).
+    SetQuantity(req.GetQuantity())
+```
+
+— then any field the caller's client genuinely didn't intend to touch, and therefore
+left at its Go zero value, gets written as zero. There is no way to tell "the caller
+means to clear this to zero" apart from "the caller never mentioned this field" once
+you're holding a decoded proto message and nothing else. Standalone `mixinforproto`
+users are the audience most exposed to this: **you have no field-mask generation layer
+protecting you.** You are writing `Set*` calls by hand from a proto message, and you
+will reproduce this bug the first time you write a naive Update.
+
+**The two-part fix, and which part is yours to apply today:**
+
+1. **The contract's own remedy: declare the field `optional`.** A proto3 `optional`
+   scalar carries real wire presence, and `mixinforproto` maps it to
+   `.Nillable().Optional()` with no default — "unset" and "zero" stop being the same
+   value, at the field level, immediately. If a field genuinely needs the
+   unset-vs-zero distinction, this is the fix available to you *right now*, with no
+   handler code required.
+2. **The structural fix: a field-mask-gated Update handler.** `mixinforproto` alone
+   cannot make a hand-written `Set*`-per-field Update safe — that requires the handler
+   itself to gate every `Set*` call on `path in mask.GetPaths()`, never on "field is
+   non-zero in the request." This is `entconnect`'s Phase 2 generated Update RPC, not
+   something `mixinforproto` provides. If you are using `mixinforproto` standalone, with
+   no generated handler layer, this fix is entirely on you to build by hand — the
+   `optional` keyword above is the only mitigation this package can offer you directly.
+
+## Mixin hook and policy ordering
+
+A mixin's `Hooks()`, `Interceptors()`, and `Policy()` all run **before** the ones a
+schema author declares directly on the schema — this is `ent.Mixin`'s own documented
+contract, not something `mixinforproto`-specific. This release ships no hook (Tier 2 CEL
+passthrough is a later release), but the ordering fact is documented now, ahead of the
+hook actually existing, so a future release is not the first time you learn it.
+
+Relatedly: **this release does not enforce every protovalidate constraint.** Constraints
+with a native ent equivalent (Tier 1 — `MinLen`, `Match`, `Min`/`Max`/`Range`, and
+friends) are translated into real ent builder calls and enforced at mutation time.
+Constraints Tier 1 cannot translate today are **recorded as provenance on the derived
+field's `SourceField` annotation, but not enforced at the storage layer** — a later
+release adds a Tier 2 CEL hook that closes this gap. Do not mistake this release's
+storage layer for a complete guarantee of contract conformance; check `SourceField`'s
+`ResidualIDs` if you need to know what isn't enforced yet.
+
+## Known limitation: derived-name collisions
+
+At derivation time, `mixinforproto` checks every derived field name against ent's known
+reserved identifiers and panics at schema load with the fix, if there's a collision.
+This is a real check with real teeth for that one category.
+
+What it **cannot** catch: a collision against a field you hand-declared in the same
+schema's own `Fields()`, or a field contributed by another mixin. `ent` composes mixins
+before the schema's own `Fields()` runs, so `mixinforproto` has no visibility into either
+case at the point it derives fields. Both surface later, as the Go compiler's ordinary
+`redeclared in this block` error in generated code — a real error, just not one
+`mixinforproto` can pre-empt or name for you.
+
+`mixinforproto` deliberately does **not** auto-rename a colliding field. A silently
+renamed API-visible field would defeat the entire point of the contract being the source
+of truth for that field's name — if you hit a collision, the fix is `Exclude` (once
+available) or renaming the field in the contract itself, never a mixin-side rename you
+didn't ask for.
+
+## API reference
+
+| Symbol | Kind | What it does |
+|---|---|---|
+| `MixinForProto[M proto.Message](opts ...Option) ent.Mixin` | function | Derives an `ent.Mixin` from generated message type `M`. Declare it in a schema's `Mixin()` method. |
+| `Validate[M proto.Message](opts ...Option) error` | function | Runs the identical derivation `MixinForProto`/`entc` use, in-process, without going through `entc`'s schema-load subprocess. Call it from a plain `go test` in your schema package to get a full, untruncated error when a derivation fails — `entc`'s subprocess panic output is routinely truncated to one line. |
+| `AsJSON(name string) Option` | function | Opts a message-typed field into `field.JSON` derivation. Message-typed fields are skipped by default. An empty name, an unknown field name, or a non-message-typed name all fail at schema load, naming the message, the field, and `"AsJSON"`. |
+| `ContractVersion` | `const int` | The version of the annotation contract below (`SourceMessage`/`SourceField`'s on-the-wire shape). Bumped only on a breaking layout change; a decoder reading a higher version than it was compiled against must fail with a named mismatch error, never silently decode a partial struct. |
+| `MixinForProtoMessage` | `const string` | The `schema.Annotation` key `SourceMessage` is stored under on `gen.Type.Annotations`. |
+| `MixinForProtoField` | `const string` | The `schema.Annotation` key `SourceField` is stored under on `gen.Field.Annotations`. |
+| `SourceMessage` | struct, `schema.Annotation` | Schema-level provenance: the derived proto message's full name, the **complete** field inventory (name + number, regardless of exclusion/override), and the excluded/overridden field-name lists. The complete inventory exists so a later drift check can tell "deliberately excluded" apart from "silently forgotten" — both look identical as absence from `gen.Graph` without it. |
+| `SourceField` | struct, `schema.Annotation` | Field-level provenance attached to each derived `ent.Field`: source proto field name/number, the derivation kind, the protovalidate constraint IDs Tier 1 translated, and the residual (untranslated) constraint IDs plus a stable fingerprint of their CEL expression strings. |
+
+`SourceMessage` and `SourceField` are the **only** channel across `entc`'s schema-load
+JSON boundary — `load.Schema.Field.Validators` is an `int` count on the other side of
+that boundary, not closures, so nothing else survives the round trip. Anything you need
+a downstream consumer (a future `entconnect` entc extension, a drift check) to see about
+a derivation has to go through one of these two structs.
+
+## Field mapping (what's implemented so far)
+
+| Proto shape | Ent mapping |
+|---|---|
+| All 15 scalar kinds (`int32`, `uint64`, `sint32`, `fixed64`, …) | Same-width ent builder, no widening |
+| `enum` | `field.Enum(name).Values(...)` with the declared value names, in declaration order |
+| `google.protobuf.Timestamp` | `field.Time` |
+| `google.protobuf.Struct` | `field.JSON` (`map[string]any`) |
+| `google.protobuf.Value` | `field.JSON` (`json.RawMessage`, for lossless round-tripping) |
+| `google.protobuf.FieldMask`, `google.protobuf.Duration` | Skipped entirely |
+| `optional` scalar (real proto3 presence) | `.Nillable().Optional()`, no default |
+| Plain (non-`optional`) scalar | `.Default(<Go zero value>)`, non-optional — see the presence section above |
+| `map<K,V>` of scalars | `field.JSON`, one field per map |
+| `map<K,V>` with a message value | Skipped entirely |
+| Message-typed field (not opted into `AsJSON`) | Skipped entirely |
+| Message-typed field, `AsJSON("name")` | `field.JSON` |
+| Real `oneof` member | Not yet handled by this release — see the collision/limitation notes above; the panic-unless-resolved gate for real `oneof` members ships in a subsequent Phase 1 plan |
+
+Derived field order always matches proto declaration order and is stable across repeated
+runs and concurrent goroutines — `mixinforproto` never ranges a map directly into
+ordered output anywhere in the derivation path.
