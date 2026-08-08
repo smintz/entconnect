@@ -74,7 +74,7 @@ Requirements for the initial release (entconnect through v0.3: MixinForProto + C
 
 ### Drift Check
 
-- [ ] **DRIFT-01**: Build fails when a service RPC is claimed by neither a flow, a CRUD binding, nor an explicit `Manual`
+- [ ] **DRIFT-01**: Build fails when a service RPC is claimed by neither a flow, a CRUD binding, nor an explicit `entconnect.Manual("rpc")`
 - [ ] **DRIFT-02**: Build warns when a proto-input flow has no claiming RPC, silenceable by marking the flow internal
 - [ ] **DRIFT-03**: Build fails when a skipped message-typed field has no declared edge of matching name/target and no explicit exclude
 - [ ] **DRIFT-04**: Build warns when a `google.api.resource_reference` id field has no corresponding declared edge
@@ -143,13 +143,74 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| (populated by roadmapper) | | |
+| MIX-01 | Phase 1 | Pending |
+| MIX-02 | Phase 1 | Pending |
+| MIX-03 | Phase 1 | Pending |
+| MIX-04 | Phase 1 | Pending |
+| MIX-05 | Phase 1 | Pending |
+| MIX-06 | Phase 1 | Pending |
+| MIX-07 | Phase 1 | Pending |
+| MIX-08 | Phase 1 | Pending |
+| MIX-09 | Phase 1 | Pending |
+| MIX-10 | Phase 1 | Pending |
+| MIX-11 | Phase 1 | Pending |
+| MIX-12 | Phase 1 | Pending |
+| MIX-13 | Phase 1 | Pending |
+| MIX-14 | Phase 1 | Pending |
+| ANNO-01 | Phase 1 | Pending |
+| ANNO-02 | Phase 1 | Pending |
+| ANNO-03 | Phase 1 | Pending |
+| ANNO-04 | Phase 1 | Pending |
+| VAL-01 | Phase 1 | Pending |
+| VAL-02 | Phase 1 | Pending |
+| VAL-03 | Phase 1 | Pending |
+| PIPE-01 | Phase 1 | Pending |
+| PIPE-02 | Phase 1 | Pending |
+| PIPE-03 | Phase 1 | Pending |
+| PIPE-04 | Phase 1 | Pending |
+| PIPE-08 | Phase 1 | Pending |
+| CRUD-01 | Phase 2 | Pending |
+| CRUD-02 | Phase 2 | Pending |
+| CRUD-03 | Phase 2 | Pending |
+| CRUD-04 | Phase 2 | Pending |
+| CRUD-05 | Phase 2 | Pending |
+| CRUD-06 | Phase 2 | Pending |
+| CRUD-07 | Phase 2 | Pending |
+| INT-01 | Phase 2 | Pending |
+| INT-02 | Phase 2 | Pending |
+| INT-03 | Phase 2 | Pending |
+| INT-04 | Phase 2 | Pending |
+| INT-05 | Phase 2 | Pending |
+| VAL-04 | Phase 3 | Pending |
+| VAL-05 | Phase 3 | Pending |
+| VAL-06 | Phase 3 | Pending |
+| VAL-07 | Phase 3 | Pending |
+| VAL-08 | Phase 3 | Pending |
+| VAL-09 | Phase 3 | Pending |
+| VAL-10 | Phase 3 | Pending |
+| VAL-11 | Phase 3 | Pending |
+| PIPE-05 | Phase 3 | Pending |
+| PIPE-06 | Phase 3 | Pending |
+| FLOW-01 | Phase 4 | Pending |
+| FLOW-02 | Phase 4 | Pending |
+| FLOW-03 | Phase 4 | Pending |
+| FLOW-04 | Phase 4 | Pending |
+| FLOW-05 | Phase 4 | Pending |
+| FLOW-06 | Phase 4 | Pending |
+| DRIFT-01 | Phase 5 | Pending |
+| DRIFT-02 | Phase 5 | Pending |
+| DRIFT-03 | Phase 5 | Pending |
+| DRIFT-04 | Phase 5 | Pending |
+| DRIFT-05 | Phase 5 | Pending |
+| DRIFT-06 | Phase 5 | Pending |
+| DRIFT-07 | Phase 5 | Pending |
+| PIPE-07 | Phase 5 | Pending |
 
 **Coverage:**
-- v1 requirements: 57 total
-- Mapped to phases: 0 (pending roadmap)
-- Unmapped: 57 ⚠️
+- v1 requirements: 62 total (corrected from initial count of 57 during roadmap creation — recount against the checklist confirms 62 `- [ ]` v1 items)
+- Mapped to phases: 62/62 ✓
+- Unmapped: 0 ✓
 
 ---
 *Requirements defined: 2026-08-08*
-*Last updated: 2026-08-08 after initial definition*
+*Last updated: 2026-08-08 after roadmap creation (5 phases, 62/62 requirements mapped)*
