@@ -33,9 +33,9 @@ Requirements for the initial release (entconnect through v0.3: MixinForProto + C
 
 ### Validation Relay
 
-- [ ] **VAL-01**: protovalidate string constraints (`min_len`/`max_len`/`len`/`pattern`/format validators) become native ent builder calls visible to other ecosystem generators
-- [ ] **VAL-02**: protovalidate numeric constraints (`gt`/`gte`/`lt`/`lte`) become native `Min`/`Max`/`Range`/`Positive` with correct open/closed-interval adjustment
-- [ ] **VAL-03**: protovalidate presence/`required` constraints become `NotEmpty` or non-optional field construction
+- [x] **VAL-01**: protovalidate string constraints (`min_len`/`max_len`/`len`/`pattern`/format validators) become native ent builder calls visible to other ecosystem generators
+- [x] **VAL-02**: protovalidate numeric constraints (`gt`/`gte`/`lt`/`lte`) become native `Min`/`Max`/`Range`/`Positive` with correct open/closed-interval adjustment
+- [x] **VAL-03**: protovalidate presence/`required` constraints become `NotEmpty` or non-optional field construction
 - [ ] **VAL-04**: Residual field-scoped protovalidate CEL is compiled once at schema load and evaluated at mutation time by a single mixin-declared hook covering all field types
 - [ ] **VAL-05**: The CEL hook evaluates only fields changed by the mutation
 - [ ] **VAL-06**: Schema-layer violations carry the protovalidate constraint ID and message and are consumable as a structured error outside any RPC context
@@ -161,9 +161,9 @@ Which phases cover which requirements. Updated during roadmap creation.
 | ANNO-02 | Phase 1 | Complete |
 | ANNO-03 | Phase 1 | Complete |
 | ANNO-04 | Phase 1 | Complete |
-| VAL-01 | Phase 1 | Pending |
-| VAL-02 | Phase 1 | Pending |
-| VAL-03 | Phase 1 | Pending |
+| VAL-01 | Phase 1 | Complete |
+| VAL-02 | Phase 1 | Complete |
+| VAL-03 | Phase 1 | Complete |
 | PIPE-01 | Phase 1 | Complete |
 | PIPE-02 | Phase 1 | Complete |
 | PIPE-03 | Phase 1 | Complete |
