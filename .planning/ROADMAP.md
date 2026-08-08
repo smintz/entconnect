@@ -41,7 +41,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 > `github.com/cel-expr/cel-go` module path was verified **non-functional** (its own `go.mod` still
 > declares the old path); Phase 3 must re-verify before choosing an import path.
 
-**Plans**: 7/9 plans executed
+**Plans**: 8/9 plans executed
 Plans:
 **Wave 1**
 
@@ -64,7 +64,7 @@ Plans:
 
 **Gap Closure Wave 2** *(blocked on Gap Closure Wave 1)*
 
-- [ ] 01-08-PLAN.md — Gaps 2 and 3 (VAL-01/VAL-03): delegated format validators judge only their own field, and `required` on a presence-tracking string/bytes means presence, not non-emptiness
+- [x] 01-08-PLAN.md — Gaps 2 and 3 (VAL-01/VAL-03): delegated format validators judge only their own field, and `required` on a presence-tracking string/bytes means presence, not non-emptiness
 
 **Gap Closure Wave 3** *(blocked on Gap Closure Wave 2)*
 
@@ -141,7 +141,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. MixinForProto Core | 7/9 | In Progress|  |
+| 1. MixinForProto Core | 8/9 | In Progress|  |
 | 2. CRUD Handlers & Interceptor Chain | 0/TBD | Not started | - |
 | 3. Validation Fidelity | 0/TBD | Not started | - |
 | 4. Flow Binding | 0/TBD | Not started | - |
