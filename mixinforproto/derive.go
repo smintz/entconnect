@@ -2,11 +2,10 @@ package mixinforproto
 
 import (
 	"fmt"
-	"sort"
-	"strings"
 
 	"entgo.io/ent"
 	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/reflect/protoreflect"
 )
 
 // derivation is the result of a successful derive[M] call: the ordered
@@ -15,34 +14,6 @@ import (
 type derivation struct {
 	fields  []ent.Field
 	message SourceMessage
-}
-
-// derivationError collects every derivation failure encountered while
-// walking a message descriptor (D-09), rather than returning at the
-// first offense — a message with three unknown options should report
-// all three in one panic, so the fix is one edit rather than three
-// regeneration cycles.
-type derivationError struct {
-	messageName string
-	errs        []string
-}
-
-// Error implements the error interface. Its first line is always
-// self-sufficient (D-08): entc's schema-load subprocess routinely
-// truncates panic output to one line, so the first line alone must name
-// enough to act on.
-func (e *derivationError) Error() string {
-	if len(e.errs) == 0 {
-		return fmt.Sprintf("mixinforproto: %s: unknown derivation error", e.messageName)
-	}
-	if len(e.errs) == 1 {
-		return e.errs[0]
-	}
-	rest := make([]string, 0, len(e.errs)-1)
-	for _, s := range e.errs[1:] {
-		rest = append(rest, "  - "+s)
-	}
-	return fmt.Sprintf("%s (%d more error(s) below)\n%s", e.errs[0], len(e.errs)-1, strings.Join(rest, "\n"))
 }
 
 // derive walks the proto message descriptor for M and produces the
@@ -66,6 +37,15 @@ func derive[M proto.Message](opts ...Option) (*derivation, error) {
 	md := (*new(M)).ProtoReflect().Descriptor()
 	msgName := string(md.FullName())
 
+	// Every name supplied to Exclude/Override/AsJSON is validated
+	// against the descriptor's own field inventory before the walk
+	// below touches a single field (this plan's Task 1 action text):
+	// an unknown name, a nil Override replacement, and an
+	// Exclude/Override conflict are all collected here, not discovered
+	// mid-walk.
+	var failures []failure
+	failures = append(failures, validateOptionNames(msgName, md, o)...)
+
 	fds := md.Fields()
 	// D-24: iterate protoreflect's field list by index, in declaration
 	// order — never range a Go map into ordered output. This applies
@@ -74,7 +54,6 @@ func derive[M proto.Message](opts ...Option) (*derivation, error) {
 	// inventory, so they can never disagree on order.
 	inventory := make([]FieldRef, 0, fds.Len())
 	fields := make([]ent.Field, 0, fds.Len())
-	var errs []string
 
 	for i := 0; i < fds.Len(); i++ {
 		fd := fds.Get(i)
@@ -94,26 +73,38 @@ func derive[M proto.Message](opts ...Option) (*derivation, error) {
 			continue
 		}
 
-		f, err := mapField(msgName, fd, o)
-		if err != nil {
-			errs = append(errs, err.Error())
+		if of, isOverridden := o.overriddenField(name); isOverridden {
+			// A nil replacement was already collected as a failure by
+			// validateOptionNames above; skip installing it here
+			// rather than appending a nil ent.Field that would panic
+			// far from its actual cause (D-08).
+			if of != nil {
+				fields = append(fields, of)
+			}
 			continue
 		}
-		if f != nil {
-			fields = append(fields, f)
+
+		f, err := mapField(msgName, fd, o)
+		if err != nil {
+			failures = append(failures, failure{
+				message:     msgName,
+				field:       name,
+				fieldIndex:  int(fd.Index()),
+				rule:        "fieldmap",
+				description: err.Error(),
+				remedy:      fmt.Sprintf("use Exclude(%q) or Override(%q, ...) for this field", name, name),
+			})
+			continue
 		}
+		if f == nil {
+			continue
+		}
+
+		fields = append(fields, f)
 	}
 
-	// MIX-09's AsJSON failure surface needs the message's full field set
-	// (to detect an unknown name) and each named field's real kind (to
-	// detect a non-message target) — context only available here, after
-	// the per-field walk, so it is checked once against md rather than
-	// per field inside mapField (Plan 02).
-	errs = append(errs, validateAsJSON(msgName, md, o)...)
-
-	if len(errs) > 0 {
-		sort.Strings(errs)
-		return nil, &derivationError{messageName: msgName, errs: errs}
+	if derr := newDerivationError(msgName, failures); derr != nil {
+		return nil, derr
 	}
 
 	return &derivation{
@@ -126,4 +117,78 @@ func derive[M proto.Message](opts ...Option) (*derivation, error) {
 			Overridden:      o.overriddenNames(),
 		},
 	}, nil
+}
+
+// validateOptionNames validates every name supplied to Exclude and
+// Override against md's real field inventory, matching byte-exactly on
+// protoreflect.Name — never case-insensitively, never against the JSON
+// name, because a contract's field name is its identity and a near-miss
+// must be reported, not guessed. Collects one failure per unknown name
+// (D-09) rather than returning at the first, plus a nil-replacement
+// failure for Override and a conflict failure for any name passed to
+// both options. AsJSON's own name validation (validateAsJSON,
+// fieldmap.go) is folded in here too, so derive's single failures slice
+// carries every option-name problem in one place.
+func validateOptionNames(msgName string, md protoreflect.MessageDescriptor, o *options) []failure {
+	var out []failure
+
+	for _, name := range o.excludedNames() {
+		if md.Fields().ByName(protoreflect.Name(name)) == nil {
+			out = append(out, failure{
+				message:     msgName,
+				field:       name,
+				fieldIndex:  fieldIndexUnnamed,
+				rule:        "Exclude",
+				description: fmt.Sprintf("Exclude(%q) names a field that does not exist on this message", name),
+				remedy:      "check for a typo, or remove this Exclude() argument if the field was renamed or removed from the contract",
+			})
+		}
+	}
+
+	for _, name := range o.overriddenNames() {
+		fd := md.Fields().ByName(protoreflect.Name(name))
+		if fd == nil {
+			out = append(out, failure{
+				message:     msgName,
+				field:       name,
+				fieldIndex:  fieldIndexUnnamed,
+				rule:        "Override",
+				description: fmt.Sprintf("Override(%q, ...) names a field that does not exist on this message", name),
+				remedy:      "check for a typo, or remove this Override() call if the field was renamed or removed from the contract",
+			})
+			continue
+		}
+		if f, _ := o.overriddenField(name); f == nil {
+			out = append(out, failure{
+				message:     msgName,
+				field:       name,
+				fieldIndex:  int(fd.Index()),
+				rule:        "Override",
+				description: fmt.Sprintf("Override(%q, nil) supplies a nil replacement field", name),
+				remedy:      fmt.Sprintf("pass a non-nil ent.Field, or use Exclude(%q) to omit the field entirely", name),
+			})
+		}
+	}
+
+	for _, name := range o.excludedNames() {
+		if !o.isOverridden(name) {
+			continue
+		}
+		fieldIndex := fieldIndexUnnamed
+		if fd := md.Fields().ByName(protoreflect.Name(name)); fd != nil {
+			fieldIndex = int(fd.Index())
+		}
+		out = append(out, failure{
+			message:     msgName,
+			field:       name,
+			fieldIndex:  fieldIndex,
+			rule:        "Exclude/Override",
+			description: fmt.Sprintf("%q is passed to both Exclude and Override", name),
+			remedy:      "keep only one: Exclude to omit the field, or Override to replace it — a field cannot be both",
+		})
+	}
+
+	out = append(out, validateAsJSON(msgName, md, o)...)
+
+	return out
 }

@@ -1,24 +1,27 @@
 package mixinforproto
 
-import "sort"
+import (
+	"sort"
+
+	"entgo.io/ent"
+)
 
 // Option configures a MixinForProto (or Validate[M]) derivation.
 //
-// Phase 1's walking skeleton declares no exported option constructors —
-// Exclude and Override belong to Plan 03, AsJSON to Plan 02, and
-// WithMessageRules is deliberately omitted from Phase 1 entirely (see
-// SKELETON.md "Out of Scope"). This file exists now so derive.go and
-// fieldmap.go can already call the lookup helpers below, and so Plans 02
-// and 03 extend this file's options struct without reopening derive.go.
+// WithMessageRules is deliberately not declared here: its behavior is
+// Tier 3 (Phase 3) and a no-op symbol today would be an API that lies
+// (see 01-04-PLAN.md's action text for Task 1).
 type Option func(*options)
 
 // options is the unexported, accumulated configuration a set of Option
-// values builds. Every field is a name set rather than a positional
-// list, because Exclude/Override/AsJSON semantics are "does this proto
-// field name appear here", never "in what order were options passed".
+// values builds. excluded/asJSON are name sets; overridden maps each
+// named field to its supplied replacement — the map key's presence
+// (not the value) records that Override was called at all, so a nil
+// replacement is distinguishable from "never overridden" rather than
+// silently treated as "not overridden" (MIX-08 empty edge).
 type options struct {
 	excluded   map[string]bool
-	overridden map[string]bool
+	overridden map[string]ent.Field
 	asJSON     map[string]bool
 }
 
@@ -27,7 +30,7 @@ type options struct {
 func applyOptions(opts []Option) *options {
 	o := &options{
 		excluded:   map[string]bool{},
-		overridden: map[string]bool{},
+		overridden: map[string]ent.Field{},
 		asJSON:     map[string]bool{},
 	}
 	for _, opt := range opts {
@@ -42,16 +45,62 @@ func (o *options) isExcluded(name string) bool {
 	return o.excluded[name]
 }
 
-// isOverridden reports whether the named proto field was passed to
-// Override(...).
+// isOverridden reports whether Override(name, ...) was called for name
+// at all, regardless of whether the supplied replacement was nil — a
+// nil replacement is a collected failure (see validateOptionNames), not
+// silently "not overridden". This is also what the unresolved-oneof
+// gate (Task 2) treats as "this member is resolved".
 func (o *options) isOverridden(name string) bool {
-	return o.overridden[name]
+	_, ok := o.overridden[name]
+	return ok
+}
+
+// overriddenField returns the replacement field supplied to
+// Override(name, f) and whether Override was called for name at all.
+// The returned field may itself be nil; the caller decides what that
+// means (validateOptionNames treats it as a failure; derive's per-field
+// walk treats it as "install nothing", since the failure already covers
+// the diagnostic).
+func (o *options) overriddenField(name string) (ent.Field, bool) {
+	f, ok := o.overridden[name]
+	return f, ok
 }
 
 // isAsJSON reports whether the named proto field was passed to
 // AsJSON(...).
 func (o *options) isAsJSON(name string) bool {
 	return o.asJSON[name]
+}
+
+// Exclude marks proto field names as not materialized into derived ent
+// fields (MIX-07). Exclude() with no arguments is a legal no-op — the
+// full field set derives normally. Naming a field that does not exist
+// on the message (including the empty string) fails at schema load,
+// naming the offending option and field rather than being silently
+// ignored — see validateOptionNames in derive.go (D-09's collected-
+// failures rule). Repeated Exclude calls, and multiple names in one
+// call, are all additive.
+func Exclude(names ...string) Option {
+	return func(o *options) {
+		for _, n := range names {
+			o.excluded[n] = true
+		}
+	}
+}
+
+// Override replaces a derived field wholesale with a hand-declared one
+// (MIX-08): f is installed verbatim, with no SourceField constraint
+// provenance attached, because an override suppresses validation relay
+// for that field entirely — the developer owns it completely, with no
+// silent merging (D-05, mixinforproto.md §2). Naming a field that does
+// not exist, or supplying a nil f, each fail at schema load naming the
+// field, rather than installing a nil ent.Field that would panic far
+// from its cause at codegen time. A name passed to both Exclude and
+// Override is itself a reported conflict, not a silent precedence.
+func Override(name string, f ent.Field) Option {
+	return func(o *options) {
+		o.overridden[name] = f
+	}
 }
 
 // AsJSON opts a message-typed proto field into JSON-field derivation
@@ -76,7 +125,12 @@ func (o *options) excludedNames() []string {
 // overriddenNames returns the overridden field names in sorted order,
 // for the same reason as excludedNames.
 func (o *options) overriddenNames() []string {
-	return sortedKeys(o.overridden)
+	keys := make([]string, 0, len(o.overridden))
+	for k := range o.overridden {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	return keys
 }
 
 // asJSONNames returns the AsJSON-opted-in field names in sorted order,
