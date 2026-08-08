@@ -200,6 +200,11 @@ a derivation has to go through one of these two structs.
 
 ## Field mapping (what's implemented so far)
 
+A `repeated` field is never mapped to a list-typed ent field in v0.1 (01-06-PLAN.md, closing
+a gap the initial verification pass found — see the three `repeated`-cardinality rows below):
+a repeated scalar or enum fails loudly at schema load rather than silently collapsing to a
+singular column, and a repeated message field keeps its pre-existing skip/`AsJSON` behavior.
+
 | Proto shape | Ent mapping |
 |---|---|
 | All 15 scalar kinds (`int32`, `uint64`, `sint32`, `fixed64`, …) | Same-width ent builder, no widening |
@@ -214,6 +219,10 @@ a derivation has to go through one of these two structs.
 | `map<K,V>` with a message value | Skipped entirely |
 | Message-typed field (not opted into `AsJSON`) | Skipped entirely |
 | Message-typed field, `AsJSON("name")` | `field.JSON` |
+| `repeated` message-typed field (not opted into `AsJSON`) | Skipped entirely — same MIX-09/MIX-10 rule as a singular message field, unaffected by cardinality |
+| `repeated` message-typed field, `AsJSON("name")` | `field.JSON` — same opt-in as a singular message field |
+| `repeated` scalar or `repeated` enum | **Fails at schema load**, naming the message, the field, its repeated cardinality, and the `Exclude`/`Override` remedy — never silently derived as a singular column (closes the gap the initial verification pass found) |
+| `repeated` field carrying `repeated.items` protovalidate rules | Same loud schema-load failure as any other repeated scalar/enum — the constraints are never silently discarded |
 | Real `oneof` member | Skipped unless every member is `Exclude`d or `Override`n — an unresolved real `oneof` fails at schema load (never silently guessed) |
 | `string`/numeric field with a translatable protovalidate rule (`min_len`/`max_len`/`len`/`min_bytes`/`max_bytes`/`len_bytes`/`pattern`/`email`/`hostname`/`uri`/`ip`/`uuid`/`gt`/`gte`/`lt`/`lte`/`required`) | A real native ent validator call (`MinLen`/`MaxLen`/`Match`/`Validate`/`Min`/`Max`/`Range`/`NotEmpty`) — see "Relatedly" above and the string-length-unit section |
 
