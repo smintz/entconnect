@@ -29,7 +29,11 @@
 package mixinforproto
 
 import (
+	"fmt"
+	"os"
+	"path/filepath"
 	"sort"
+	"strings"
 	"testing"
 
 	"google.golang.org/protobuf/reflect/protoreflect"
@@ -277,6 +281,152 @@ func TestCorpusExercisesEveryRequiredResult(t *testing.T) {
 				t.Fatalf("requiredExactPresence is never witnessed by a field with hasNotEmpty=%v — this is exactly the axis gap 3 hid in (01-VERIFICATION.md/CR-03): presence must win for EVERY kind, not just the ones without a hasNotEmpty=true builder. Add an `optional <kind> ... [(buf.validate.field).required = true]` fixture for this hasNotEmpty value.", hasNotEmpty)
 			}
 			t.Logf("requiredExactPresence with hasNotEmpty=%v covered by %s.%s", hasNotEmpty, fd.ContainingMessage().FullName(), fd.Name())
+		}
+	})
+}
+
+// corpusCoverage is the two-way-checked map from every proto message
+// declared in the mixinforprototest.v1 package to a short, human-written
+// claim naming where that message's behavior is verified. This is the
+// axis gap 2 (01-VERIFICATION.md / 01-REVIEW.md CR-02) lived on:
+// constraints.proto's StringFormat* messages were each single-field by
+// convention, and that unwritten corpus property was exactly what let
+// delegatingFormatValidator's whole-message-poisons-the-verdict defect go
+// untested. A written, checked coverage claim per message is what turns
+// "the corpus happens to avoid this shape" into a decision someone made
+// on purpose, or a gap TestCorpusMessagesHaveRecordedCoverage below
+// reports.
+//
+// Two value forms:
+//   - "golden:<name>" — asserted via goldie against
+//     mixinforproto/testdata/<name>.golden. TestCorpusMessagesHaveRecordedCoverage
+//     verifies the referenced file actually exists on disk, so a renamed
+//     or deleted golden fixture is caught rather than silently trusted.
+//   - "test:<TestName>" — asserted by a named Go test with no golden
+//     fixture. Used for messages whose full derivation deliberately
+//     fails (the Repeated* fixtures, reserved.proto's collision
+//     fixtures) and for messages that are referenced-only types never
+//     derived on their own (Nested, Inner — used only as a map-value/
+//     message-field type elsewhere), whose behavior is exercised
+//     indirectly through the container message's own test.
+//
+// A guard failure here is closed by ADDING coverage — a golden fixture
+// or a named test, then an entry recording it — never by deleting this
+// assertion or weakening the check (T-01G-18). "No coverage" is a real
+// answer only if it is written down here.
+var corpusCoverage = map[string]string{
+	"mixinforprototest.v1.Scalars":  "golden:scalars",
+	"mixinforprototest.v1.Enums":    "golden:enums",
+	"mixinforprototest.v1.Presence": "golden:presence",
+	"mixinforprototest.v1.Wkt":      "golden:wkt",
+	// Nested/Inner are reference-only types (a map value type, a message
+	// field type) never derived directly on their own; their being
+	// skipped-by-default / message-map-skipped is exercised through
+	// TestGolden's Maps/Messages subtests on their containing message.
+	"mixinforprototest.v1.Nested":                    "test:TestGolden",
+	"mixinforprototest.v1.Maps":                      "golden:maps",
+	"mixinforprototest.v1.Inner":                     "test:TestGolden",
+	"mixinforprototest.v1.Messages":                  "golden:messages",
+	"mixinforprototest.v1.Oneofs":                    "golden:oneofs",
+	"mixinforprototest.v1.Tracer":                    "test:TestDerive_TracerMapsSingleStringField",
+	"mixinforprototest.v1.Empty":                     "golden:empty",
+	"mixinforprototest.v1.MultiField":                "test:TestDerive_FieldOrderMatchesDeclarationOrder",
+	"mixinforprototest.v1.Unsupported":               "test:TestDerive_FormerlyUnsupportedKindNowMaps",
+	"mixinforprototest.v1.ReservedStatic":            "test:TestReservedCollisionFails",
+	"mixinforprototest.v1.ReservedStructural":        "test:TestReservedCollisionFails",
+	"mixinforprototest.v1.NotReserved":               "test:TestNotReservedDerivesCleanly",
+	"mixinforprototest.v1.PartialOneof":              "test:TestOneofUnresolvedFails",
+	"mixinforprototest.v1.RepeatedScalar":            "test:TestRepeatedCardinality",
+	"mixinforprototest.v1.RepeatedEnum":              "test:TestRepeatedCardinality",
+	"mixinforprototest.v1.RepeatedItemsFormat":       "test:TestRepeatedCardinality",
+	"mixinforprototest.v1.RepeatedMessage":           "test:TestRepeatedCardinality",
+	"mixinforprototest.v1.NoRules":                   "golden:constraints_no_rules",
+	"mixinforprototest.v1.StringByteBounds":          "golden:constraints_string_byte_bounds",
+	"mixinforprototest.v1.StringCodePointBounds":     "golden:constraints_string_codepoint_bounds",
+	"mixinforprototest.v1.StringPattern":             "golden:constraints_string_pattern",
+	"mixinforprototest.v1.StringFormatEmail":         "golden:constraints_string_format_email",
+	"mixinforprototest.v1.StringFormatHostname":      "golden:constraints_string_format_hostname",
+	"mixinforprototest.v1.StringFormatUri":           "golden:constraints_string_format_uri",
+	"mixinforprototest.v1.StringFormatIp":            "golden:constraints_string_format_ip",
+	"mixinforprototest.v1.StringFormatUuid":          "golden:constraints_string_format_uuid",
+	"mixinforprototest.v1.StringFormatWithSibling":   "golden:constraints_string_format_with_sibling",
+	"mixinforprototest.v1.RequiredString":            "golden:constraints_required_string",
+	"mixinforprototest.v1.RequiredOptionalNonString": "golden:constraints_required_optional_non_string",
+	"mixinforprototest.v1.RequiredPlainNonString":    "golden:constraints_required_plain_non_string",
+	"mixinforprototest.v1.RequiredOptionalString":    "golden:constraints_required_optional_string",
+	"mixinforprototest.v1.RequiredOptionalBytes":     "golden:constraints_required_optional_bytes",
+	"mixinforprototest.v1.ResidualCel":               "golden:constraints_residual_cel",
+	"mixinforprototest.v1.EnumDefinedOnlyField":      "golden:constraints_enum_defined_only",
+	"mixinforprototest.v1.Int32Comparators":          "golden:constraints_int32_comparators",
+	"mixinforprototest.v1.Int32Adjacent":             "golden:constraints_int32_adjacent",
+	"mixinforprototest.v1.Int32Overflow":             "golden:constraints_int32_overflow",
+	"mixinforprototest.v1.FloatComparators":          "golden:constraints_float_comparators",
+	"mixinforprototest.v1.DoubleComparators":         "golden:constraints_double_comparators",
+}
+
+// TestCorpusMessagesHaveRecordedCoverage checks corpusCoverage in BOTH
+// directions, so neither an unlisted message nor a stale entry survives:
+//   - every message corpusMessages() finds must be a key in
+//     corpusCoverage — an unlisted message means someone added a fixture
+//     without recording where it's exercised.
+//   - every corpusCoverage key must name a message still present in the
+//     registry — a stale entry means a message was renamed or removed
+//     and the map was never updated.
+//   - every "golden:<name>" claim must resolve to an existing file under
+//     mixinforproto/testdata — a renamed or deleted golden fixture is
+//     caught here rather than silently trusted.
+//
+// Both diagnostic lists are sorted before printing (D-24) so failure
+// output is stable and diffable across runs.
+func TestCorpusMessagesHaveRecordedCoverage(t *testing.T) {
+	msgs := corpusMessages(t)
+	present := make(map[string]bool, len(msgs))
+	for _, md := range msgs {
+		present[string(md.FullName())] = true
+	}
+
+	t.Run("every corpus message has a recorded coverage claim", func(t *testing.T) {
+		var missing []string
+		for _, md := range msgs {
+			name := string(md.FullName())
+			if _, ok := corpusCoverage[name]; !ok {
+				missing = append(missing, fmt.Sprintf("%s (declared in %s)", name, md.ParentFile().Path()))
+			}
+		}
+		if len(missing) > 0 {
+			sort.Strings(missing)
+			t.Fatalf("corpus message(s) with no recorded coverage claim in corpusCoverage — \"no coverage\" is a real answer only if it is written down. Add a golden fixture or a named test, then record the claim (golden:<name> or test:<TestName>):\n  %s", strings.Join(missing, "\n  "))
+		}
+	})
+
+	t.Run("every corpusCoverage entry names a message that still exists", func(t *testing.T) {
+		var stale []string
+		for name := range corpusCoverage {
+			if !present[name] {
+				stale = append(stale, name)
+			}
+		}
+		if len(stale) > 0 {
+			sort.Strings(stale)
+			t.Fatalf("corpusCoverage entry(ies) name a message that is no longer in the registry — renamed or removed; remove or update the stale entry:\n  %s", strings.Join(stale, "\n  "))
+		}
+	})
+
+	t.Run("every golden: claim resolves to an existing testdata fixture", func(t *testing.T) {
+		var missingGolden []string
+		for name, claim := range corpusCoverage {
+			goldenName, ok := strings.CutPrefix(claim, "golden:")
+			if !ok {
+				continue
+			}
+			path := filepath.Join("testdata", goldenName+".golden")
+			if _, err := os.Stat(path); err != nil {
+				missingGolden = append(missingGolden, fmt.Sprintf("%s -> %s (missing %s)", name, claim, path))
+			}
+		}
+		if len(missingGolden) > 0 {
+			sort.Strings(missingGolden)
+			t.Fatalf("corpusCoverage golden claim(s) point at a nonexistent testdata fixture:\n  %s", strings.Join(missingGolden, "\n  "))
 		}
 	})
 }

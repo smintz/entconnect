@@ -62,6 +62,62 @@ Phase 1 of this project deliberately documents this convention and its CI guard
 (`make check-modules`) without pushing any tag — publication is a separate, later,
 human-owned release decision, not part of scaffolding the convention itself.
 
+## Test corpus coverage
+
+`mixinforproto/corpus_test.go` guards the `mixinforprototest.v1` proto corpus
+(`proto/mixinforprototest/v1/*.proto`) against a specific, previously-real failure mode:
+Phase 1 shipped five green waves — a full golden-file corpus, `go test -race -count=5`
+— and still failed goal verification with three mapping bugs (`01-VERIFICATION.md`). All
+three shared one root cause: **the corpus avoided the exact shape that triggers the
+defect.** A repeated scalar field was never exercised, so `classify()`'s missing
+`IsList()` branch was invisible. Every `StringFormat*` message carried exactly one field
+by convention, so a whole-message validator poisoned by a sibling field's violation was
+invisible. No `optional string` + `required` fixture existed, so an unreachable branch in
+`classifyRequired()` was invisible. A fully green suite told us nothing, because each
+defect's own precondition was exactly what the corpus happened to avoid.
+
+Three guards in `mixinforproto/corpus_test.go` make that kind of absence a **detectable,
+failing condition** instead of a silent one:
+
+- `TestCorpusExercisesEveryFieldClass` — every value `classify()` can return must be
+  produced by at least one corpus field. Adding a `fieldClass` without a fixture that
+  reaches it fails the suite.
+- `TestCorpusExercisesEveryRequiredResult` — every value `classifyRequired()` can return
+  must be produced by at least one corpus field, under the real
+  `(optional, required, hasNotEmpty)` triple the builders pass. `requiredExactPresence`
+  is additionally required to be witnessed separately by a `hasNotEmpty=true`
+  (string/bytes) field and a `hasNotEmpty=false` field — a plain per-outcome check would
+  have stayed green under the original defect, since a non-string field alone satisfies
+  the outcome regardless of branch order.
+- `TestCorpusMessagesHaveRecordedCoverage` — every message declared in the
+  `mixinforprototest.v1` package must have a recorded entry in `corpusCoverage`, keyed by
+  full proto message name, naming either a golden fixture (`golden:<name>`, verified to
+  exist under `mixinforproto/testdata/`) or a named Go test (`test:<TestName>`). Checked
+  in both directions: an unlisted message and a stale entry (naming a message that no
+  longer exists) both fail.
+
+**Adding a corpus message:**
+
+1. Write the `.proto` file under `proto/mixinforprototest/v1/`.
+2. Regenerate the committed stub with `scripts/generate-stubs.sh` (or run the full
+   pipeline via `bash scripts/pipeline.sh`, which also refreshes
+   `proto/mixinforprototest.binpb`).
+3. Add a golden fixture (`goldie.New(t).AssertJson(...)`, see `fieldmap_test.go`'s
+   `assertGolden` helper) or a named test asserting the message's behavior.
+4. Record the claim in `mixinforproto/corpus_test.go`'s `corpusCoverage` map.
+
+**A guard failure is closed by adding coverage — a fixture plus a recorded claim — never
+by deleting or relaxing the assertion.** If `TestCorpusExercisesEveryFieldClass` or
+`TestCorpusExercisesEveryRequiredResult` reports a new classification or outcome with no
+covering fixture, add a `.proto` fixture that reaches it. "No coverage" is a real answer
+only when it is written down in `corpusCoverage`.
+
+`make check-stubs` (added by `01-07-PLAN.md`) is the companion staleness gate: it catches
+a committed generated stub (`mixinforproto/internal/gen`) that has drifted from its
+`.proto` source, including orphaned files. Run it after any corpus change — the two
+mechanisms are complementary (one checks the stub is fresh, the other checks the
+behavior is claimed and tested) and are meant to be run together.
+
 ## Dependency notes
 
 **CEL import path correction (dated 2026-08-08, re-verify before relying on it):**
