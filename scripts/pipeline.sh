@@ -10,15 +10,20 @@ set -euo pipefail
 #   3. buf build -o <descriptor>.binpb --as-file-descriptor-set --exclude-source-info
 #      (a SEPARATE CLI invocation from step 2 — buf has no first-party plugin
 #      path to descriptor-set emission, so this step can never be folded into
-#      buf.gen.yaml as a plugin entry; see ARCHITECTURE.md Anti-Pattern 4)
+#      buf.gen.yaml as a plugin entry; see ARCHITECTURE.md Anti-Pattern 4).
+#      02-01 renamed this output to proto/descriptorset.binpb (previously
+#      named after the mixinforprototest corpus alone) — the set now
+#      covers both corpora (mixinforprototest AND entconnecttest), so a
+#      single-corpus name would be misleading.
 #   4. go generate ./...   (per module, from MODULES)
 #   5. atlas migrate diff
 #
 # SERIAL-ONLY. This script is not safe to run concurrently against the same
 # working tree: steps 2 and 3 write generated output to fixed paths
-# (mixinforproto/internal/gen/... and proto/mixinforprototest.binpb), and two
-# concurrent runs racing on those paths is undefined behavior. CI must never
-# invoke two pipeline jobs against one checkout at the same time.
+# (mixinforproto/internal/gen/..., internal/gen/..., and
+# proto/descriptorset.binpb), and two concurrent runs racing on those paths
+# is undefined behavior. CI must never invoke two pipeline jobs against one
+# checkout at the same time.
 #
 # `set -euo pipefail` (above) means the script aborts at the first FAILING
 # step, so a later green step can never mask an earlier red one. A genuine
@@ -30,7 +35,7 @@ REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$REPO_ROOT"
 
 PROTO_DIR="proto"
-DESCRIPTOR_OUT="proto/mixinforprototest.binpb"
+DESCRIPTOR_OUT="proto/descriptorset.binpb"
 MODULES="${MODULES:-. ./mixinforproto}"
 BUF_INSTALL_HINT="go install github.com/bufbuild/buf/cmd/buf@v1.72.0"
 ATLAS_INSTALL_HINT="curl -sSf https://atlasgo.sh | sh   (see https://atlasgo.io/getting-started)"
@@ -84,7 +89,7 @@ for m in $MODULES; do
   fi
 done
 if [ "$step4_ran" = false ]; then
-  log "step 4/5: SKIP — no //go:generate directives exist in any module yet. Phase 2 (the entc extension) is the first phase that adds them."
+  log "step 4/5: SKIP — no //go:generate directives exist in any module yet."
 fi
 log "step 4/5: OK"
 

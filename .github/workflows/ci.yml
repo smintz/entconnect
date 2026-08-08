@@ -53,6 +53,9 @@ jobs:
       - name: Install protoc-gen-go (pinned)
         run: go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.36.11
 
+      - name: Install protoc-gen-connect-go (pinned)
+        run: go install connectrpc.com/connect/cmd/protoc-gen-connect-go@v1.20.0
+
       # PIPE-01's own must-have is "CI runs it" — not just a script that
       # exists and is exercised locally. This job's checkout is ephemeral
       # (nothing here is committed back), so running the pipeline against
@@ -110,6 +113,9 @@ jobs:
 
       - name: Install protoc-gen-go (pinned)
         run: go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.36.11
+
+      - name: Install protoc-gen-connect-go (pinned)
+        run: go install connectrpc.com/connect/cmd/protoc-gen-connect-go@v1.20.0
 
       - name: Run the staleness gate (scripts/check-stubs.sh)
         run: |

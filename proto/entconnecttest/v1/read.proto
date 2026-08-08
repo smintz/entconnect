@@ -1,0 +1,45 @@
+// Package entconnecttest.v1 is a synthetic, test-only, service-bearing
+// contract used to prove Phase 2's architectural slice end to end: one
+// entity, one RPC (GetOrder), contract to a real Connect handler wired
+// against a real ent client. These messages are never part of
+// entconnect's public API surface — they exist only as a fixture for the
+// entc extension's own test suite and the internal/entconnecttest/read
+// tracer test.
+//
+// Later Phase 2 plans (02-02..02-05) add sibling files (write.proto,
+// list.proto, update.proto, admin.proto) in this same proto package —
+// this file owns only the Get slice's messages and service.
+syntax = "proto3";
+
+package entconnecttest.v1;
+
+import "buf/validate/validate.proto";
+import "google/protobuf/timestamp.proto";
+
+// Order is the walking-slice entity: enough fields to exercise
+// MixinForProto derivation (Phase 1) and one real protovalidate rule
+// (customer's string.min_len) so the generated interceptor chain's
+// protovalidate stage has something real to reject.
+message Order {
+  string id = 1;
+  string customer = 2 [(buf.validate.field).string.min_len = 1];
+  string status = 3;
+  google.protobuf.Timestamp created_at = 4;
+}
+
+// GetOrderRequest carries the sole lookup key GetOrder needs.
+message GetOrderRequest {
+  string id = 1;
+}
+
+// GetOrderResponse carries the resolved Order.
+message GetOrderResponse {
+  Order order = 1;
+}
+
+// OrderReadService is the walking slice's one service: exactly the RPC
+// D-01's own binding example needs a compile-time-checked procedure
+// constant for.
+service OrderReadService {
+  rpc GetOrder(GetOrderRequest) returns (GetOrderResponse);
+}

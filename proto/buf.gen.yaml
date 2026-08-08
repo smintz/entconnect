@@ -10,6 +10,19 @@ version: v2
 # every corpus file lives in the same package (mixinforprototest.v1) and
 # needs the same flat go_package, so one entry now covers tracer.proto
 # plus every Plan 02 corpus file without hand-listing each path.
+#
+# 02-01 retargets generation at the repo root ("out: ..", relative to this
+# file's own proto/ directory) so both modules' corpora can be produced by
+# one `buf generate` invocation. Because both corpora's go_package values
+# share the github.com/smintz/entconnect prefix, this retarget does not
+# move the mixinforprototest output tree by even one byte — verified via
+# `git diff --exit-code -- mixinforproto/internal/gen` in 02-01's own
+# acceptance criteria — the mixinforprototest override below still lands
+# every file exactly where it did before, at
+# mixinforproto/internal/gen/mixinforprototestv1/, because module=
+# github.com/smintz/entconnect combined with the override's own
+# fully-qualified go_package value resolves to the identical directory
+# once protoc-gen-go strips the module prefix.
 managed:
   enabled: true
   override:
@@ -29,7 +42,21 @@ managed:
     - file_option: go_package
       path: mixinforprototest
       value: github.com/smintz/entconnect/mixinforproto/internal/gen/mixinforprototestv1
+    # 02-01: the root module's own service-bearing corpus. Same flattening
+    # rationale as above (entconnecttest.v1 -> entconnecttestv1), landing
+    # under internal/gen/ (root module) rather than
+    # mixinforproto/internal/gen/ (mixinforproto module).
+    - file_option: go_package
+      path: entconnecttest
+      value: github.com/smintz/entconnect/internal/gen/entconnecttestv1
 plugins:
   - local: protoc-gen-go
-    out: ../mixinforproto
-    opt: module=github.com/smintz/entconnect/mixinforproto
+    out: ..
+    opt: module=github.com/smintz/entconnect
+  # 02-01: protoc-gen-connect-go emits nothing for the service-free
+  # mixinforprototest files (that corpus declares no `service`), so one
+  # unscoped plugin list covering both corpora is safe — it only ever
+  # produces output for entconnecttest's OrderReadService.
+  - local: protoc-gen-connect-go
+    out: ..
+    opt: module=github.com/smintz/entconnect
