@@ -1,0 +1,42 @@
+// Package mixinforprototest.v1 is a synthetic test-only contract used to
+// prove the mixinforproto walking skeleton: one real .proto field becomes
+// one derived, annotated ent.Field, readable back out of a real entc
+// schema-load gen.Graph.
+//
+// These messages are never part of mixinforproto's public API surface —
+// they exist only as fixtures for mixinforproto's own test suite and the
+// entc-schema-load boundary test.
+syntax = "proto3";
+
+package mixinforprototest.v1;
+
+// Tracer is the walking skeleton's one production-path message: exactly
+// one string field, matching mixinforproto.md §1's literal API example.
+message Tracer {
+  string name = 1;
+}
+
+// Empty has zero fields. It exists to prove the MIX-01/ANNO-01 "empty"
+// edge: a message with no fields still derives a zero-length (not nil)
+// []ent.Field and still emits exactly one SourceMessage annotation with a
+// zero-length (not nil) field inventory, so a later drift check can tell
+// "empty contract" apart from "mixin never ran".
+message Empty {}
+
+// MultiField has three string fields in declaration order. It exists to
+// prove MIX-13/D-24 determinism: derived field order must match the
+// descriptor's declaration order exactly, and stay identical across
+// repeated runs (go test -count=5).
+message MultiField {
+  string first_name = 1;
+  string last_name = 2;
+  string email_address = 3;
+}
+
+// Unsupported carries one non-string field. It exists to prove that a
+// field kind this slice does not yet map (Plan 02 fills the rest of the
+// table in) fails loudly at derivation time with a self-sufficient error
+// naming the message, the field, and the fix — never a silent guess.
+message Unsupported {
+  int32 count = 1;
+}
