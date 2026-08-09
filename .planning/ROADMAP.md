@@ -79,10 +79,17 @@ Plans:
 **Success Criteria** (what must be TRUE):
 
   1. Developer runs `go generate` and gets working Get/Create/Delete Connect handlers over a MixinForProto-backed entity, calling the ent client directly
-  2. Developer gets a List handler that pages via AIP-158 `page_token`/`next_page_token` on ent's native keyset `Paginate()` — not offset paging
+  2. Developer gets a List handler that pages via AIP-158 `page_token`/`next_page_token` on hand-emitted keyset predicates over ent's own comparison operators — not offset paging, and with no dependency on the ent contrib GraphQL extension
   3. Developer gets an Update handler that requires a `FieldMask` and only calls `Set*` for paths present in the mask (untouched fields never zeroed); an unknown mask path fails the build against the message descriptor
   4. Every request flows through a fixed interceptor chain (authn → viewer injection → protovalidate → otel → handler) built once per process; privacy policy denials surface to the client as Connect `PermissionDenied`, and generated server wiring is the only place an `*ent.Client` is constructed
   5. Developer can hand-write one handler via `entconnect.Manual("rpc")`, and it still runs inside the generated interceptor chain and shows up in drift-check output; all generated code is byte-stable across runs and covered by golden-file tests
+
+> **Planning note (2026-08-08):** Success Criterion 2's original wording attributed List paging to
+> a keyset method native to core `entgo.io/ent`. Phase 2 research disproved this by direct source
+> inspection: that method is generated exclusively by the ent contrib GraphQL extension, not core
+> ent. Corrected above to describe the hand-emitted keyset predicate mechanism this phase actually
+> builds. See `.planning/phases/02-crud-handlers-interceptor-chain/02-RESEARCH.md` §Summary and
+> Pitfall 1.
 
 **Plans**: 5 plans
 Plans:

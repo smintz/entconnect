@@ -1,0 +1,66 @@
+// {{.DefaultConst}} and {{.MaxConst}} are {{.MethodName}}'s page_size
+// clamp bounds (T-02-13): page_size is clamped into [1, {{.MaxConst}}]
+// with {{.DefaultConst}} applied when the request's page_size is zero or
+// negative, so no query below can ever be unbounded.
+const (
+	{{.DefaultConst}} = {{.DefaultValue}}
+	{{.MaxConst}}     = {{.MaxValue}}
+)
+
+func (s *{{.StructName}}) {{.MethodName}}(ctx context.Context, req *connect.Request[{{.ReqPkgAlias}}.{{.ReqType}}]) (*connect.Response[{{.ReqPkgAlias}}.{{.RespType}}], error) {
+	pageSize := int(req.Msg.GetPageSize())
+	switch {
+	case pageSize <= 0:
+		pageSize = {{.DefaultConst}}
+	case pageSize > {{.MaxConst}}:
+		pageSize = {{.MaxConst}}
+	}
+
+	fingerprint := entconnectruntime.Fingerprint({{range .Fields}}"{{.GoName}}", {{end}})
+
+	q := s.client.{{.ClientField}}.Query().
+		Order({{range .Fields}}{{$.EntityPkg}}.{{.OrderFunc}}(), {{end}}).
+		Limit(pageSize + 1)
+
+	if token := req.Msg.GetPageToken(); token != "" {
+		cursor, err := entconnectruntime.DecodeCursor(token, fingerprint)
+		if err != nil {
+			return nil, connect.NewError(connect.CodeInvalidArgument, err)
+		}
+		if len(cursor.Keys) != {{.FieldCount}} {
+			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("page_token: want %d cursor keys, got %d", {{.FieldCount}}, len(cursor.Keys)))
+		}
+		{{range .Fields}}
+		{{.DecodeStmt}}
+		{{end}}
+		q = q.Where({{.WhereExpr}})
+	}
+
+	rows, err := q.All(ctx)
+	if err != nil {
+		return nil, entconnectruntime.MapError(err)
+	}
+
+	hasNext := len(rows) > pageSize
+	if hasNext {
+		rows = rows[:pageSize]
+	}
+
+	resp := &{{.ReqPkgAlias}}.{{.RespType}}{
+		{{.RespListField}}: make([]*{{.ReqPkgAlias}}.{{.EntityType}}, 0, len(rows)),
+	}
+	for _, row := range rows {
+		resp.{{.RespListField}} = append(resp.{{.RespListField}}, &{{.ReqPkgAlias}}.{{.EntityType}}{
+			Id: fmt.Sprint(row.ID),
+			{{- range .SetFields}}
+			{{.GoName}}: {{.ValueExpr}},
+			{{- end}}
+		})
+	}
+	if hasNext {
+		last := rows[len(rows)-1]
+		resp.{{.NextTokenField}} = entconnectruntime.EncodeCursor(fingerprint, {{range .Fields}}{{.EncodeExpr}}, {{end}})
+	}
+
+	return connect.NewResponse(resp), nil
+}

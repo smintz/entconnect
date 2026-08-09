@@ -1,0 +1,53 @@
+// Package entconnecttest.v1 is a synthetic, test-only, service-bearing
+// contract used to prove Phase 2's architectural slice end to end (see
+// read.proto's own header for the shared package-level context). This
+// file owns the List slice's messages and service: one entity (Page),
+// paged via AIP-158's page_size/page_token/next_page_token convention on
+// hand-emitted keyset predicates (CRUD-03) — never ent's native keyset
+// helper, which .planning/phases/02-crud-handlers-interceptor-chain/
+// 02-RESEARCH.md Q1 established does not exist in core ent.
+syntax = "proto3";
+
+package entconnecttest.v1;
+
+// go_package matches read.proto's own explicit-option rationale exactly:
+// the committed FileDescriptorSet (proto/descriptorset.binpb) is built via
+// a separate `buf build` invocation that never applies buf.gen.yaml's
+// managed-mode overrides, so entc/'s Go-import-path derivation for
+// emitted code needs this option present in source, not only computed at
+// generate time.
+option go_package = "github.com/smintz/entconnect/internal/gen/entconnecttestv1";
+
+import "google/protobuf/timestamp.proto";
+
+// Page is the List slice's entity: a deliberately non-unique ordering
+// field (created_at) so a page boundary can land exactly between two
+// tied rows in the fixture's own tests — CRUD-03's tie-breaking guarantee
+// (the entity's primary key appended last to the ordering tuple) has
+// nothing to prove without a real tie to separate.
+message Page {
+  string id = 1;
+  string title = 2;
+  google.protobuf.Timestamp created_at = 3;
+}
+
+// ListPagesRequest carries AIP-158's page_size/page_token pair. Filtering
+// is out of scope for Phase 2 (D-09) — this request carries no Where-
+// shaped fields.
+message ListPagesRequest {
+  int32 page_size = 1;
+  string page_token = 2;
+}
+
+// ListPagesResponse carries AIP-158's pages/next_page_token pair. An
+// empty next_page_token means "no further page" — never a signal to
+// retry.
+message ListPagesResponse {
+  repeated Page pages = 1;
+  string next_page_token = 2;
+}
+
+// PageListService is the List slice's one service.
+service PageListService {
+  rpc ListPages(ListPagesRequest) returns (ListPagesResponse);
+}
