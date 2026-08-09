@@ -1,0 +1,93 @@
+// Package entconnecttest.v1 (this file) is Plan 02-04's slice of the
+// synthetic, test-only, service-bearing contract: one entity (Patch), one
+// FieldMask-gated Update RPC, proving CRUD-04/CRUD-05's safe partial
+// update end to end. These messages are never part of entconnect's
+// public API surface — they exist only as a fixture for the entc
+// extension's own test suite and internal/entconnecttest/update's tracer
+// tests.
+//
+// See read.proto (02-01), write.proto (02-02), list.proto (02-03) for
+// this same corpus's sibling files.
+syntax = "proto3";
+
+package entconnecttest.v1;
+
+// go_package is set explicitly for the same reason read.proto's own
+// comment documents: the committed FileDescriptorSet is built via a
+// separate `buf build` invocation that never applies buf.gen.yaml's
+// managed-mode overrides, and entc/'s Go-import-path derivation for
+// emitted handler code reads this option directly off the descriptor
+// set.
+option go_package = "github.com/smintz/entconnect/internal/gen/entconnecttestv1";
+
+import "google/protobuf/field_mask.proto";
+
+// Patch is the FieldMask-gated update slice's entity: enough fields to
+// exercise a real masked update (title/body/revision), one field
+// (internal_note) that the fixture's ent schema deliberately excludes
+// from MixinForProto derivation (CRUD-05/D-17's "deliberately excluded"
+// build-time case), and the id lookup field itself. Deliberately carries
+// no buf.validate constraints (unlike read.proto's Order/GetOrderRequest)
+// — see mask_edges_test.go's encoding case, which records the honest
+// "this corpus has no length-unit-divergent constraint" answer per
+// 02-04-PLAN.md Task 3 case 6's own sanctioned fallback, rather than
+// inventing a divergence the corpus does not have.
+message Patch {
+  string id = 1;
+  string title = 2;
+  string body = 3;
+  int32 revision = 4;
+  string internal_note = 5;
+}
+
+// UpdatePatchRequest carries the full Patch message (only the fields
+// named in update_mask are applied — CRUD-04/D-14) plus the explicit,
+// required google.protobuf.FieldMask (D-16: never inferred from which
+// fields are non-zero).
+message UpdatePatchRequest {
+  Patch patch = 1;
+  google.protobuf.FieldMask update_mask = 2;
+}
+
+// UpdatePatchResponse carries the patch row as it stands after the
+// masked update was applied.
+message UpdatePatchResponse {
+  Patch patch = 1;
+}
+
+// UpdatePatchAltRequest/Response are structurally identical to
+// UpdatePatchRequest/Response, existing only because buf's STANDARD
+// lint ruleset forbids reusing one request/response message pair across
+// two RPCs. See UpdatePatchAlt below for why a second procedure exists
+// at all.
+message UpdatePatchAltRequest {
+  Patch patch = 1;
+  google.protobuf.FieldMask update_mask = 2;
+}
+
+message UpdatePatchAltResponse {
+  Patch patch = 1;
+}
+
+// PatchUpdateService is this plan's one real service: exactly the RPC
+// UpdateRPC's own binding example needs a compile-time-checked procedure
+// constant for.
+service PatchUpdateService {
+  rpc UpdatePatch(UpdatePatchRequest) returns (UpdatePatchResponse);
+}
+
+// PatchUpdateAltService exists solely so entc/maskcheck_test.go's
+// negative-build fixtures (internal/entconnecttest/update/badmask/
+// ent/schema/{badpatch,excludedpatch}.go) can each bind an UpdateRPC to
+// a DISTINCT procedure within the same loaded ent schema graph, without
+// tripping D-05's duplicate-claim check — proving both fixtures'
+// distinct build-time mask failures are collected together in one
+// entconnect.Generate pass (D-05/D-09), rather than one masking the
+// other behind an unrelated duplicate-claim failure. Deliberately a
+// SEPARATE service (not a second RPC on PatchUpdateService): Connect's
+// generated <Service>Handler interface requires every RPC on a service
+// to have an implementing method, and this procedure is intentionally
+// never bound by the real (non-badmask) Patch schema.
+service PatchUpdateAltService {
+  rpc UpdatePatchAlt(UpdatePatchAltRequest) returns (UpdatePatchAltResponse);
+}
