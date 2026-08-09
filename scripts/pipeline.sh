@@ -95,14 +95,15 @@ log "step 4/5: OK"
 
 # --- Step 5: atlas migrate diff ----------------------------------------------
 log "step 5/5: atlas migrate diff"
-# Phase 1 ships no real application ent schema to migrate — the only
-# ent.Schema in the repo is mixinforproto's own internal boundary-test
-# fixture (mixinforproto/internal/boundarytest), which is a schema-load
-# proof, not an application schema with a migration history. Detect that
-# condition first and skip honestly; only demand `atlas` on PATH once a
-# real application ent/schema package exists for it to diff.
+# Phase 1/2 ship no real application ent schema to migrate — every
+# ent.Schema in the repo so far is a schema-load/tracer-test fixture
+# (mixinforproto/internal/boundarytest, internal/entconnecttest/*), never
+# an application schema with a migration history. Detect that condition
+# first and skip honestly; only demand `atlas` on PATH once a real
+# application ent/schema package exists for it to diff.
 schema_dirs=$(find . -type d -name schema -path '*/ent/schema' \
-  -not -path './mixinforproto/internal/*' 2>/dev/null || true)
+  -not -path './mixinforproto/internal/*' \
+  -not -path './internal/entconnecttest/*' 2>/dev/null || true)
 if [ -z "$schema_dirs" ]; then
   log "step 5/5: SKIP — no application ent/schema package exists yet. A later phase (once a real ent schema is generated for the reference app) is the first phase with anything for atlas to diff."
 else

@@ -37,8 +37,8 @@ const (
 
 // Order is the walking-slice entity: enough fields to exercise
 // MixinForProto derivation (Phase 1) and one real protovalidate rule
-// (customer's string.min_len) so the generated interceptor chain's
-// protovalidate stage has something real to reject.
+// (customer's string.min_len) that later Create/Update plans' tracer
+// tests exercise directly against Order-shaped requests.
 type Order struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
@@ -107,7 +107,13 @@ func (x *Order) GetCreatedAt() *timestamppb.Timestamp {
 	return nil
 }
 
-// GetOrderRequest carries the sole lookup key GetOrder needs.
+// GetOrderRequest carries the sole lookup key GetOrder needs. Its id
+// field carries the same string.min_len = 1 rule as Order.customer
+// (rather than a distinct rule) so the tracer test can exercise the
+// generated interceptor chain's protovalidate stage on an inbound
+// GetOrder request directly — Order.customer's rule alone can never
+// reject a GetOrder call, since GetOrderRequest never carries a customer
+// field.
 type GetOrderRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
@@ -207,9 +213,9 @@ const file_entconnecttest_v1_read_proto_rawDesc = "" +
 	"\bcustomer\x18\x02 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\bcustomer\x12\x16\n" +
 	"\x06status\x18\x03 \x01(\tR\x06status\x129\n" +
 	"\n" +
-	"created_at\x18\x04 \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\"!\n" +
-	"\x0fGetOrderRequest\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\"B\n" +
+	"created_at\x18\x04 \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\"*\n" +
+	"\x0fGetOrderRequest\x12\x17\n" +
+	"\x02id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x02id\"B\n" +
 	"\x10GetOrderResponse\x12.\n" +
 	"\x05order\x18\x01 \x01(\v2\x18.entconnecttest.v1.OrderR\x05order2g\n" +
 	"\x10OrderReadService\x12S\n" +

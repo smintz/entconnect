@@ -13,13 +13,25 @@ syntax = "proto3";
 
 package entconnecttest.v1;
 
+// go_package is set explicitly (rather than relying on buf.gen.yaml's
+// managed-mode override alone) because the committed FileDescriptorSet
+// (proto/descriptorset.binpb) is built via a separate `buf build`
+// invocation (scripts/pipeline.sh step 3), which — unlike `buf generate`
+// — never applies managed-mode overrides. entc/resolve.go's Go-import-path
+// derivation for emitted handler code (entc/extension.go) reads this
+// option directly off the descriptor set, so it must be present in
+// source, not only computed at generate time. Kept identical to
+// buf.gen.yaml's managed override value so `buf build` and `buf generate`
+// never disagree.
+option go_package = "github.com/smintz/entconnect/internal/gen/entconnecttestv1";
+
 import "buf/validate/validate.proto";
 import "google/protobuf/timestamp.proto";
 
 // Order is the walking-slice entity: enough fields to exercise
 // MixinForProto derivation (Phase 1) and one real protovalidate rule
-// (customer's string.min_len) so the generated interceptor chain's
-// protovalidate stage has something real to reject.
+// (customer's string.min_len) that later Create/Update plans' tracer
+// tests exercise directly against Order-shaped requests.
 message Order {
   string id = 1;
   string customer = 2 [(buf.validate.field).string.min_len = 1];
@@ -27,9 +39,15 @@ message Order {
   google.protobuf.Timestamp created_at = 4;
 }
 
-// GetOrderRequest carries the sole lookup key GetOrder needs.
+// GetOrderRequest carries the sole lookup key GetOrder needs. Its id
+// field carries the same string.min_len = 1 rule as Order.customer
+// (rather than a distinct rule) so the tracer test can exercise the
+// generated interceptor chain's protovalidate stage on an inbound
+// GetOrder request directly — Order.customer's rule alone can never
+// reject a GetOrder call, since GetOrderRequest never carries a customer
+// field.
 message GetOrderRequest {
-  string id = 1;
+  string id = 1 [(buf.validate.field).string.min_len = 1];
 }
 
 // GetOrderResponse carries the resolved Order.
