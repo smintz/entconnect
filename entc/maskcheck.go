@@ -27,11 +27,21 @@ import (
 //     D-15 check.
 //   - excluded — present in sm.Fields and in sm.Excluded: the schema
 //     deliberately excluded this field from MixinForProto derivation.
-//     ALWAYS a failure, with no exception for the entity's own
-//     structural identifier ("id" — see below): if a field must never
-//     be reachable as a mask path, the correct tool is keeping it off
-//     the Update surface's message entirely, not Exclude()ing it and
-//     hoping nobody asks.
+//     NOT a failure. The field is simply not maskable: the generated
+//     handler's switch omits it, and a client that names it in an
+//     update_mask gets ErrMaskUnknown -> InvalidArgument from
+//     runtime.ValidateMask, exactly as an unknown or nested path does
+//     under D-15/D-16.
+//
+//     This is the resolved reading of D-17 (see 02-CONTEXT.md). The
+//     stricter alternative — failing codegen whenever an Update-bound
+//     message carries any Exclude()d field — was implemented first and
+//     rejected: it makes Exclude() and Update RPCs mutually exclusive,
+//     which no decision states and which Phase 1 contradicts by giving
+//     Exclude() first-class provenance in SourceMessage.Excluded. It
+//     also broke this repo's own update fixture. CRUD-05's build failure
+//     is scoped to an *unknown* path; a declared-and-deliberately-
+//     excluded field is not unknown.
 //   - unknown — every other case: a field absent from sm.Fields
 //     entirely, or present in sm.Fields and not excluded but still
 //     missing from allowed (e.g. an Override()'d field, which installs
@@ -86,12 +96,12 @@ func ValidateMaskPaths(md protoreflect.MessageDescriptor, sm mixinforproto.Sourc
 				remedy:      "only top-level paths are supported (D-15)",
 			})
 		case excludedSet[name]:
-			failures = append(failures, failure{
-				schemaName: msgName, op: "update", sortKey: msgName,
-				rule:        "mask-excluded",
-				description: fmt.Sprintf("field %q on message %q is deliberately excluded from MixinForProto derivation", name, msgName),
-				remedy:      fmt.Sprintf("stop excluding %q if it must be reachable through the Update RPC, or remove it from the entity message entirely if it must never be", name),
-			})
+			// Deliberately excluded: not maskable, not a build failure.
+			// Skipped without incrementing satisfiable, so a message whose
+			// every candidate is excluded still trips mask-zero-satisfiable
+			// below — an Update binding that can set nothing is broken
+			// regardless of why.
+			continue
 		case fieldSet[name] && allowedSet[name]:
 			satisfiable++
 		default:

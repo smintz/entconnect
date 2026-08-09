@@ -37,16 +37,13 @@ func patchDescriptor(t *testing.T) protoreflect.MessageDescriptor {
 // structural identifier (mixinforproto/reserved.go's reservedStructural,
 // D-10), always excluded by construction regardless of schema, and
 // never itself a candidate ValidateMaskPaths classifies (see its own
-// doc comment). This is deliberately NOT internal/entconnecttest/
-// update/ent/schema/patch.go's own shape (which additionally excludes
-// "internal_note" as a genuine business decision) — this plan's D-17
-// cross-check treats EVERY excluded business field as a build failure
-// unconditionally (see 02-04-SUMMARY.md's Deviations section for why
-// the real committed Patch fixture's own internal_note exclusion is
-// therefore never exercised through this check again after Task 1
-// committed its generated output), so a "fully satisfiable" positive
-// control needs zero business-field exclusions, not a copy of the real
-// fixture's own Exclude set.
+// doc comment).
+//
+// Under D-17's resolved reading, a deliberately Exclude()d business
+// field is simply not maskable — skipped, never a failure — so this
+// base shape and the real internal/entconnecttest/update/ent/schema/
+// patch.go (which also excludes "internal_note") both classify cleanly.
+// The two differ only in how many candidates remain satisfiable.
 func baseSourceMessage() mixinforproto.SourceMessage {
 	return mixinforproto.SourceMessage{
 		ContractVersion: mixinforproto.ContractVersion,
@@ -69,36 +66,42 @@ func TestMaskCheck_ValidateMaskPaths(t *testing.T) {
 	md := patchDescriptor(t)
 
 	t.Run("good fixture: zero failures (fully satisfiable, nothing excluded but id)", func(t *testing.T) {
-		// This is the positive control named in 02-04-PLAN.md Task 2's
-		// acceptance criteria. It is deliberately NOT the real committed
-		// internal/entconnecttest/update/ent/schema/patch.go's own
-		// shape — that fixture ALSO excludes "internal_note" as a
-		// genuine business decision, and this plan's D-17 cross-check
-		// (added in this same task) treats every excluded business
-		// field as a build failure unconditionally, so that fixture's
-		// own generated output is never regenerated again after Task 1
-		// already committed it (see 02-04-SUMMARY.md's Deviations
-		// section for why). This positive control instead proves
-		// ValidateMaskPaths produces zero false positives when every
-		// non-id field really is settable.
+		// The positive control named in 02-04-PLAN.md Task 2's acceptance
+		// criteria: zero false positives when every non-id field is
+		// settable.
 		failures := ValidateMaskPaths(md, baseSourceMessage(), []string{"title", "body", "revision", "internal_note"})
 		if len(failures) != 0 {
 			t.Fatalf("want zero failures, got %d: %+v", len(failures), failures)
 		}
 	})
 
-	t.Run("excluded classification", func(t *testing.T) {
+	t.Run("excluded field is skipped, not a failure (D-17 resolved reading)", func(t *testing.T) {
+		// The regression guard for the reading this project settled on.
+		// An Exclude()d business field is not maskable, but it is NOT a
+		// build failure: the strict alternative made Exclude() and Update
+		// RPCs mutually exclusive and broke this repo's own update
+		// fixture. Enforcement moves to request time, where
+		// runtime.ValidateMask returns ErrMaskUnknown -> InvalidArgument
+		// for the same path (see runtime/fieldmask_test.go).
 		sm := baseSourceMessage()
 		sm.Excluded = []string{"id", "body"}
 		failures := ValidateMaskPaths(md, sm, []string{"title", "revision", "internal_note"})
-		if len(failures) != 1 {
-			t.Fatalf("want exactly 1 failure, got %d: %+v", len(failures), failures)
+		if len(failures) != 0 {
+			t.Fatalf("want zero failures for a deliberately excluded field, got %d: %+v", len(failures), failures)
 		}
-		if failures[0].rule != "mask-excluded" {
-			t.Fatalf("want rule %q, got %q", "mask-excluded", failures[0].rule)
-		}
-		if !strings.Contains(failures[0].description, `"body"`) || !strings.Contains(failures[0].description, "entconnecttest.v1.Patch") {
-			t.Fatalf("want the message and offending path named, got: %s", failures[0].description)
+	})
+
+	t.Run("the real update fixture's own Exclude set classifies cleanly", func(t *testing.T) {
+		// internal/entconnecttest/update/ent/schema/patch.go excludes
+		// "internal_note" as a genuine business decision. Under the
+		// strict reading this tripped a build failure and made
+		// `go generate` fail for the repo's own fixture. Pinning it here
+		// so that regression cannot return silently.
+		sm := baseSourceMessage()
+		sm.Excluded = []string{"id", "internal_note"}
+		failures := ValidateMaskPaths(md, sm, []string{"title", "body", "revision"})
+		if len(failures) != 0 {
+			t.Fatalf("want the real fixture's Exclude set to classify cleanly, got %d: %+v", len(failures), failures)
 		}
 	})
 
@@ -121,47 +124,30 @@ func TestMaskCheck_ValidateMaskPaths(t *testing.T) {
 		}
 	})
 
-	t.Run("excluded and unknown failure texts differ", func(t *testing.T) {
-		sm := baseSourceMessage()
-		sm.Excluded = []string{"id", "body"}
-		excludedFailures := ValidateMaskPaths(md, sm, []string{"title", "revision", "internal_note"})
-		unknownFailures := ValidateMaskPaths(md, baseSourceMessage(), []string{"title", "body", "internal_note"})
-		if len(excludedFailures) != 1 || len(unknownFailures) != 1 {
-			t.Fatalf("want exactly 1 failure each, got %d and %d", len(excludedFailures), len(unknownFailures))
-		}
-		if excludedFailures[0].description == unknownFailures[0].description {
-			t.Fatalf("want the excluded-field and unknown-field failure texts to differ, both were: %s", excludedFailures[0].description)
-		}
-	})
-
-	t.Run("two offenders collected in a single pass, never first-offense-wins", func(t *testing.T) {
-		sm := baseSourceMessage()
-		sm.Excluded = []string{"id", "body"} // "body" -> excluded
-		// "revision" absent from allowed -> unknown; "title" and
-		// "internal_note" remain satisfiable so the zero-satisfiable
-		// failure does not also fire, keeping this case isolated to
-		// exactly the two offenders under test.
-		failures := ValidateMaskPaths(md, sm, []string{"title", "internal_note"})
+	t.Run("two unknown offenders collected in a single pass, never first-offense-wins", func(t *testing.T) {
+		// D-05/D-09: every offender is reported in one pass. "body" and
+		// "revision" are both present-and-not-excluded but absent from
+		// allowed, so both classify unknown; "title" and "internal_note"
+		// remain satisfiable so the zero-satisfiable failure does not
+		// also fire, keeping this case isolated to the two under test.
+		failures := ValidateMaskPaths(md, baseSourceMessage(), []string{"title", "internal_note"})
 		if len(failures) != 2 {
 			t.Fatalf("want exactly 2 failures collected in one pass, got %d: %+v", len(failures), failures)
 		}
-		var sawExcluded, sawUnknown bool
+		var sawBody, sawRevision bool
 		for _, f := range failures {
-			switch f.rule {
-			case "mask-excluded":
-				sawExcluded = true
-				if !strings.Contains(f.description, `"body"`) {
-					t.Fatalf("want the excluded failure to name %q, got: %s", "body", f.description)
-				}
-			case "mask-unknown":
-				sawUnknown = true
-				if !strings.Contains(f.description, `"revision"`) {
-					t.Fatalf("want the unknown failure to name %q, got: %s", "revision", f.description)
-				}
+			if f.rule != "mask-unknown" {
+				t.Fatalf("want every offender classified mask-unknown, got %q: %s", f.rule, f.description)
+			}
+			if strings.Contains(f.description, `"body"`) {
+				sawBody = true
+			}
+			if strings.Contains(f.description, `"revision"`) {
+				sawRevision = true
 			}
 		}
-		if !sawExcluded || !sawUnknown {
-			t.Fatalf("want both an excluded and an unknown offender, got: %+v", failures)
+		if !sawBody || !sawRevision {
+			t.Fatalf("want both offenders named, got: %+v", failures)
 		}
 	})
 
