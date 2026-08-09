@@ -1,0 +1,26 @@
+func (s *{{.StructName}}) {{.MethodName}}(ctx context.Context, req *connect.Request[{{.ReqPkgAlias}}.{{.ReqType}}]) (*connect.Response[{{.ReqPkgAlias}}.{{.RespType}}], error) {
+	row, err := s.client.{{.ClientField}}.Create().
+		{{- range .SetCalls}}
+		{{.SetterName}}({{.ValueExpr}}).
+		{{- end}}
+		Save(ctx)
+	if err != nil {
+		switch {
+		case ent.IsConstraintError(err):
+			return nil, connect.NewError(connect.CodeAlreadyExists, err)
+		case ent.IsValidationError(err):
+			return nil, connect.NewError(connect.CodeInvalidArgument, err)
+		default:
+			return nil, entconnectruntime.MapError(err)
+		}
+	}
+	resp := &{{.ReqPkgAlias}}.{{.RespType}}{
+		{{.RespEntityField}}: &{{.ReqPkgAlias}}.{{.EntityType}}{
+			Id: fmt.Sprint(row.ID),
+			{{- range .RespSetFields}}
+			{{.GoName}}: {{.ValueExpr}},
+			{{- end}}
+		},
+	}
+	return connect.NewResponse(resp), nil
+}
