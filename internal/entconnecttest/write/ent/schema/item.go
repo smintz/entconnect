@@ -27,9 +27,10 @@ const DeniedSubject = "denied-subject"
 
 // Item declares MixinForProto against the generated Item message type
 // (D-01: no committed descriptor file, no string message name anywhere
-// in the call) and binds ItemCreateService's CreateItem RPC via
-// entconnect.CreateRPC — a compile-time-checked reference to
-// entconnecttestv1connect's generated procedure constant.
+// in the call) and binds ItemCreateService's CreateItem RPC and
+// ItemDeleteService's DeleteItem RPC via entconnect.CreateRPC/DeleteRPC —
+// compile-time-checked references to entconnecttestv1connect's generated
+// procedure constants.
 type Item struct {
 	ent.Schema
 }
@@ -54,11 +55,13 @@ func (Item) Indexes() []ent.Index {
 	}
 }
 
-// Annotations binds this schema's Create RPC (D-01). Task 2 adds
-// DeleteRPC to this same slice, exercising Bindings.Merge.
+// Annotations binds this schema's Create and Delete RPCs (D-01),
+// exercising Bindings.Merge (two constructors on one Annotations()
+// slice).
 func (Item) Annotations() []entschema.Annotation {
 	return []entschema.Annotation{
 		entconnect.CreateRPC(entconnecttestv1connect.ItemCreateServiceCreateItemProcedure),
+		entconnect.DeleteRPC(entconnecttestv1connect.ItemDeleteServiceDeleteItemProcedure),
 	}
 }
 

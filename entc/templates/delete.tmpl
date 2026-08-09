@@ -1,0 +1,12 @@
+func (s *{{.StructName}}) {{.MethodName}}(ctx context.Context, req *connect.Request[{{.ReqPkgAlias}}.{{.ReqType}}]) (*connect.Response[{{.ReqPkgAlias}}.{{.RespType}}], error) {
+	{{.IDConvert}}
+	if err := s.client.{{.ClientField}}.DeleteOneID(id).Exec(ctx); err != nil {
+		switch {
+		case ent.IsNotFound(err):
+			return nil, connect.NewError(connect.CodeNotFound, err)
+		default:
+			return nil, entconnectruntime.MapError(err)
+		}
+	}
+	return connect.NewResponse(&{{.ReqPkgAlias}}.{{.RespType}}{}), nil
+}

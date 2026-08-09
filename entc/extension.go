@@ -22,6 +22,11 @@ var serviceTemplateSrc string
 
 var serviceTemplate = template.Must(template.New("service.tmpl").Parse(serviceTemplateSrc))
 
+//go:embed templates/server.tmpl
+var serverTemplateSrc string
+
+var serverTemplate = template.Must(template.New("server.tmpl").Parse(serverTemplateSrc))
+
 // DefaultDescriptorSetPath is the descriptor-set path WithDescriptorSet
 // defaults to when not overridden — the pipeline's committed path
 // (scripts/pipeline.sh's DESCRIPTOR_OUT).
@@ -109,7 +114,13 @@ type bindingEntry struct {
 // FileDescriptorSet (D-03, no Go import edge to any generated Connect
 // package), dispatch each binding to its registered per-verb Generator,
 // and emit one gofmt-clean, header-marked Go file per proto service
-// (CRUD-06) into e's output directory.
+// (CRUD-06) into e's output directory, plus one additional combined
+// server.entconnect.go declaring a single package-level NewServer that
+// wires every bound service's handler into one *entconnectruntime.Server
+// (D-11/D-12: one server constructor for the whole generated wiring,
+// never one per proto service — a per-file NewServer would collide the
+// moment a graph binds RPCs across more than one proto service, as this
+// plan's own two-service Item fixture does).
 func Generate(g *gen.Graph, e *Extension) error {
 	outputDir := e.outputDir
 	if outputDir == "" {
@@ -218,7 +229,12 @@ func Generate(g *gen.Graph, e *Extension) error {
 	}
 	sort.Strings(svcNames)
 
-	for _, svcFullName := range svcNames {
+	// serverEntries accumulates one entry per proto service, in the same
+	// deterministic svcNames order (D-20), for the single combined
+	// NewServer emitted after this loop.
+	var serverEntries []serverEntry
+
+	for i, svcFullName := range svcNames {
 		sb := services[svcFullName]
 		sort.Slice(sb.entries, func(i, j int) bool {
 			return sb.entries[i].binding.Procedure < sb.entries[j].binding.Procedure
@@ -226,6 +242,15 @@ func Generate(g *gen.Graph, e *Extension) error {
 
 		serviceShortName := svcFullName[lastDot(svcFullName)+1:]
 		structName := lowerFirst(serviceShortName) + "Server"
+
+		serverEntries = append(serverEntries, serverEntry{
+			ServiceName:     serviceShortName,
+			StructName:      structName,
+			ConnectPkgAlias: sb.connectPkgAlias,
+			InstanceVar:     fmt.Sprintf("svc%d", i),
+			PathVar:         fmt.Sprintf("path%d", i),
+			HandlerVar:      fmt.Sprintf("handler%d", i),
+		})
 
 		var methodBodies []string
 		var genFailures []failure
@@ -284,7 +309,37 @@ func Generate(g *gen.Graph, e *Extension) error {
 		}
 	}
 
+	if len(serverEntries) > 0 {
+		var buf bytes.Buffer
+		if err := serverTemplate.Execute(&buf, struct{ Services []serverEntry }{Services: serverEntries}); err != nil {
+			return fmt.Errorf("entconnect: render server.tmpl: %w", err)
+		}
+		outPath := filepath.Join(outputDir, "server.entconnect.go")
+		formatted, err := imports.Process(outPath, buf.Bytes(), nil)
+		if err != nil {
+			return fmt.Errorf("entconnect: gofmt/goimports %q: %w", outPath, err)
+		}
+		if err := os.WriteFile(outPath, formatted, 0o644); err != nil {
+			return fmt.Errorf("entconnect: write %q: %w", outPath, err)
+		}
+	}
+
 	return nil
+}
+
+// serverEntry is one proto service's worth of data server.tmpl needs to
+// wire that service's chain-wrapped handler into the single combined
+// NewServer (D-11/D-12). InstanceVar/PathVar/HandlerVar are synthesized,
+// index-derived Go identifiers (never derived from ServiceName/StructName
+// directly) so they can never collide with each other or with a struct
+// type name across any number of bound services.
+type serverEntry struct {
+	ServiceName     string
+	StructName      string
+	ConnectPkgAlias string
+	InstanceVar     string
+	PathVar         string
+	HandlerVar      string
 }
 
 func lastDot(s string) int {
