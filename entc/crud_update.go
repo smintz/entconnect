@@ -135,12 +135,12 @@ func generateUpdate(req GenRequest) (MethodImpl, error) {
 
 	setFields, allowedNames, divergentIDs := updateSetFieldsFor(req, patchField)
 
-	// Build-time mask-path validation (D-17, CRUD-05) is wired in below
-	// by entc/maskcheck.go's ValidateMaskPaths — see that file's own
-	// call site, added once the descriptor+SourceMessage cross-check
-	// exists, so a schema whose mask surface cannot be satisfied fails
-	// codegen rather than shipping a handler with a silently incomplete
-	// switch.
+	// Build-time mask-path validation (D-17, CRUD-05): a schema whose
+	// mask surface cannot be satisfied fails codegen rather than
+	// shipping a handler with a silently incomplete switch.
+	if maskErr := maskFailuresError(ValidateMaskPaths(entityDesc, req.SourceMessage, allowedNames)); maskErr != nil {
+		return MethodImpl{}, fmt.Errorf("entconnect: %s.%s: %w", req.Type.Name, req.Binding.Op, maskErr)
+	}
 
 	entityFullNameStr := entityFullName
 	entityShortName := entityFullNameStr[strings.LastIndex(entityFullNameStr, ".")+1:]
