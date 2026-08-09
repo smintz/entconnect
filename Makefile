@@ -52,6 +52,18 @@ test:
 test-standalone:
 	cd mixinforproto && GOWORK=off go build ./... && GOWORK=off go test ./...
 
+## test-standalone-root: prove the root module builds/tests without
+## workspace resolution (02-01 checkpoint v0-1-0, D-21). The root module's
+## first real dependency edge is `github.com/smintz/entconnect/mixinforproto
+## v0.1.0`, resolved as an ordinary Go module dependency via the published
+## tag — GOWORK=off here is what proves that edge is real (resolves through
+## the module proxy) and not merely workspace-visible (resolves only
+## because go.work's `use ./mixinforproto` papers over a missing
+## dependency). Same discipline as test-standalone, applied to the root
+## module, in a checkout that still CONTAINS go.work.
+test-standalone-root:
+	GOWORK=off go build ./... && GOWORK=off go vet ./... && GOWORK=off go test ./...
+
 ## check-modules: fail if any committed go.mod declares a local-path
 ## module substitution (PIPE-04). `go mod edit -json` reports a null
 ## "Replace" field when no replace directive is present; anything else

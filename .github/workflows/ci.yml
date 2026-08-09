@@ -72,6 +72,13 @@ jobs:
   # consumption without workspace resolution papering over a missing
   # dependency (ARCHITECTURE.md Anti-Pattern 5). Deleting go.work instead
   # of setting GOWORK=off would test a different thing.
+  #
+  # 02-01 adds the root-module half of this job (D-21, checkpoint v0-1-0):
+  # the root module's first real dependency edge —
+  # github.com/smintz/entconnect/mixinforproto v0.1.0 — is only a genuine,
+  # standalone-resolvable Go module dependency if it resolves through the
+  # module proxy via the published tag with GOWORK=off, not merely because
+  # go.work's `use ./mixinforproto` makes it workspace-visible.
   standalone:
     name: standalone
     runs-on: ubuntu-latest
@@ -87,6 +94,9 @@ jobs:
 
       - name: Build and test mixinforproto standalone (GOWORK=off)
         run: make test-standalone
+
+      - name: Build and test the root module standalone (GOWORK=off)
+        run: make test-standalone-root
 
   # stubs: the Pitfall 9 / D-22 staleness gate (scripts/check-stubs.sh).
   # Copies the working tree's proto/ into an empty temp root (never the
