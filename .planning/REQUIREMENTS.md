@@ -49,7 +49,7 @@ Requirements for the initial release (entconnect through v0.3: MixinForProto + C
 
 - [ ] **CRUD-01**: entc extension generates a ConnectRPC handler for standard Get RPCs over a `MixinForProto`-backed entity
 - [ ] **CRUD-02**: Extension generates Create and Delete handlers operating directly against the ent client
-- [ ] **CRUD-03**: Extension generates List handlers with AIP-158 `page_token`/`next_page_token` paging built on hand-emitted keyset predicates over ent's per-field comparison operators (`LT`/`GT`/`EQ` with `And`/`Or`, `Order(...)`, `Limit(n+1)`) — not offset paging, and not the ent contrib GraphQL extension's generated helper, which is where that helper actually lives (see 02-RESEARCH.md Q1).
+- [x] **CRUD-03**: Extension generates List handlers with AIP-158 `page_token`/`next_page_token` paging built on hand-emitted keyset predicates over ent's per-field comparison operators (`LT`/`GT`/`EQ` with `And`/`Or`, `Order(...)`, `Limit(n+1)`) — not offset paging, and not the ent contrib GraphQL extension's generated helper, which is where that helper actually lives (see 02-RESEARCH.md Q1).
 
 > **Correction (2026-08-08):** The original wording above attributed this paging mechanism to a
 > keyset method native to core `entgo.io/ent`. That claim was disproven by direct source
@@ -57,6 +57,7 @@ Requirements for the initial release (entconnect through v0.3: MixinForProto + C
 > no such method exists in core ent — it is generated exclusively by the ent contrib GraphQL
 > extension's own templates. See
 > `.planning/phases/02-crud-handlers-interceptor-chain/02-RESEARCH.md` §Summary and Pitfall 1.
+
 - [ ] **CRUD-04**: Extension generates Update handlers that require `google.protobuf.FieldMask` and gate every `Set*` call on the mask, so untouched fields are never zeroed
 - [ ] **CRUD-05**: Codegen validates every field-mask path against the message descriptor and fails the build on an unknown path
 - [ ] **CRUD-06**: Generated code is byte-stable across runs (sorted iteration, stable imports, gofmt-clean) and covered by golden-file tests
@@ -178,7 +179,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | PIPE-08 | Phase 1 | Complete |
 | CRUD-01 | Phase 2 | Pending |
 | CRUD-02 | Phase 2 | Pending |
-| CRUD-03 | Phase 2 | Pending |
+| CRUD-03 | Phase 2 | Complete |
 | CRUD-04 | Phase 2 | Pending |
 | CRUD-05 | Phase 2 | Pending |
 | CRUD-06 | Phase 2 | Pending |
