@@ -16,7 +16,8 @@ import (
 )
 
 // orderReadServiceServer implements entconnecttestv1connect.OrderReadServiceHandler
-// against a real *ent.Client. Constructed only inside NewServer below —
+// against a real *ent.Client. Constructed only inside NewServer
+// (server.entconnect.go, combining every service this graph binds) —
 // application code never receives one directly, and this type exposes
 // no accessor of any kind to the *ent.Client it holds (CRUD-07/D-12).
 type orderReadServiceServer struct {
@@ -53,21 +54,4 @@ func (s *orderReadServiceServer) GetOrder(ctx context.Context, req *connect.Requ
 		},
 	}
 	return connect.NewResponse(resp), nil
-}
-
-// NewServer builds the generated wiring for OrderReadService: it
-// constructs the *ent.Client-backed handler, wraps it in the fixed
-// authn -> viewer injection -> protovalidate -> otel interceptor chain
-// (INT-01, built once via entconnectruntime.Chain — D-13), and returns a
-// *entconnectruntime.Server exposing only Connect paths and
-// http.Handlers. Application code receives this return value, never the
-// *ent.Client passed in.
-func NewServer(client *ent.Client, authenticator entconnectruntime.Authenticator, opts ...entconnectruntime.Option) (*entconnectruntime.Server, error) {
-	chain, err := entconnectruntime.Chain(authenticator, opts...)
-	if err != nil {
-		return nil, err
-	}
-	svc := &orderReadServiceServer{client: client}
-	path, handler := entconnecttestv1connect.NewOrderReadServiceHandler(svc, chain)
-	return entconnectruntime.NewServer(entconnectruntime.Route{Path: path, Handler: handler}), nil
 }
