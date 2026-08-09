@@ -8,8 +8,8 @@ package schema
 
 import (
 	"entgo.io/ent"
-	"entgo.io/ent/schema/field"
 	entschema "entgo.io/ent/schema"
+	"entgo.io/ent/schema/field"
 
 	entconnect "github.com/smintz/entconnect/entc"
 	entconnecttestv1 "github.com/smintz/entconnect/internal/gen/entconnecttestv1"

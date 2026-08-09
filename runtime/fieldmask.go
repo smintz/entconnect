@@ -65,11 +65,17 @@ func ValidateMask(mask *fieldmaskpb.FieldMask, msg proto.Message, allowed []stri
 		}
 	}
 
-	if !mask.IsValid(msg) {
-		return nil, fmt.Errorf(
-			"entconnect: update_mask contains a path not present on the message descriptor %q: %w",
-			msg.ProtoReflect().Descriptor().FullName(), ErrMaskUnknown,
-		)
+	// Checked per-path (not via a single mask.IsValid(msg) call over the
+	// whole slice) so a descriptor-unknown path can be named verbatim in
+	// the error — IsValid over the full slice only reports whether ALL
+	// paths are valid, not which one failed.
+	for _, p := range mask.GetPaths() {
+		if !(&fieldmaskpb.FieldMask{Paths: []string{p}}).IsValid(msg) {
+			return nil, fmt.Errorf(
+				"entconnect: update_mask path %q is not present on the message descriptor %q: %w",
+				p, msg.ProtoReflect().Descriptor().FullName(), ErrMaskUnknown,
+			)
+		}
 	}
 
 	allowedSet := make(map[string]bool, len(allowed))
