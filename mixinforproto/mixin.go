@@ -9,9 +9,10 @@ import (
 
 // protoMixin is the ent.Mixin adapter MixinForProto returns. It embeds
 // mixin.Schema so every ent.Mixin method it does not override (Edges,
-// Indexes, Hooks, Interceptors, Policy) is satisfied with mixin.Schema's
-// correct no-op default; Phase 1 ships no hook (D-27's ordering note
-// documents this ahead of Phase 3 actually adding one).
+// Indexes, Interceptors, Policy) is satisfied with mixin.Schema's
+// correct no-op default. Hooks() is overridden below (Phase 3, VAL-04):
+// Phase 1 shipped no hook (D-27's ordering note documented this ahead of
+// Phase 3 actually adding one); this is that hook.
 type protoMixin[M proto.Message] struct {
 	mixin.Schema
 	opts []Option
@@ -55,6 +56,25 @@ func (m *protoMixin[M]) Annotations() []schema.Annotation {
 		panic(err)
 	}
 	return []schema.Annotation{d.message}
+}
+
+// Hooks implements ent.Mixin (VAL-04). It compiles this plan's residual
+// custom-CEL evaluation state once, at schema-load time (buildHookState,
+// hooks.go), and panics — the same panicking-adapter shape Fields()
+// above uses — if a residual CEL expression fails to compile (D-09). A
+// message with no residual CEL rules at all gets no hook: len(evaluators)
+// == 0 returns nil, so mixinforproto adds zero mutation-time cost for a
+// contract that carries none.
+func (m *protoMixin[M]) Hooks() []ent.Hook {
+	md := (*new(M)).ProtoReflect().Descriptor()
+	hs, err := buildHookState(md)
+	if err != nil {
+		panic(err)
+	}
+	if len(hs.evaluators) == 0 {
+		return nil
+	}
+	return []ent.Hook{hs.hook()}
 }
 
 // Validate is MIX-12's in-process debug entry point (D-07): it calls the
