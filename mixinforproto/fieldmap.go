@@ -225,6 +225,99 @@ func resolvedFieldRules(fd protoreflect.FieldDescriptor) (
 	return required, celResidual, celEntries, nil
 }
 
+// boundaryOnlyNonConstraintFields are validate.FieldRules members that
+// are bookkeeping, not a constraint value in their own right — Range
+// below skips them because "required" and the CEL rules are already
+// recorded by name/ID above, and "ignore" only modifies when a sibling
+// constraint applies rather than declaring one itself.
+var boundaryOnlyNonConstraintFields = map[string]bool{
+	"required":       true,
+	"ignore":         true,
+	"cel":            true,
+	"cel_expression": true,
+}
+
+// boundaryOnlyRuleIDs resolves the protovalidate constraint identifiers
+// present on fd generically — not translated, not evaluated, just
+// enumerated — for D-09's boundary-only provenance (annotation.go's
+// BoundaryOnlyRule). Unlike resolvedFieldRules above (called only from
+// the scalar-kind builders, and only for the standard rule categories
+// those specific builders translate), this works for ANY field kind and
+// ANY rule category, including a message-typed field that never reaches
+// a builder function at all: the fields recordBoundaryOnly (derive.go)
+// calls this for are exactly the ones classify/mapField routed away from
+// every buildXxxField call site, so there is no per-kind builder to reuse
+// here.
+//
+// "required" and each (buf.validate.field).cel rule's ID (celRuleResidual's
+// own ID-or-expression-fingerprint fallback) are recorded by name/ID.
+// Every other populated rule category — validate.FieldRules' `type`
+// oneof (string/int32/enum/bytes/map/...) — is recorded generically by
+// its oneof member name via a single protoreflect.Message.Range pass:
+// this function's job is enumeration for provenance, not translation, so
+// a category name like "string" is sufficient; the rule is never
+// evaluated or compared against a specific constraint value here. Result
+// is sorted and deduplicated (D-24); a constraint-free field or a nil
+// rules value yields an empty, non-nil slice.
+func boundaryOnlyRuleIDs(fd protoreflect.FieldDescriptor) ([]string, error) {
+	rules, err := protovalidate.ResolveFieldRules(fd)
+	if err != nil {
+		return nil, fmt.Errorf("resolving protovalidate field rules: %w", err)
+	}
+	if rules == nil {
+		return []string{}, nil
+	}
+	var ids []string
+	if rules.HasRequired() && rules.GetRequired() {
+		ids = append(ids, "required")
+	}
+	for _, r := range rules.GetCel() {
+		id, _ := celRuleResidual(r.GetId(), r.GetExpression())
+		ids = append(ids, id)
+	}
+	for _, expr := range rules.GetCelExpression() {
+		id, _ := celRuleResidual("", expr)
+		ids = append(ids, id)
+	}
+	rules.ProtoReflect().Range(func(rfd protoreflect.FieldDescriptor, _ protoreflect.Value) bool {
+		if name := string(rfd.Name()); !boundaryOnlyNonConstraintFields[name] {
+			ids = append(ids, name)
+		}
+		return true
+	})
+	return sortUnique(ids), nil
+}
+
+// reverseBindableKinds is the set of SourceField.Kind derivation-class
+// strings reverse.go's reverseValue can convert. Used only by
+// recordBoundaryOnly's BoundaryOnlyUnbindable case (derive.go) — see that
+// constant's doc comment (annotation.go) for why this branch is dormant
+// today.
+var reverseBindableKinds = map[string]bool{
+	"scalar":         true,
+	"optionalScalar": true,
+	"enum":           true,
+	"wkt":            true,
+	"scalarMap":      true,
+	"asJSON":         true,
+}
+
+// sourceFieldKind extracts the Kind string of f's SourceField annotation
+// (fieldmap.go's sourceFieldFor/finalizeSourceField attach one to every
+// field mapField produces), or "" if f carries none — the only field that
+// never does is an Override-supplied field, which installs verbatim with
+// no SourceField provenance (option.go's Override doc comment) and is
+// never passed to this function anyway (Override's own boundary-only
+// recording uses BoundaryOnlyOverridden directly, never this path).
+func sourceFieldKind(f ent.Field) string {
+	for _, a := range f.Descriptor().Annotations {
+		if sf, ok := a.(SourceField); ok {
+			return sf.Kind
+		}
+	}
+	return ""
+}
+
 // mapScalar handles MIX-02 (the exhaustive proto-scalar-kind switch) and
 // MIX-05's non-optional branch, now layering Tier 1 constraint
 // translation (01-05-PLAN.md) on top: a plain proto3 scalar without

@@ -11,6 +11,7 @@
 package mixinforprototestv1
 
 import (
+	_ "buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -69,6 +70,11 @@ func (x *Inner) GetValue() string {
 	return ""
 }
 
+// singular_message carries a required rule (D-09's BoundaryOnly fixture,
+// 03-02 Task 3): it is skipped by default (never opted into AsJSON), so
+// this rule can never be enforced at the storage layer — SourceMessage.
+// BoundaryOnly must record it, naming the field, the rule, and
+// BoundaryOnlyNoEntField as the reason.
 type Messages struct {
 	state           protoimpl.MessageState `protogen:"open.v1"`
 	SingularMessage *Inner                 `protobuf:"bytes,1,opt,name=singular_message,json=singularMessage,proto3" json:"singular_message,omitempty"`
@@ -133,11 +139,11 @@ var File_mixinforprototest_v1_messages_proto protoreflect.FileDescriptor
 
 const file_mixinforprototest_v1_messages_proto_rawDesc = "" +
 	"\n" +
-	"#mixinforprototest/v1/messages.proto\x12\x14mixinforprototest.v1\"\x1d\n" +
+	"#mixinforprototest/v1/messages.proto\x12\x14mixinforprototest.v1\x1a\x1bbuf/validate/validate.proto\"\x1d\n" +
 	"\x05Inner\x12\x14\n" +
-	"\x05value\x18\x01 \x01(\tR\x05value\"\xdd\x01\n" +
-	"\bMessages\x12F\n" +
-	"\x10singular_message\x18\x01 \x01(\v2\x1b.mixinforprototest.v1.InnerR\x0fsingularMessage\x12F\n" +
+	"\x05value\x18\x01 \x01(\tR\x05value\"\xe5\x01\n" +
+	"\bMessages\x12N\n" +
+	"\x10singular_message\x18\x01 \x01(\v2\x1b.mixinforprototest.v1.InnerB\x06\xbaH\x03\xc8\x01\x01R\x0fsingularMessage\x12F\n" +
 	"\x10repeated_message\x18\x02 \x03(\v2\x1b.mixinforprototest.v1.InnerR\x0frepeatedMessage\x12A\n" +
 	"\x0eas_json_target\x18\x03 \x01(\v2\x1b.mixinforprototest.v1.InnerR\fasJsonTargetB\xe7\x01\n" +
 	"\x18com.mixinforprototest.v1B\rMessagesProtoP\x01ZKgithub.com/smintz/entconnect/mixinforproto/internal/gen/mixinforprototestv1\xa2\x02\x03MXX\xaa\x02\x14Mixinforprototest.V1\xca\x02\x14Mixinforprototest\\V1\xe2\x02 Mixinforprototest\\V1\\GPBMetadata\xea\x02\x15Mixinforprototest::V1b\x06proto3"

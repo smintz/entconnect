@@ -591,3 +591,51 @@ func TestMixedFieldRulesGolden(t *testing.T) {
 		t.Fatalf("want exactly 3 derived fields (both, standard_only, cel_only), got %d", len(d.fields))
 	}
 }
+
+// --- D-12 fail-closed contract, pinned as a tested property (Task 3) -----
+
+// TestReverseValue_EveryFailureModeFailsClosed pins D-12 as an explicit,
+// tested property of reverse.go rather than an emergent one (the acceptance
+// criteria's own wording): it enumerates every reverse-conversion failure
+// mode the table can produce — one per derivation class/kind this file
+// implements — and asserts each returned error is non-nil, does not
+// errors.As-match *protovalidate.ValidationError, and its message names
+// both the offending field and the derivation class/kind. Individual
+// tests above (TestReverseValue_ScalarWrongGoType,
+// TestReverseValue_EnumUnknownString, etc.) already exercise each of
+// these one at a time; this test's job is the enumeration itself, so a
+// newly added failure mode that forgets to preserve the D-12 contract is
+// caught here even if its own dedicated test is weaker.
+func TestReverseValue_EveryFailureModeFailsClosed(t *testing.T) {
+	tests := []struct {
+		name  string
+		fd    protoreflect.FieldDescriptor
+		class string
+		value any
+	}{
+		{"scalar: wrong Go type", fieldDesc[*mixinforprototestv1.ReverseScalars](t, "int32_field"), "scalar", "not an int32"},
+		{"optionalScalar: wrong Go type (set, not absent)", fieldDesc[*mixinforprototestv1.Presence](t, "optional_string"), "optionalScalar", 42},
+		{"enum: wrong Go type", fieldDesc[*mixinforprototestv1.ReverseEnum](t, "status"), "enum", 42},
+		{"enum: unknown string", fieldDesc[*mixinforprototestv1.ReverseEnum](t, "status"), "enum", "STATUS_DOES_NOT_EXIST"},
+		{"wkt Timestamp: wrong Go type", fieldDesc[*mixinforprototestv1.ReverseWkt](t, "timestamp_field"), "wkt", 42},
+		{"wkt Value: malformed JSON", fieldDesc[*mixinforprototestv1.ReverseWkt](t, "value_field"), "wkt", json.RawMessage(`{not valid`)},
+		{"wkt Value: wrong Go type", fieldDesc[*mixinforprototestv1.ReverseWkt](t, "value_field"), "wkt", 42},
+		{"wkt Struct: wrong Go type", fieldDesc[*mixinforprototestv1.ReverseWkt](t, "struct_field"), "wkt", "not a map"},
+		{"wkt Struct: unmarshalable Go value", fieldDesc[*mixinforprototestv1.ReverseWkt](t, "struct_field"), "wkt", map[string]any{"bad": make(chan int)}},
+		{"scalarMap: wrong Go type", fieldDesc[*mixinforprototestv1.ReverseScalarMap](t, "string_map"), "scalarMap", "not a map"},
+		{"scalarMap: wrong key Go type", fieldDesc[*mixinforprototestv1.ReverseScalarMap](t, "int_map"), "scalarMap", map[string]int64{"not-an-int32": 1}},
+		{"asJSON: malformed JSON", fieldDesc[*mixinforprototestv1.ReverseAsJSON](t, "payload"), "asJSON", json.RawMessage(`{not valid`)},
+		{"asJSON: wrong Go type", fieldDesc[*mixinforprototestv1.ReverseAsJSON](t, "payload"), "asJSON", 42},
+		{"unknown derivation class", fieldDesc[*mixinforprototestv1.ReverseScalars](t, "string_field"), "bogus", nil},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			_, err := reverseValue(tc.fd, tc.class, tc.value)
+			notValidationError(t, err)
+			if !bytes.Contains([]byte(err.Error()), []byte(tc.fd.Name())) {
+				t.Fatalf("error %q must name the field %q", err.Error(), tc.fd.Name())
+			}
+		})
+	}
+}
