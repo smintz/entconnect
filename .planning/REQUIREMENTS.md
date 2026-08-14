@@ -37,7 +37,7 @@ Requirements for the initial release (entconnect through v0.3: MixinForProto + C
 - [x] **VAL-02**: protovalidate numeric constraints (`gt`/`gte`/`lt`/`lte`) become native `Min`/`Max`/`Range`/`Positive` with correct open/closed-interval adjustment
 - [x] **VAL-03**: protovalidate presence/`required` constraints become `NotEmpty` or non-optional field construction
 - [ ] **VAL-04**: Residual field-scoped protovalidate CEL is compiled once at schema load and evaluated at mutation time by a single mixin-declared hook covering all field types
-- [ ] **VAL-05**: The CEL hook evaluates only fields changed by the mutation
+- [ ] **VAL-05**: The mixin hook's evaluated field scope is operation-dependent: on Create it evaluates every derived field (a `Default(zero)`-bearing field the caller left unset still persists as a real value the boundary validates); on Update it evaluates only fields the mutation actually changed. (Amended 2026-08-14, D-06 — see 03-CONTEXT.md: a strict changed-only rule at Create would miss the proto3 zero-collapse case Phase 1 could only document.)
 - [ ] **VAL-06**: Schema-layer violations carry the protovalidate constraint ID and message and are consumable as a structured error outside any RPC context
 - [ ] **VAL-07**: A caller cannot tell whether a violation was caught at the boundary interceptor or at the storage layer — both produce the identical wire error
 - [ ] **VAL-08**: Message-level (cross-field) rules are boundary-only by default; `WithMessageRules(OnCreate)` opts into Create-time schema enforcement

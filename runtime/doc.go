@@ -9,10 +9,15 @@
 //
 // Read this before you extend anything here:
 //
-//   - Until Phase 3 lands, this package's protovalidate interceptor
-//     stage is the ONLY thing enforcing untranslated protovalidate
-//     constraints — the storage layer is not yet a complete guarantee
-//     (Phase 2 CONTEXT.md "Boundary note on validation").
+//   - As of Phase 3, both this package's protovalidate interceptor stage
+//     AND mixinforproto's mutation-time hook (mixinforproto/hooks.go)
+//     enforce protovalidate constraints — a *protovalidate.ValidationError
+//     from either layer maps through this package's MapError to the
+//     identical CodeInvalidArgument wire error (VAL-07). The boundary
+//     remains the only enforcement point for message-level (cross-field)
+//     rules unless a schema opts in with WithMessageRules(OnCreate)
+//     (VAL-08) — field-scoped rules, translated and residual alike, are
+//     enforced at both layers with identical verdicts (D-02).
 //   - The chain order is fixed and non-negotiable in code: Chain always
 //     applies authn, then viewer injection, then protovalidate, then
 //     otel, in that literal argument order to connect.WithInterceptors,

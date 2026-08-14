@@ -21,5 +21,9 @@
 // A mixin's Hooks, Interceptors, and Policy all run before the ones a
 // schema author declares directly on the schema — see the README's
 // "Mixin hook and policy ordering" section for the full note, including
-// what this release does and does not enforce.
+// what this release does and does not enforce. As of Phase 3, the mixin
+// declares a real Hooks() entry: field-scoped protovalidate constraints —
+// translated and residual alike — are enforced at mutation time, not
+// just at derivation time. Message-level (cross-field) rules stay
+// boundary-only unless a schema opts into WithMessageRules(OnCreate).
 package mixinforproto
