@@ -72,7 +72,21 @@ Phase 2 delivers the **`entconnect` entc extension's CRUD half**: it reads the c
 - **D-11:** Authn and viewer extraction — which the generator cannot know — are supplied through a **generated narrow interface** the app implements (single method, roughly `AuthenticateAndViewer(ctx, http.Header) (context.Context, error)`), taken as a required argument: `NewServer(client, authenticator, opts...)`. The chain order stays fixed and non-negotiable inside generated code (INT-01), and "forgot to wire authn" becomes a **compile error rather than an open endpoint**. Functional options were rejected precisely because an omitted option degrades to a runtime default — either deny-all (safe but baffling) or allow-all (a security hole shipped by omission). A raw `connect.Interceptor` slot was rejected because it would let the app reorder the stages INT-01 fixes.
   — **Reversibility:** costly — it is the server-construction signature every adopter calls.
 
-- **D-12:** CRUD-07 is enforced **structurally, not by documentation**: the `*ent.Client` is constructed inside generated wiring in an internal package and handed to handlers unexported. Application code receives the Connect handler and its path, never the client. "Only place a client is constructed" must be a property the compiler upholds, matching this project's general preference for build failures over conventions.
+- **D-12 (AMENDED 2026-08-09 — see the note below):** CRUD-07 is enforced **structurally, not by documentation**: the `*ent.Client` a generated service holds is unexported, and the server returned by `NewServer` exposes only `Routes()`/`Register()` with no accessor. Application code receives the Connect handler and its path, never a client *back out of* the generated surface. That non-exposure is a property the compiler upholds, matching this project's general preference for build failures over conventions.
+
+  > **Amendment.** As originally written, D-12 said the client "is constructed inside generated
+  > wiring in an internal package," restating CRUD-07's original wording. That directly
+  > contradicted **D-11**, two decisions earlier, which specifies
+  > `NewServer(client, authenticator, opts...)` — the client passed *in*. D-11 is the one that was
+  > implemented, and it is the correct one: generated code cannot know a deployment's driver or
+  > connection string, so it cannot construct the client. Phase 2 verification caught the
+  > contradiction; CRUD-07 and ROADMAP Success Criterion 4 are corrected to match.
+  >
+  > Consequence future phases must not re-derive: application code **does** hold its own
+  > `*ent.Client` at the call site where it invokes `NewServer`. Nothing prevents that client
+  > being used directly, bypassing the interceptor chain and ent privacy. The guarantee is
+  > one-directional — nothing privileged escapes *out of* generated code — and any phase that
+  > needs a stronger property has to design for it rather than assume it.
 
 - **D-13:** The protovalidate validator is built **once per process**, not per request, and threaded into the chain by the generated wiring. (Phase 3's SC-4 states this as a requirement; building it correctly here costs nothing and avoids a Phase 3 retrofit.)
 
