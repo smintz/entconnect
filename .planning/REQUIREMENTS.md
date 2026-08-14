@@ -47,8 +47,8 @@ Requirements for the initial release (entconnect through v0.3: MixinForProto + C
 
 ### CRUD Handler Generation
 
-- [ ] **CRUD-01**: entc extension generates a ConnectRPC handler for standard Get RPCs over a `MixinForProto`-backed entity
-- [ ] **CRUD-02**: Extension generates Create and Delete handlers operating directly against the ent client
+- [x] **CRUD-01**: entc extension generates a ConnectRPC handler for standard Get RPCs over a `MixinForProto`-backed entity
+- [x] **CRUD-02**: Extension generates Create and Delete handlers operating directly against the ent client
 - [x] **CRUD-03**: Extension generates List handlers with AIP-158 `page_token`/`next_page_token` paging built on hand-emitted keyset predicates over ent's per-field comparison operators (`LT`/`GT`/`EQ` with `And`/`Or`, `Order(...)`, `Limit(n+1)`) — not offset paging, and not the ent contrib GraphQL extension's generated helper, which is where that helper actually lives (see 02-RESEARCH.md Q1).
 
 > **Correction (2026-08-08):** The original wording above attributed this paging mechanism to a
@@ -58,18 +58,18 @@ Requirements for the initial release (entconnect through v0.3: MixinForProto + C
 > extension's own templates. See
 > `.planning/phases/02-crud-handlers-interceptor-chain/02-RESEARCH.md` §Summary and Pitfall 1.
 
-- [ ] **CRUD-04**: Extension generates Update handlers that require `google.protobuf.FieldMask` and gate every `Set*` call on the mask, so untouched fields are never zeroed
-- [ ] **CRUD-05**: Codegen validates every field-mask path against the message descriptor and fails the build on an unknown path
-- [ ] **CRUD-06**: Generated code is byte-stable across runs (sorted iteration, stable imports, gofmt-clean) and covered by golden-file tests
+- [x] **CRUD-04**: Extension generates Update handlers that require `google.protobuf.FieldMask` and gate every `Set*` call on the mask, so untouched fields are never zeroed
+- [x] **CRUD-05**: Codegen validates every field-mask path against the message descriptor and fails the build on an unknown path
+- [x] **CRUD-06**: Generated code is byte-stable across runs (sorted iteration, stable imports, gofmt-clean) and covered by golden-file tests
 - [ ] **CRUD-07**: Generated server wiring is the only place an ent client is constructed and never hands a privileged client to application code
 
 ### Interceptors & Runtime
 
-- [ ] **INT-01**: Generated interceptor chain runs in the fixed order authn → viewer injection → protovalidate → otel → handler
-- [ ] **INT-02**: Viewer injection places a viewer-scoped context on every request so ent privacy policies apply
-- [ ] **INT-03**: Privacy denials surface to clients as Connect `PermissionDenied`
-- [ ] **INT-04**: `entconnect.Manual("rpc")` lets a developer hand-write one handler, and the manual handler still runs inside the generated interceptor chain
-- [ ] **INT-05**: Drift-check output reports which RPCs are `Manual`, so the escape hatch stays visible
+- [x] **INT-01**: Generated interceptor chain runs in the fixed order authn → viewer injection → protovalidate → otel → handler
+- [x] **INT-02**: Viewer injection places a viewer-scoped context on every request so ent privacy policies apply
+- [x] **INT-03**: Privacy denials surface to clients as Connect `PermissionDenied`
+- [x] **INT-04**: `entconnect.Manual("rpc")` lets a developer hand-write one handler, and the manual handler still runs inside the generated interceptor chain
+- [x] **INT-05**: Drift-check output reports which RPCs are `Manual`, so the escape hatch stays visible
 
 ### Flow Binding
 
