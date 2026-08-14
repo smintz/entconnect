@@ -31,12 +31,25 @@ type derivation struct {
 // deriving the same or different message types never share memory
 // (MIX-01 concurrency edge).
 func derive[M proto.Message](opts ...Option) (*derivation, error) {
-	o := applyOptions(opts)
-
 	// (*new(M)).ProtoReflect() is safe on a nil generated pointer —
 	// M's zero value is a nil *T, and ProtoReflect() is documented safe
-	// on that (verified, see 01-RESEARCH.md).
+	// on that (verified, see 01-RESEARCH.md). M is used for exactly this
+	// one line — deriveFromDescriptor below is the actual, descriptor-
+	// driven core; M's only job is producing md.
 	md := (*new(M)).ProtoReflect().Descriptor()
+	return deriveFromDescriptor(md, opts...)
+}
+
+// deriveFromDescriptor is derive[M]'s descriptor-driven core, extracted
+// (Plan 03-05 Task 2) so a caller already holding a
+// protoreflect.MessageDescriptor — corpus_test.go's constraint-class
+// coverage guard walks every corpusMessages() entry generically, with no
+// compile-time M type parameter available per message — can run the
+// identical derivation core derive[M] uses, rather than a second,
+// divergent implementation. derive[M] above is now a one-line wrapper
+// around this function; no behavior changed by this extraction.
+func deriveFromDescriptor(md protoreflect.MessageDescriptor, opts ...Option) (*derivation, error) {
+	o := applyOptions(opts)
 	msgName := string(md.FullName())
 
 	// Every name supplied to Exclude/Override/AsJSON is validated
