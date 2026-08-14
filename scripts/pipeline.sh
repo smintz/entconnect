@@ -10,15 +10,20 @@ set -euo pipefail
 #   3. buf build -o <descriptor>.binpb --as-file-descriptor-set --exclude-source-info
 #      (a SEPARATE CLI invocation from step 2 — buf has no first-party plugin
 #      path to descriptor-set emission, so this step can never be folded into
-#      buf.gen.yaml as a plugin entry; see ARCHITECTURE.md Anti-Pattern 4)
+#      buf.gen.yaml as a plugin entry; see ARCHITECTURE.md Anti-Pattern 4).
+#      02-01 renamed this output to proto/descriptorset.binpb (previously
+#      named after the mixinforprototest corpus alone) — the set now
+#      covers both corpora (mixinforprototest AND entconnecttest), so a
+#      single-corpus name would be misleading.
 #   4. go generate ./...   (per module, from MODULES)
 #   5. atlas migrate diff
 #
 # SERIAL-ONLY. This script is not safe to run concurrently against the same
 # working tree: steps 2 and 3 write generated output to fixed paths
-# (mixinforproto/internal/gen/... and proto/mixinforprototest.binpb), and two
-# concurrent runs racing on those paths is undefined behavior. CI must never
-# invoke two pipeline jobs against one checkout at the same time.
+# (mixinforproto/internal/gen/..., internal/gen/..., and
+# proto/descriptorset.binpb), and two concurrent runs racing on those paths
+# is undefined behavior. CI must never invoke two pipeline jobs against one
+# checkout at the same time.
 #
 # `set -euo pipefail` (above) means the script aborts at the first FAILING
 # step, so a later green step can never mask an earlier red one. A genuine
@@ -30,7 +35,7 @@ REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$REPO_ROOT"
 
 PROTO_DIR="proto"
-DESCRIPTOR_OUT="proto/mixinforprototest.binpb"
+DESCRIPTOR_OUT="proto/descriptorset.binpb"
 MODULES="${MODULES:-. ./mixinforproto}"
 BUF_INSTALL_HINT="go install github.com/bufbuild/buf/cmd/buf@v1.72.0"
 ATLAS_INSTALL_HINT="curl -sSf https://atlasgo.sh | sh   (see https://atlasgo.io/getting-started)"
@@ -84,20 +89,28 @@ for m in $MODULES; do
   fi
 done
 if [ "$step4_ran" = false ]; then
-  log "step 4/5: SKIP — no //go:generate directives exist in any module yet. Phase 2 (the entc extension) is the first phase that adds them."
+  log "step 4/5: SKIP — no //go:generate directives exist in any module yet."
 fi
 log "step 4/5: OK"
 
 # --- Step 5: atlas migrate diff ----------------------------------------------
 log "step 5/5: atlas migrate diff"
-# Phase 1 ships no real application ent schema to migrate — the only
-# ent.Schema in the repo is mixinforproto's own internal boundary-test
-# fixture (mixinforproto/internal/boundarytest), which is a schema-load
-# proof, not an application schema with a migration history. Detect that
-# condition first and skip honestly; only demand `atlas` on PATH once a
-# real application ent/schema package exists for it to diff.
-schema_dirs=$(find . -type d -name schema -path '*/ent/schema' \
-  -not -path './mixinforproto/internal/*' 2>/dev/null || true)
+# Phase 1/2 ship no real application ent schema to migrate — every
+# ent.Schema in the repo so far is a schema-load/tracer-test fixture
+# (mixinforproto/internal/boundarytest, internal/entconnecttest/*), never
+# an application schema with a migration history. Detect that condition
+# first and skip honestly; only demand `atlas` on PATH once a real
+# application ent/schema package exists for it to diff.
+# NOTE: .claude/worktrees/ is pruned explicitly. During a parallel wave the
+# harness creates full checkouts of this repo there, so every fixture schema
+# reappears under a path the two -not -path patterns below cannot match
+# (./.claude/worktrees/agent-XXX/internal/entconnecttest/...). Without this
+# prune, running the pipeline while any agent worktree exists makes step 5
+# mistake a fixture for an application schema and demand atlas.
+schema_dirs=$(find . -type d -name '.claude' -prune -o \
+  -type d -name schema -path '*/ent/schema' \
+  -not -path './mixinforproto/internal/*' \
+  -not -path './internal/entconnecttest/*' -print 2>/dev/null || true)
 if [ -z "$schema_dirs" ]; then
   log "step 5/5: SKIP — no application ent/schema package exists yet. A later phase (once a real ent schema is generated for the reference app) is the first phase with anything for atlas to diff."
 else

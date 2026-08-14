@@ -47,21 +47,47 @@ Requirements for the initial release (entconnect through v0.3: MixinForProto + C
 
 ### CRUD Handler Generation
 
-- [ ] **CRUD-01**: entc extension generates a ConnectRPC handler for standard Get RPCs over a `MixinForProto`-backed entity
-- [ ] **CRUD-02**: Extension generates Create and Delete handlers operating directly against the ent client
-- [ ] **CRUD-03**: Extension generates List handlers with AIP-158 `page_token`/`next_page_token` paging built on ent's native keyset `Paginate()` — not offset paging
-- [ ] **CRUD-04**: Extension generates Update handlers that require `google.protobuf.FieldMask` and gate every `Set*` call on the mask, so untouched fields are never zeroed
-- [ ] **CRUD-05**: Codegen validates every field-mask path against the message descriptor and fails the build on an unknown path
-- [ ] **CRUD-06**: Generated code is byte-stable across runs (sorted iteration, stable imports, gofmt-clean) and covered by golden-file tests
-- [ ] **CRUD-07**: Generated server wiring is the only place an ent client is constructed and never hands a privileged client to application code
+- [x] **CRUD-01**: entc extension generates a ConnectRPC handler for standard Get RPCs over a `MixinForProto`-backed entity
+- [x] **CRUD-02**: Extension generates Create and Delete handlers operating directly against the ent client
+- [x] **CRUD-03**: Extension generates List handlers with AIP-158 `page_token`/`next_page_token` paging built on hand-emitted keyset predicates over ent's per-field comparison operators (`LT`/`GT`/`EQ` with `And`/`Or`, `Order(...)`, `Limit(n+1)`) — not offset paging, and not the ent contrib GraphQL extension's generated helper, which is where that helper actually lives (see 02-RESEARCH.md Q1).
+
+> **Correction (2026-08-08):** The original wording above attributed this paging mechanism to a
+> keyset method native to core `entgo.io/ent`. That claim was disproven by direct source
+> inspection of both `entgo.io/ent@v0.14.6` and `entgo.io/contrib/entgql` during Phase 2 research:
+> no such method exists in core ent — it is generated exclusively by the ent contrib GraphQL
+> extension's own templates. See
+> `.planning/phases/02-crud-handlers-interceptor-chain/02-RESEARCH.md` §Summary and Pitfall 1.
+
+- [x] **CRUD-04**: Extension generates Update handlers that require `google.protobuf.FieldMask` and gate every `Set*` call on the mask, so untouched fields are never zeroed
+- [x] **CRUD-05**: Codegen validates every field-mask path against the message descriptor and fails the build on an unknown path
+- [x] **CRUD-06**: Generated code is byte-stable across runs (sorted iteration, stable imports, gofmt-clean) and covered by golden-file tests
+- [x] **CRUD-07**: Generated server wiring is the only place an ent client is used to serve requests, and it never hands a privileged client back to application code — the `*ent.Client` each generated service holds is unexported, and the returned server exposes only `Routes()`/`Register()`, with no accessor of any kind
+
+> **Correction (2026-08-09):** The original wording also claimed generated wiring is *"the only
+> place an ent client is constructed."* That half is not achievable and was never implemented:
+> generated code cannot know a deployment's driver or connection string, so `NewServer` takes the
+> client as a parameter (`NewServer(client *ent.Client, authenticator …, opts …)`) and the
+> application constructs it. Verified live across all five Phase 2 fixtures, each of which calls
+> `ent.NewClient(…)` itself before passing it in. Achieving the original wording would require
+> moving connection configuration into codegen, which is worse design, not better.
+>
+> The security-relevant half is real and verified: no privileged client escapes the generated
+> surface. `grep -rn 'func.*Client()' runtime/ entc/templates/` returns nothing, and every
+> per-service `client` field is unexported. What is *not* claimed is that application code is
+> prevented from holding its own client alongside — it necessarily does, at the same call site
+> where it invokes `NewServer`.
+>
+> Root cause: `02-CONTEXT.md`'s D-11 and D-12 contradicted each other. D-11 specifies the
+> client-as-parameter signature; D-12 restated this requirement's unachievable wording. D-12 is
+> amended in place. See `02-VERIFICATION.md` for the full evidence.
 
 ### Interceptors & Runtime
 
-- [ ] **INT-01**: Generated interceptor chain runs in the fixed order authn → viewer injection → protovalidate → otel → handler
-- [ ] **INT-02**: Viewer injection places a viewer-scoped context on every request so ent privacy policies apply
-- [ ] **INT-03**: Privacy denials surface to clients as Connect `PermissionDenied`
-- [ ] **INT-04**: `entconnect.Manual("rpc")` lets a developer hand-write one handler, and the manual handler still runs inside the generated interceptor chain
-- [ ] **INT-05**: Drift-check output reports which RPCs are `Manual`, so the escape hatch stays visible
+- [x] **INT-01**: Generated interceptor chain runs in the fixed order authn → viewer injection → protovalidate → otel → handler
+- [x] **INT-02**: Viewer injection places a viewer-scoped context on every request so ent privacy policies apply
+- [x] **INT-03**: Privacy denials surface to clients as Connect `PermissionDenied`
+- [x] **INT-04**: `entconnect.Manual("rpc")` lets a developer hand-write one handler, and the manual handler still runs inside the generated interceptor chain
+- [x] **INT-05**: Drift-check output reports which RPCs are `Manual`, so the escape hatch stays visible
 
 ### Flow Binding
 
@@ -169,18 +195,18 @@ Which phases cover which requirements. Updated during roadmap creation.
 | PIPE-03 | Phase 1 | Complete |
 | PIPE-04 | Phase 1 | Complete |
 | PIPE-08 | Phase 1 | Complete |
-| CRUD-01 | Phase 2 | Pending |
-| CRUD-02 | Phase 2 | Pending |
-| CRUD-03 | Phase 2 | Pending |
-| CRUD-04 | Phase 2 | Pending |
-| CRUD-05 | Phase 2 | Pending |
-| CRUD-06 | Phase 2 | Pending |
-| CRUD-07 | Phase 2 | Pending |
-| INT-01 | Phase 2 | Pending |
-| INT-02 | Phase 2 | Pending |
-| INT-03 | Phase 2 | Pending |
-| INT-04 | Phase 2 | Pending |
-| INT-05 | Phase 2 | Pending |
+| CRUD-01 | Phase 2 | Complete |
+| CRUD-02 | Phase 2 | Complete |
+| CRUD-03 | Phase 2 | Complete |
+| CRUD-04 | Phase 2 | Complete |
+| CRUD-05 | Phase 2 | Complete |
+| CRUD-06 | Phase 2 | Complete |
+| CRUD-07 | Phase 2 | Complete |
+| INT-01 | Phase 2 | Complete |
+| INT-02 | Phase 2 | Complete |
+| INT-03 | Phase 2 | Complete |
+| INT-04 | Phase 2 | Complete |
+| INT-05 | Phase 2 | Complete |
 | VAL-04 | Phase 3 | Pending |
 | VAL-05 | Phase 3 | Pending |
 | VAL-06 | Phase 3 | Pending |

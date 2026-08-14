@@ -14,7 +14,7 @@ entconnect inverts entproto's generation direction: a protobuf contract drives e
 Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: MixinForProto Core** - Contract-derived ent fields, provenance annotations, Tier 1 validation, and the two-module CI scaffold
-- [ ] **Phase 2: CRUD Handlers & Interceptor Chain** - Generated Get/List/Create/Update/Delete Connect handlers with FieldMask-gated updates and a fixed, privacy-aware interceptor chain
+- [x] **Phase 2: CRUD Handlers & Interceptor Chain** - Generated Get/List/Create/Update/Delete Connect handlers with FieldMask-gated updates and a fixed, privacy-aware interceptor chain
 - [ ] **Phase 3: Validation Fidelity** - Tier 2/3 CEL passthrough, structured schema-layer errors, and a differential validation harness
 - [ ] **Phase 4: Flow Binding** - RPC-to-flow matching, generated flow-bound handlers, and long-running run status
 - [ ] **Phase 5: Full Drift Check & Reference App** - Bidirectional drift checking and an end-to-end reference application proving the canonical pipeline
@@ -79,12 +79,33 @@ Plans:
 **Success Criteria** (what must be TRUE):
 
   1. Developer runs `go generate` and gets working Get/Create/Delete Connect handlers over a MixinForProto-backed entity, calling the ent client directly
-  2. Developer gets a List handler that pages via AIP-158 `page_token`/`next_page_token` on ent's native keyset `Paginate()` — not offset paging
+  2. Developer gets a List handler that pages via AIP-158 `page_token`/`next_page_token` on hand-emitted keyset predicates over ent's own comparison operators — not offset paging, and with no dependency on the ent contrib GraphQL extension
   3. Developer gets an Update handler that requires a `FieldMask` and only calls `Set*` for paths present in the mask (untouched fields never zeroed); an unknown mask path fails the build against the message descriptor
-  4. Every request flows through a fixed interceptor chain (authn → viewer injection → protovalidate → otel → handler) built once per process; privacy policy denials surface to the client as Connect `PermissionDenied`, and generated server wiring is the only place an `*ent.Client` is constructed
+  4. Every request flows through a fixed interceptor chain (authn → viewer injection → protovalidate → otel → handler) built once per process; privacy policy denials surface to the client as Connect `PermissionDenied`, and generated server wiring is the only place an `*ent.Client` is used to serve requests — it is never handed back to application code (corrected 2026-08-09; the original "only place ... is constructed" wording is unachievable, since generated code cannot know a deployment's connection string — see REQUIREMENTS.md CRUD-07 and 02-VERIFICATION.md)
   5. Developer can hand-write one handler via `entconnect.Manual("rpc")`, and it still runs inside the generated interceptor chain and shows up in drift-check output; all generated code is byte-stable across runs and covered by golden-file tests
 
-**Plans**: TBD
+> **Planning note (2026-08-08):** Success Criterion 2's original wording attributed List paging to
+> a keyset method native to core `entgo.io/ent`. Phase 2 research disproved this by direct source
+> inspection: that method is generated exclusively by the ent contrib GraphQL extension, not core
+> ent. Corrected above to describe the hand-emitted keyset predicate mechanism this phase actually
+> builds. See `.planning/phases/02-crud-handlers-interceptor-chain/02-RESEARCH.md` §Summary and
+> Pitfall 1.
+
+**Plans**: 5/5 plans executed
+Plans:
+**Wave 1**
+
+- [x] 02-01-PLAN.md — Tracer: one entity, one Get RPC, contract to descriptor to emitted handler to a real Connect response through the fixed chain
+
+**Wave 2** *(blocked on Wave 1 completion; three parallel plans, disjoint files)*
+
+- [x] 02-02-PLAN.md — Create and Delete handlers against the ent client, with mutation-shaped error mapping
+- [x] 02-03-PLAN.md — List with hand-emitted keyset paging and the fingerprinted page token, plus the CRUD-03 requirement-text correction
+- [x] 02-04-PLAN.md — FieldMask-gated Update, validated at build time against descriptor and Phase 1 provenance and at request time against the live message
+
+**Wave 3** *(blocked on Wave 2 completion)*
+
+- [x] 02-05-PLAN.md — Manual escape hatch inside the generated chain, the deterministic claims report and duplicate-claim gate, and golden/byte-stability CI hardening
 
 ### Phase 3: Validation Fidelity
 
@@ -142,7 +163,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. MixinForProto Core | 9/9 | In Progress|  |
-| 2. CRUD Handlers & Interceptor Chain | 0/TBD | Not started | - |
+| 2. CRUD Handlers & Interceptor Chain | 0/5 | Planned | - |
 | 3. Validation Fidelity | 0/TBD | Not started | - |
 | 4. Flow Binding | 0/TBD | Not started | - |
 | 5. Full Drift Check & Reference App | 0/TBD | Not started | - |

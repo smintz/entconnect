@@ -1,0 +1,68 @@
+// Package entconnecttest.v1 (this file) extends the walking-slice corpus
+// (see read.proto's own header) with the write path: Create and Delete
+// end to end against a real ent client. Item is a second, independent
+// entity from Order — it exists only to prove the write slice without
+// re-purposing Order's own Get-only fixture wiring.
+//
+// Two separate services (ItemCreateService, ItemDeleteService) are
+// declared deliberately, rather than one combined ItemService: each
+// verb's slice compiles and is exercised independently, matching this
+// plan's own task split (Task 1 claims ItemCreateService, Task 2 claims
+// ItemDeleteService).
+syntax = "proto3";
+
+package entconnecttest.v1;
+
+// See read.proto's own comment for why this must be set explicitly
+// (rather than relying on buf.gen.yaml's managed-mode override alone):
+// the committed FileDescriptorSet is built via a separate `buf build`
+// invocation that never applies managed-mode overrides, and entc/'s
+// Go-import-path derivation for emitted handler code reads this option
+// directly off the descriptor set.
+option go_package = "github.com/smintz/entconnect/internal/gen/entconnecttestv1";
+
+import "buf/validate/validate.proto";
+
+// Item is the write-slice entity: enough fields to exercise a generated
+// Create handler's Set* emission (CRUD-02) and a generated Delete
+// handler's by-primary-key removal. sku carries a real protovalidate
+// rule (string.min_len) so create_test.go can exercise the generated
+// interceptor chain's protovalidate stage directly, and (paired with a
+// unique index declared on the write fixture's ent schema, not here) a
+// real uniqueness constraint for the double-create AlreadyExists case.
+message Item {
+  string id = 1;
+  string sku = 2 [(buf.validate.field).string.min_len = 1];
+  string name = 3;
+  int32 quantity = 4;
+}
+
+// CreateItemRequest carries the full Item to persist.
+message CreateItemRequest {
+  Item item = 1;
+}
+
+// CreateItemResponse carries the persisted Item, including its
+// server-assigned id.
+message CreateItemResponse {
+  Item item = 1;
+}
+
+// DeleteItemRequest carries the sole lookup key DeleteItem needs.
+message DeleteItemRequest {
+  string id = 1;
+}
+
+// DeleteItemResponse is intentionally empty — Delete has nothing to
+// return beyond success.
+message DeleteItemResponse {}
+
+// ItemCreateService is the write slice's Create-only service (Task 1).
+service ItemCreateService {
+  rpc CreateItem(CreateItemRequest) returns (CreateItemResponse);
+}
+
+// ItemDeleteService is the write slice's Delete-only service (Task 2).
+service ItemDeleteService {
+  rpc DeleteItem(DeleteItemRequest) returns (DeleteItemResponse);
+}

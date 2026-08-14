@@ -36,6 +36,14 @@ jobs:
       - name: Test both modules
         run: make test
 
+      # D-20/CRUD-06: the golden suite (entc/testdata) and every other test
+      # in both modules run under -count=5 so order-dependence (an
+      # accidental map-iteration dependency, an unsorted key set) surfaces
+      # as a reproducible CI failure rather than a flake nobody can pin
+      # down. This is the exact command make test-determinism runs locally.
+      - name: Run the golden suite with -count=5 (D-20)
+        run: make test-determinism
+
       - name: Verify no committed go.mod declares a local-path substitution
         run: make check-modules
 
@@ -53,6 +61,9 @@ jobs:
       - name: Install protoc-gen-go (pinned)
         run: go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.36.11
 
+      - name: Install protoc-gen-connect-go (pinned)
+        run: go install connectrpc.com/connect/cmd/protoc-gen-connect-go@v1.20.0
+
       # PIPE-01's own must-have is "CI runs it" — not just a script that
       # exists and is exercised locally. This job's checkout is ephemeral
       # (nothing here is committed back), so running the pipeline against
@@ -69,6 +80,13 @@ jobs:
   # consumption without workspace resolution papering over a missing
   # dependency (ARCHITECTURE.md Anti-Pattern 5). Deleting go.work instead
   # of setting GOWORK=off would test a different thing.
+  #
+  # 02-01 adds the root-module half of this job (D-21, checkpoint v0-1-0):
+  # the root module's first real dependency edge —
+  # github.com/smintz/entconnect/mixinforproto v0.1.0 — is only a genuine,
+  # standalone-resolvable Go module dependency if it resolves through the
+  # module proxy via the published tag with GOWORK=off, not merely because
+  # go.work's `use ./mixinforproto` makes it workspace-visible.
   standalone:
     name: standalone
     runs-on: ubuntu-latest
@@ -84,6 +102,9 @@ jobs:
 
       - name: Build and test mixinforproto standalone (GOWORK=off)
         run: make test-standalone
+
+      - name: Build and test the root module standalone (GOWORK=off)
+        run: make test-standalone-root
 
   # stubs: the Pitfall 9 / D-22 staleness gate (scripts/check-stubs.sh).
   # Copies the working tree's proto/ into an empty temp root (never the
@@ -110,6 +131,9 @@ jobs:
 
       - name: Install protoc-gen-go (pinned)
         run: go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.36.11
+
+      - name: Install protoc-gen-connect-go (pinned)
+        run: go install connectrpc.com/connect/cmd/protoc-gen-connect-go@v1.20.0
 
       - name: Run the staleness gate (scripts/check-stubs.sh)
         run: |

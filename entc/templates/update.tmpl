@@ -1,0 +1,40 @@
+{{.DivergenceDoc}}func (s *{{.StructName}}) {{.MethodName}}(ctx context.Context, req *connect.Request[{{.ReqPkgAlias}}.{{.ReqType}}]) (*connect.Response[{{.ReqPkgAlias}}.{{.RespType}}], error) {
+	paths, err := entconnectruntime.ValidateMask(req.Msg.Get{{.MaskFieldGoName}}(), req.Msg.Get{{.PatchFieldGoName}}(), {{.AllowedLiteral}})
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+	}
+	{{.IDConvert}}
+	m := s.client.{{.ClientField}}.UpdateOneID(id)
+	for _, p := range paths {
+		switch p {
+		{{- range .SetFields}}
+		case {{.ProtoNameLiteral}}:
+			m = m.{{.SetMethod}}({{.ValueExpr}})
+		{{- end}}
+		default:
+			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("update_mask path %q is not a settable field", p))
+		}
+	}
+	row, err := m.Save(ctx)
+	if err != nil {
+		switch {
+		case ent.IsNotFound(err):
+			return nil, connect.NewError(connect.CodeNotFound, err)
+		case ent.IsConstraintError(err):
+			return nil, connect.NewError(connect.CodeAlreadyExists, err)
+		case ent.IsValidationError(err):
+			return nil, connect.NewError(connect.CodeInvalidArgument, err)
+		default:
+			return nil, entconnectruntime.MapError(err)
+		}
+	}
+	resp := &{{.ReqPkgAlias}}.{{.RespType}}{
+		{{.RespEntityField}}: &{{.ReqPkgAlias}}.{{.EntityType}}{
+			Id: fmt.Sprint(row.ID),
+			{{- range .SetFields}}
+			{{.RespGoName}}: {{.RespValueExpr}},
+			{{- end}}
+		},
+	}
+	return connect.NewResponse(resp), nil
+}

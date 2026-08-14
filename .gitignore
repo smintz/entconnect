@@ -1,0 +1,12 @@
+# Machine-local tooling state — never committed.
+# Claude Code writes per-machine preferences here (the .local.json suffix is
+# the convention for "this file is not shared"); GSD writes runtime sentinels
+# under .gsd/. Both are derived from the local environment, so committing them
+# would push one machine's setup onto every other checkout.
+.claude/settings.local.json
+.gsd/
+
+# Live agent worktrees created by the harness during parallel plan execution.
+# These are full checkouts of this repo; committing them would nest the tree
+# inside itself. They are transient and removed when their agent finishes.
+.claude/worktrees/

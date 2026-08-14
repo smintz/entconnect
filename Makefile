@@ -9,7 +9,7 @@
 # where auto-discovery would silently do the wrong thing.
 MODULES := . ./mixinforproto
 
-.PHONY: build vet test test-standalone check-modules check-stubs check-goversion pipeline
+.PHONY: build vet test test-determinism test-standalone check-modules check-stubs check-goversion pipeline
 
 ## build: go build ./... in every module in MODULES, cd'd into each.
 build:
@@ -45,12 +45,41 @@ test:
 		fi; \
 	done
 
+## test-determinism: go test -count=5 ./... in every module in MODULES,
+## cd'd into each (D-20/CRUD-06). Runs the SAME suite as `test`, five
+## times per package with no isolation between runs, so order-dependence
+## (an accidental map-iteration dependency, an unsorted key set) surfaces
+## as a CI failure rather than a flake nobody can reproduce locally. Reuses
+## the exact `go list ./...` skip-guard idiom `test` already uses, so a
+## zero-package module still skips visibly instead of exiting 1.
+test-determinism:
+	@set -e; for m in $(MODULES); do \
+		echo "== test-determinism: $$m =="; \
+		if [ -z "$$(cd $$m && go list ./... 2>/dev/null)" ]; then \
+			echo "   SKIP: $$m has no Go packages yet"; \
+		else \
+			(cd $$m && go test -count=5 ./...); \
+		fi; \
+	done
+
 ## test-standalone: prove mixinforproto builds/tests without workspace
 ## resolution (PIPE-02, D-17). Runs with GOWORK=off in a checkout that
 ## still CONTAINS go.work — the env var is what must do the ignoring,
 ## not the file's absence, or this proves the wrong thing.
 test-standalone:
 	cd mixinforproto && GOWORK=off go build ./... && GOWORK=off go test ./...
+
+## test-standalone-root: prove the root module builds/tests without
+## workspace resolution (02-01 checkpoint v0-1-0, D-21). The root module's
+## first real dependency edge is `github.com/smintz/entconnect/mixinforproto
+## v0.1.0`, resolved as an ordinary Go module dependency via the published
+## tag — GOWORK=off here is what proves that edge is real (resolves through
+## the module proxy) and not merely workspace-visible (resolves only
+## because go.work's `use ./mixinforproto` papers over a missing
+## dependency). Same discipline as test-standalone, applied to the root
+## module, in a checkout that still CONTAINS go.work.
+test-standalone-root:
+	GOWORK=off go build ./... && GOWORK=off go vet ./... && GOWORK=off go test ./...
 
 ## check-modules: fail if any committed go.mod declares a local-path
 ## module substitution (PIPE-04). `go mod edit -json` reports a null

@@ -4,9 +4,11 @@ set -euo pipefail
 # scripts/check-stubs.sh — the D-22 / Pitfall-9 staleness gate (PIPE-03 gap
 # closure, VERIFICATION.md gap 4 / REVIEW.md CR-04+WR-03).
 #
-# Proves that mixinforproto/internal/gen matches what scripts/generate-
-# stubs.sh (the ONE canonical, correctly-scoped generation invocation)
-# actually produces from the working tree's proto/ sources right now.
+# Proves that mixinforproto/internal/gen AND internal/gen (02-01: the root
+# module's own service-bearing corpus output) both match what scripts/
+# generate-stubs.sh (the ONE canonical, correctly-scoped generation
+# invocation) actually produces from the working tree's proto/ sources
+# right now.
 #
 # Design:
 #   1. Create an empty temp root (mktemp -d), removed on EXIT via trap.
@@ -14,11 +16,13 @@ set -euo pipefail
 #      `git archive HEAD` — copying the working tree lets a developer
 #      rehearse the exact gate against uncommitted proto/ edits before
 #      committing, and is what was rehearsed live at plan time).
-#   3. Deliberately leave <tmp>/mixinforproto/internal/gen ABSENT, so
-#      generation writes into a completely empty output tree.
+#   3. Deliberately leave <tmp>/mixinforproto/internal/gen AND <tmp>/
+#      internal/gen ABSENT, so generation writes into completely empty
+#      output trees for both modules' corpora.
 #   4. Run scripts/generate-stubs.sh against that temp root.
 #   5. diff -rq the committed mixinforproto/internal/gen against the fresh
-#      output.
+#      output, AND diff -rq the committed internal/gen (02-01: root
+#      module's own service-bearing corpus) against its fresh output.
 #
 # Step 3 is what closes WR-03's blind spot: because the previous gate
 # copied the COMMITTED stubs into place before regenerating (via
@@ -55,13 +59,25 @@ trap 'rm -rf "$TMP"' EXIT
 
 cp -R "$REPO_ROOT/proto" "$TMP/proto"
 
-# <tmp>/mixinforproto/internal/gen intentionally does not exist yet —
-# generate-stubs.sh creates it fresh via buf's plugin output path.
+# <tmp>/mixinforproto/internal/gen and <tmp>/internal/gen intentionally do
+# not exist yet — generate-stubs.sh creates both fresh via buf's plugin
+# output paths.
 bash "$REPO_ROOT/scripts/generate-stubs.sh" "$TMP"
+
+fail=0
 
 if ! diff -rq mixinforproto/internal/gen "$TMP/mixinforproto/internal/gen"; then
   echo "::error::Committed generated stubs under mixinforproto/internal/gen are stale relative to proto/ sources (see diff above, including any 'Only in mixinforproto/internal/gen' lines naming ORPHANED files). Run scripts/pipeline.sh and commit the result."
+  fail=1
+fi
+
+if ! diff -rq internal/gen "$TMP/internal/gen"; then
+  echo "::error::Committed generated stubs under internal/gen are stale relative to proto/ sources (see diff above, including any 'Only in internal/gen' lines naming ORPHANED files). Run scripts/pipeline.sh and commit the result."
+  fail=1
+fi
+
+if [ "$fail" != "0" ]; then
   exit 1
 fi
 
-echo "[check-stubs] OK: committed generated stubs match a fresh regeneration from proto/ sources."
+echo "[check-stubs] OK: committed generated stubs (mixinforproto/internal/gen and internal/gen) match a fresh regeneration from proto/ sources."

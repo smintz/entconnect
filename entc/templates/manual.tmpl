@@ -1,0 +1,6 @@
+func (s *{{.StructName}}) {{.MethodName}}(ctx context.Context, req *connect.Request[{{.ReqPkgAlias}}.{{.ReqType}}]) (*connect.Response[{{.ReqPkgAlias}}.{{.RespType}}], error) {
+	if s.{{.FieldName}} == nil {
+		return nil, connect.NewError(connect.CodeUnimplemented, fmt.Errorf("entconnect: manual RPC %q has no handler configured", "{{.Procedure}}"))
+	}
+	return s.{{.FieldName}}(ctx, req)
+}
