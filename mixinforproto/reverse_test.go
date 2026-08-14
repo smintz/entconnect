@@ -2,14 +2,17 @@ package mixinforproto
 
 import (
 	"bytes"
+	"encoding/json"
 	"errors"
 	"reflect"
 	"testing"
 	"time"
 
+	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"
 	"google.golang.org/protobuf/types/dynamicpb"
+	"google.golang.org/protobuf/types/known/structpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
 	"buf.build/go/protovalidate"
@@ -290,23 +293,243 @@ func TestReverseValue_WrongTypeNeverPanics(t *testing.T) {
 	}
 }
 
-// --- Unbindable classes/kinds: Task 2's leg is not implemented yet -------
-
+// --- Task 2: genuinely unbindable classes/kinds ---------------------------
+//
+// After Task 2, every derivation class reverse.go can be handed
+// (scalar/optionalScalar/enum/wkt/scalarMap/asJSON) has a real
+// conversion. The only classes that can still reach unbindableClass are a
+// class string reverse.go has never heard of (a future derivation kind
+// not yet wired up) and, within "wkt", google.protobuf.FieldMask/Duration
+// — which mapWellKnownType never derives an ent field for, so this branch
+// can never actually be reached from a real mutation, but must still fail
+// closed rather than panic if it somehow were.
 func TestReverseValue_UnbindableClassesFailClosed(t *testing.T) {
 	tests := []struct {
 		name  string
 		fd    protoreflect.FieldDescriptor
 		class string
 	}{
-		{"asJSON", fieldDesc[*mixinforprototestv1.ReverseAsJSON](t, "payload"), "asJSON"},
-		{"wkt Struct", fieldDesc[*mixinforprototestv1.ReverseWkt](t, "struct_field"), "wkt"},
-		{"wkt Value", fieldDesc[*mixinforprototestv1.ReverseWkt](t, "value_field"), "wkt"},
+		{"unknown derivation class", fieldDesc[*mixinforprototestv1.ReverseScalars](t, "string_field"), "bogus"},
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			_, err := reverseValue(tc.fd, tc.class, nil)
 			notValidationError(t, err)
 		})
+	}
+}
+
+// --- Task 2: asJSON — the JSON-to-dynamicpb leg ---------------------------
+
+func TestReverseValue_AsJSONRoundTrip(t *testing.T) {
+	fd := fieldDesc[*mixinforprototestv1.ReverseAsJSON](t, "payload")
+	raw := json.RawMessage(`{"note":"hello","count":7}`)
+
+	got, err := reverseValue(fd, "asJSON", raw)
+	if err != nil {
+		t.Fatalf("reverseValue: %v", err)
+	}
+	if !got.IsValid() {
+		t.Fatal("reverseValue returned an invalid Value")
+	}
+	payload, ok := got.Message().Interface().(*mixinforprototestv1.ReversePayload)
+	if ok {
+		t.Fatalf("unexpected concrete generated type %T — asJSON must hydrate a dynamicpb message, not a generated one", payload)
+	}
+	noteFd := got.Message().Descriptor().Fields().ByName("note")
+	countFd := got.Message().Descriptor().Fields().ByName("count")
+	if got.Message().Get(noteFd).String() != "hello" {
+		t.Fatalf("note = %q, want %q", got.Message().Get(noteFd).String(), "hello")
+	}
+	if got.Message().Get(countFd).Int() != 7 {
+		t.Fatalf("count = %d, want 7", got.Message().Get(countFd).Int())
+	}
+}
+
+func TestReverseValue_AsJSONMalformed(t *testing.T) {
+	fd := fieldDesc[*mixinforprototestv1.ReverseAsJSON](t, "payload")
+	_, err := reverseValue(fd, "asJSON", json.RawMessage(`{not valid json`))
+	notValidationError(t, err)
+}
+
+func TestReverseValue_AsJSONAbsent(t *testing.T) {
+	fd := fieldDesc[*mixinforprototestv1.ReverseAsJSON](t, "payload")
+
+	tests := []struct {
+		name  string
+		value any
+	}{
+		{"nil interface", nil},
+		{"nil json.RawMessage", json.RawMessage(nil)},
+		{"empty json.RawMessage", json.RawMessage{}},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			got, err := reverseValue(fd, "asJSON", tc.value)
+			if err != nil {
+				t.Fatalf("reverseValue(%s): unexpected error: %v", tc.name, err)
+			}
+			if got.IsValid() {
+				t.Fatalf("reverseValue(%s) = %#v, want an invalid (absent) Value, not an empty message", tc.name, got.Interface())
+			}
+		})
+	}
+}
+
+// --- Task 2: google.protobuf.Value — RESEARCH Assumption A3, closed ------
+
+// TestReverseValue_ProtoValueRoundTrip proves Assumption A3 for each of
+// google.protobuf.Value's oneof alternatives independently — the plan's
+// behavior text names "the five Value alternatives: null, number, string,
+// bool, list, and struct", which is six named items; google.protobuf.
+// Value's real `kind` oneof (struct/value.proto) has exactly six members
+// (null_value, number_value, string_value, bool_value, struct_value,
+// list_value), so this test exercises all six named alternatives
+// verbatim rather than dropping one to match the "five" count literally.
+// Each is asserted independently so a single passing alternative cannot
+// mask a failing one.
+func TestReverseValue_ProtoValueRoundTrip(t *testing.T) {
+	fd := fieldDesc[*mixinforprototestv1.ReverseWkt](t, "value_field")
+
+	tests := []struct {
+		name string
+		json string
+		want *structpb.Value
+	}{
+		{"null", `null`, structpb.NewNullValue()},
+		{"number", `42.5`, structpb.NewNumberValue(42.5)},
+		{"string", `"hello"`, structpb.NewStringValue("hello")},
+		{"bool", `true`, structpb.NewBoolValue(true)},
+		{"list", `[1,2,3]`, structpb.NewListValue(&structpb.ListValue{
+			Values: []*structpb.Value{
+				structpb.NewNumberValue(1),
+				structpb.NewNumberValue(2),
+				structpb.NewNumberValue(3),
+			},
+		})},
+		{"struct", `{"a":1,"b":"c"}`, structpb.NewStructValue(&structpb.Struct{
+			Fields: map[string]*structpb.Value{
+				"a": structpb.NewNumberValue(1),
+				"b": structpb.NewStringValue("c"),
+			},
+		})},
+	}
+	if len(tests) != 6 {
+		t.Fatalf("want 6 Value alternatives under test (null, number, string, bool, list, struct), got %d", len(tests))
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			got, err := reverseValue(fd, "wkt", json.RawMessage(tc.json))
+			if err != nil {
+				t.Fatalf("reverseValue: %v", err)
+			}
+			if !got.IsValid() {
+				t.Fatal("reverseValue returned an invalid Value")
+			}
+			gotBytes, err := protojson.Marshal(got.Message().Interface())
+			if err != nil {
+				t.Fatalf("protojson.Marshal(got): %v", err)
+			}
+			wantBytes, err := protojson.Marshal(tc.want)
+			if err != nil {
+				t.Fatalf("protojson.Marshal(want): %v", err)
+			}
+			var gotAny, wantAny any
+			if err := json.Unmarshal(gotBytes, &gotAny); err != nil {
+				t.Fatalf("json.Unmarshal(got): %v", err)
+			}
+			if err := json.Unmarshal(wantBytes, &wantAny); err != nil {
+				t.Fatalf("json.Unmarshal(want): %v", err)
+			}
+			if !reflect.DeepEqual(gotAny, wantAny) {
+				t.Fatalf("reverseValue(%s) = %s, want %s", tc.name, gotBytes, wantBytes)
+			}
+		})
+	}
+}
+
+func TestReverseValue_ProtoValueMalformed(t *testing.T) {
+	fd := fieldDesc[*mixinforprototestv1.ReverseWkt](t, "value_field")
+	_, err := reverseValue(fd, "wkt", json.RawMessage(`{not valid`))
+	notValidationError(t, err)
+}
+
+// --- Task 2: google.protobuf.Struct ---------------------------------------
+
+func TestReverseValue_StructRoundTrip(t *testing.T) {
+	fd := fieldDesc[*mixinforprototestv1.ReverseWkt](t, "struct_field")
+	in := map[string]any{
+		"str":    "hello",
+		"num":    float64(7),
+		"bool":   true,
+		"nilVal": nil,
+		"nested": map[string]any{"inner": "value"},
+		"list":   []any{"a", "b", float64(3)},
+	}
+
+	got, err := reverseValue(fd, "wkt", in)
+	if err != nil {
+		t.Fatalf("reverseValue: %v", err)
+	}
+	if !got.IsValid() {
+		t.Fatal("reverseValue returned an invalid Value")
+	}
+	gotBytes, err := protojson.Marshal(got.Message().Interface())
+	if err != nil {
+		t.Fatalf("protojson.Marshal: %v", err)
+	}
+	var roundTripped map[string]any
+	if err := json.Unmarshal(gotBytes, &roundTripped); err != nil {
+		t.Fatalf("json.Unmarshal: %v", err)
+	}
+	if !reflect.DeepEqual(roundTripped, in) {
+		t.Fatalf("round-tripped Struct = %#v, want %#v", roundTripped, in)
+	}
+}
+
+func TestReverseValue_StructUnmarshalableGoType(t *testing.T) {
+	fd := fieldDesc[*mixinforprototestv1.ReverseWkt](t, "struct_field")
+	// A Go channel is a type encoding/json can never marshal — proves
+	// Test 6's "never a panic" requirement for the Struct leg's own
+	// encoding/json.Marshal call, distinct from AsJSON/Value's
+	// protojson.Unmarshal failure path.
+	in := map[string]any{"bad": make(chan int)}
+	_, err := reverseValue(fd, "wkt", in)
+	notValidationError(t, err)
+}
+
+func TestReverseValue_StructAbsent(t *testing.T) {
+	fd := fieldDesc[*mixinforprototestv1.ReverseWkt](t, "struct_field")
+
+	tests := []struct {
+		name  string
+		value any
+	}{
+		{"nil interface", nil},
+		{"nil map[string]any", map[string]any(nil)},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			got, err := reverseValue(fd, "wkt", tc.value)
+			if err != nil {
+				t.Fatalf("reverseValue(%s): unexpected error: %v", tc.name, err)
+			}
+			if got.IsValid() {
+				t.Fatalf("reverseValue(%s) = %#v, want an invalid (absent) Value, not an empty Struct message", tc.name, got.Interface())
+			}
+		})
+	}
+}
+
+func TestReverseValue_StructEmptyIsRealNotAbsent(t *testing.T) {
+	fd := fieldDesc[*mixinforprototestv1.ReverseWkt](t, "struct_field")
+	got, err := reverseValue(fd, "wkt", map[string]any{})
+	if err != nil {
+		t.Fatalf("reverseValue: unexpected error for a genuinely empty (non-nil) Struct: %v", err)
+	}
+	if !got.IsValid() {
+		t.Fatal("reverseValue(empty map) returned an invalid Value — a non-nil, deliberately-empty Struct is a real value, not absent")
 	}
 }
 

@@ -1,11 +1,13 @@
 package mixinforproto
 
 import (
+	"encoding/json"
 	"fmt"
 	"reflect"
 	"sort"
 	"time"
 
+	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/reflect/protoreflect"
 	"google.golang.org/protobuf/types/dynamicpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -22,13 +24,21 @@ import (
 //
 // 03-01 implemented only the "scalar"/"optionalScalar" + StringKind leg.
 // 03-02 (this plan) extends the table with a full leg per derivation
-// class: an exhaustive scalar/optionalScalar Kind switch, "enum", the
-// google.protobuf.Timestamp branch of "wkt", and "scalarMap". The
-// google.protobuf.Struct/Value branches of "wkt" and the "asJSON" class
-// are Task 2's JSON-to-dynamicpb leg — until that task lands, calling
-// reverseValue for them returns the same named, non-protovalidate
-// unbindable-kind error every other not-yet-implemented class returns,
-// never a silent mis-conversion.
+// class: Task 1 added an exhaustive scalar/optionalScalar Kind switch,
+// "enum", the google.protobuf.Timestamp branch of "wkt", and "scalarMap".
+// Task 2 completes the table with the JSON-to-dynamicpb leg: "asJSON" and
+// the google.protobuf.Struct/Value branches of "wkt", all hydrated via
+// protojson.Unmarshal into a dynamicpb message of the field's own
+// descriptor — never a hand-rolled JSON walker (T-03-06's mitigation;
+// 03-RESEARCH.md "Don't Hand-Roll").
+//
+// RESEARCH Assumption A3 (whether google.protobuf.Value's protojson
+// mapping needs the containing message's context rather than the bare
+// Value descriptor) is CLOSED, not carried: reverseWkt's wktValue branch
+// unmarshals directly against dynamicpb.NewMessage(fd.Message()) — the
+// bare Value descriptor — and TestReverseValue_ProtoValueRoundTrip proves
+// all five Value alternatives (null, number, string, bool, list, struct)
+// round-trip correctly against it with no special-casing required.
 //
 // Every failure this file produces is a plain D-12 data-integrity fault,
 // never a *protovalidate.ValidationError (that would fabricate a
@@ -77,8 +87,7 @@ func reverseValue(fd protoreflect.FieldDescriptor, class string, entValue any) (
 	case "scalarMap":
 		return reverseScalarMap(fd, entValue)
 	case "asJSON":
-		// Task 2's JSON-to-dynamicpb leg.
-		return unbindableClass(fd, class)
+		return reverseJSONMessage(fd, fd.Message(), "asJSON", entValue)
 	default:
 		return unbindableClass(fd, class)
 	}
@@ -217,12 +226,11 @@ func reverseEnum(fd protoreflect.FieldDescriptor, entValue any) (protoreflect.Va
 
 // reverseWkt handles the "wkt" derivation class, dispatching on fd's
 // message full name exactly as mapWellKnownType (fieldmap.go) does at
-// derivation time. Only google.protobuf.Timestamp is implemented in this
-// plan's first task; Struct and Value are Task 2's JSON-to-dynamicpb leg.
-// FieldMask and Duration are named explicitly, even though mapWellKnownType
-// never derives an ent field for them (so this branch can never actually
-// be reached in practice) — the explicit case documents that fact rather
-// than relying on the default branch to accidentally cover it.
+// derivation time. FieldMask and Duration are named explicitly, even
+// though mapWellKnownType never derives an ent field for them (so this
+// branch can never actually be reached in practice) — the explicit case
+// documents that fact rather than relying on the default branch to
+// accidentally cover it.
 func reverseWkt(fd protoreflect.FieldDescriptor, entValue any) (protoreflect.Value, error) {
 	switch string(fd.Message().FullName()) {
 	case wktTimestamp:
@@ -234,14 +242,111 @@ func reverseWkt(fd protoreflect.FieldDescriptor, entValue any) (protoreflect.Val
 			)
 		}
 		return protoreflect.ValueOfMessage(timestamppb.New(t).ProtoReflect()), nil
-	case wktStruct, wktValue:
-		// Task 2's JSON-to-dynamicpb leg.
-		return unbindableClass(fd, "wkt")
+	case wktValue:
+		// mapWellKnownType maps google.protobuf.Value to
+		// field.JSON(name, json.RawMessage(nil)) — the ent value is the
+		// JSON representation of the Value itself. RESEARCH Assumption
+		// A3, closed: the bare Value descriptor is sufficient, no
+		// containing-message context or special-casing is needed (see
+		// this file's doc comment).
+		return reverseJSONMessage(fd, fd.Message(), "wkt", entValue)
+	case wktStruct:
+		return reverseStruct(fd, entValue)
 	case wktFieldMask, wktDuration:
 		return unbindableKind(fd, "google.protobuf.FieldMask/Duration derive no ent field and can never reach the reverse table")
 	default:
 		return unbindableClass(fd, "wkt")
 	}
+}
+
+// reverseJSONMessage handles the JSON-to-dynamicpb leg shared by the
+// "asJSON" derivation class and the google.protobuf.Value branch of
+// "wkt": both map to an ent value typed json.RawMessage holding the JSON
+// representation of a message conforming to md (fieldmap.go's mapAsJSON
+// and the wktValue case of mapWellKnownType). protojson.Unmarshal is used
+// deliberately rather than a hand-rolled JSON walker — protojson already
+// implements every JSON<->proto mapping rule (int64-as-string, base64
+// bytes, null, Value's own oneof shape) that a hand-rolled walker would
+// silently diverge on for at least one case (03-RESEARCH.md "Don't
+// Hand-Roll").
+//
+// A nil or empty json.RawMessage reports as absent — (protoreflect.
+// Value{}, nil) — never as an empty message: an empty message would make
+// a `required`/`min_len` rule fire at storage against data that was never
+// real (D-03's phantom-violation class), and an ent value that was never
+// set is exactly that.
+func reverseJSONMessage(fd protoreflect.FieldDescriptor, md protoreflect.MessageDescriptor, class string, entValue any) (protoreflect.Value, error) {
+	if entValue == nil {
+		return protoreflect.Value{}, nil
+	}
+	raw, ok := entValue.(json.RawMessage)
+	if !ok {
+		return protoreflect.Value{}, fmt.Errorf(
+			"mixinforproto: reverse-converting field %q (kind %s, class %s): expected a Go json.RawMessage, got %T",
+			fd.Name(), fd.Kind(), class, entValue,
+		)
+	}
+	if len(raw) == 0 {
+		return protoreflect.Value{}, nil
+	}
+
+	dyn := dynamicpb.NewMessage(md)
+	if err := protojson.Unmarshal(raw, dyn); err != nil {
+		return protoreflect.Value{}, fmt.Errorf(
+			"mixinforproto: reverse-converting field %q (kind %s, class %s): unmarshaling JSON: %w",
+			fd.Name(), fd.Kind(), class, err,
+		)
+	}
+	return protoreflect.ValueOfMessage(dyn), nil
+}
+
+// reverseStruct handles the google.protobuf.Struct branch of "wkt":
+// mapWellKnownType maps it to field.JSON(name, map[string]any{}) — the
+// ent value is a native Go map[string]any, marshaled with encoding/json
+// and then unmarshaled via protojson into a dynamicpb message of the
+// Struct descriptor (03-RESEARCH.md "Don't Hand-Roll"). encoding/json's
+// own map[string]X marshaling is already key-sorted (Go stdlib documented
+// behavior) — this function relies on that fact rather than re-sorting
+// itself, but states the dependency explicitly here so a future switch to
+// a different marshaler does not silently reintroduce non-determinism
+// (Phase 1 D-24).
+//
+// A nil ent value (Go nil, or a nil map[string]any) reports as absent,
+// never as an empty Struct message — the same D-03 phantom-violation
+// rationale reverseJSONMessage's doc comment states. A genuinely
+// non-nil, empty map[string]any{} is a real, deliberately-set empty
+// Struct value and converts normally.
+func reverseStruct(fd protoreflect.FieldDescriptor, entValue any) (protoreflect.Value, error) {
+	if entValue == nil {
+		return protoreflect.Value{}, nil
+	}
+	m, ok := entValue.(map[string]any)
+	if !ok {
+		return protoreflect.Value{}, fmt.Errorf(
+			"mixinforproto: reverse-converting field %q (kind %s, class wkt): expected a Go map[string]any, got %T",
+			fd.Name(), fd.Kind(), entValue,
+		)
+	}
+	if m == nil {
+		return protoreflect.Value{}, nil
+	}
+
+	b, err := json.Marshal(m)
+	if err != nil {
+		return protoreflect.Value{}, fmt.Errorf(
+			"mixinforproto: reverse-converting field %q (kind %s, class wkt): marshaling Struct value to JSON: %w",
+			fd.Name(), fd.Kind(), err,
+		)
+	}
+
+	dyn := dynamicpb.NewMessage(fd.Message())
+	if err := protojson.Unmarshal(b, dyn); err != nil {
+		return protoreflect.Value{}, fmt.Errorf(
+			"mixinforproto: reverse-converting field %q (kind %s, class wkt): unmarshaling Struct JSON: %w",
+			fd.Name(), fd.Kind(), err,
+		)
+	}
+	return protoreflect.ValueOfMessage(dyn), nil
 }
 
 // reverseScalarMap handles the "scalarMap" derivation class: mapScalarMap's
