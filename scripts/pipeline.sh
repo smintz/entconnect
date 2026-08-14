@@ -101,9 +101,16 @@ log "step 5/5: atlas migrate diff"
 # an application schema with a migration history. Detect that condition
 # first and skip honestly; only demand `atlas` on PATH once a real
 # application ent/schema package exists for it to diff.
-schema_dirs=$(find . -type d -name schema -path '*/ent/schema' \
+# NOTE: .claude/worktrees/ is pruned explicitly. During a parallel wave the
+# harness creates full checkouts of this repo there, so every fixture schema
+# reappears under a path the two -not -path patterns below cannot match
+# (./.claude/worktrees/agent-XXX/internal/entconnecttest/...). Without this
+# prune, running the pipeline while any agent worktree exists makes step 5
+# mistake a fixture for an application schema and demand atlas.
+schema_dirs=$(find . -type d -name '.claude' -prune -o \
+  -type d -name schema -path '*/ent/schema' \
   -not -path './mixinforproto/internal/*' \
-  -not -path './internal/entconnecttest/*' 2>/dev/null || true)
+  -not -path './internal/entconnecttest/*' -print 2>/dev/null || true)
 if [ -z "$schema_dirs" ]; then
   log "step 5/5: SKIP — no application ent/schema package exists yet. A later phase (once a real ent schema is generated for the reference app) is the first phase with anything for atlas to diff."
 else
