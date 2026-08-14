@@ -60,9 +60,9 @@ func (m *fakeMutation) Field(name string) (ent.Value, bool) {
 
 var _ ent.Mutation = (*fakeMutation)(nil)
 
-func mustBuildHookState(t *testing.T, md protoreflect.MessageDescriptor) *hookState {
+func mustBuildHookState(t *testing.T, md protoreflect.MessageDescriptor, opts ...Option) *hookState {
 	t.Helper()
-	hs, err := buildHookState(md)
+	hs, err := buildHookState(md, opts...)
 	if err != nil {
 		t.Fatalf("buildHookState(%s): %v", md.FullName(), err)
 	}

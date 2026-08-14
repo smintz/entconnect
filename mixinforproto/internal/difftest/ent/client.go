@@ -14,6 +14,7 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect"
 	"entgo.io/ent/dialect/sql"
+	"github.com/smintz/entconnect/mixinforproto/internal/difftest/ent/messagerules"
 	"github.com/smintz/entconnect/mixinforproto/internal/difftest/ent/mixedfieldrules"
 	"github.com/smintz/entconnect/mixinforproto/internal/difftest/ent/residualcel"
 )
@@ -23,6 +24,8 @@ type Client struct {
 	config
 	// Schema is the client for creating, migrating and dropping schema.
 	Schema *migrate.Schema
+	// MessageRules is the client for interacting with the MessageRules builders.
+	MessageRules *MessageRulesClient
 	// MixedFieldRules is the client for interacting with the MixedFieldRules builders.
 	MixedFieldRules *MixedFieldRulesClient
 	// ResidualCel is the client for interacting with the ResidualCel builders.
@@ -38,6 +41,7 @@ func NewClient(opts ...Option) *Client {
 
 func (c *Client) init() {
 	c.Schema = migrate.NewSchema(c.driver)
+	c.MessageRules = NewMessageRulesClient(c.config)
 	c.MixedFieldRules = NewMixedFieldRulesClient(c.config)
 	c.ResidualCel = NewResidualCelClient(c.config)
 }
@@ -132,6 +136,7 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 	return &Tx{
 		ctx:             ctx,
 		config:          cfg,
+		MessageRules:    NewMessageRulesClient(cfg),
 		MixedFieldRules: NewMixedFieldRulesClient(cfg),
 		ResidualCel:     NewResidualCelClient(cfg),
 	}, nil
@@ -153,6 +158,7 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 	return &Tx{
 		ctx:             ctx,
 		config:          cfg,
+		MessageRules:    NewMessageRulesClient(cfg),
 		MixedFieldRules: NewMixedFieldRulesClient(cfg),
 		ResidualCel:     NewResidualCelClient(cfg),
 	}, nil
@@ -161,7 +167,7 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 // Debug returns a new debug-client. It's used to get verbose logging on specific operations.
 //
 //	client.Debug().
-//		MixedFieldRules.
+//		MessageRules.
 //		Query().
 //		Count(ctx)
 func (c *Client) Debug() *Client {
@@ -183,6 +189,7 @@ func (c *Client) Close() error {
 // Use adds the mutation hooks to all the entity clients.
 // In order to add hooks to a specific client, call: `client.Node.Use(...)`.
 func (c *Client) Use(hooks ...Hook) {
+	c.MessageRules.Use(hooks...)
 	c.MixedFieldRules.Use(hooks...)
 	c.ResidualCel.Use(hooks...)
 }
@@ -190,6 +197,7 @@ func (c *Client) Use(hooks ...Hook) {
 // Intercept adds the query interceptors to all the entity clients.
 // In order to add interceptors to a specific client, call: `client.Node.Intercept(...)`.
 func (c *Client) Intercept(interceptors ...Interceptor) {
+	c.MessageRules.Intercept(interceptors...)
 	c.MixedFieldRules.Intercept(interceptors...)
 	c.ResidualCel.Intercept(interceptors...)
 }
@@ -197,12 +205,148 @@ func (c *Client) Intercept(interceptors ...Interceptor) {
 // Mutate implements the ent.Mutator interface.
 func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 	switch m := m.(type) {
+	case *MessageRulesMutation:
+		return c.MessageRules.mutate(ctx, m)
 	case *MixedFieldRulesMutation:
 		return c.MixedFieldRules.mutate(ctx, m)
 	case *ResidualCelMutation:
 		return c.ResidualCel.mutate(ctx, m)
 	default:
 		return nil, fmt.Errorf("ent: unknown mutation type %T", m)
+	}
+}
+
+// MessageRulesClient is a client for the MessageRules schema.
+type MessageRulesClient struct {
+	config
+}
+
+// NewMessageRulesClient returns a client for the MessageRules from the given config.
+func NewMessageRulesClient(c config) *MessageRulesClient {
+	return &MessageRulesClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `messagerules.Hooks(f(g(h())))`.
+func (c *MessageRulesClient) Use(hooks ...Hook) {
+	c.hooks.MessageRules = append(c.hooks.MessageRules, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `messagerules.Intercept(f(g(h())))`.
+func (c *MessageRulesClient) Intercept(interceptors ...Interceptor) {
+	c.inters.MessageRules = append(c.inters.MessageRules, interceptors...)
+}
+
+// Create returns a builder for creating a MessageRules entity.
+func (c *MessageRulesClient) Create() *MessageRulesCreate {
+	mutation := newMessageRulesMutation(c.config, OpCreate)
+	return &MessageRulesCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of MessageRules entities.
+func (c *MessageRulesClient) CreateBulk(builders ...*MessageRulesCreate) *MessageRulesCreateBulk {
+	return &MessageRulesCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *MessageRulesClient) MapCreateBulk(slice any, setFunc func(*MessageRulesCreate, int)) *MessageRulesCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &MessageRulesCreateBulk{err: fmt.Errorf("calling to MessageRulesClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*MessageRulesCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &MessageRulesCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for MessageRules.
+func (c *MessageRulesClient) Update() *MessageRulesUpdate {
+	mutation := newMessageRulesMutation(c.config, OpUpdate)
+	return &MessageRulesUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *MessageRulesClient) UpdateOne(_m *MessageRules) *MessageRulesUpdateOne {
+	mutation := newMessageRulesMutation(c.config, OpUpdateOne, withMessageRules(_m))
+	return &MessageRulesUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *MessageRulesClient) UpdateOneID(id int) *MessageRulesUpdateOne {
+	mutation := newMessageRulesMutation(c.config, OpUpdateOne, withMessageRulesID(id))
+	return &MessageRulesUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for MessageRules.
+func (c *MessageRulesClient) Delete() *MessageRulesDelete {
+	mutation := newMessageRulesMutation(c.config, OpDelete)
+	return &MessageRulesDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *MessageRulesClient) DeleteOne(_m *MessageRules) *MessageRulesDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *MessageRulesClient) DeleteOneID(id int) *MessageRulesDeleteOne {
+	builder := c.Delete().Where(messagerules.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &MessageRulesDeleteOne{builder}
+}
+
+// Query returns a query builder for MessageRules.
+func (c *MessageRulesClient) Query() *MessageRulesQuery {
+	return &MessageRulesQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeMessageRules},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a MessageRules entity by its id.
+func (c *MessageRulesClient) Get(ctx context.Context, id int) (*MessageRules, error) {
+	return c.Query().Where(messagerules.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *MessageRulesClient) GetX(ctx context.Context, id int) *MessageRules {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *MessageRulesClient) Hooks() []Hook {
+	hooks := c.hooks.MessageRules
+	return append(hooks[:len(hooks):len(hooks)], messagerules.Hooks[:]...)
+}
+
+// Interceptors returns the client interceptors.
+func (c *MessageRulesClient) Interceptors() []Interceptor {
+	return c.inters.MessageRules
+}
+
+func (c *MessageRulesClient) mutate(ctx context.Context, m *MessageRulesMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&MessageRulesCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&MessageRulesUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&MessageRulesUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&MessageRulesDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown MessageRules mutation op: %q", m.Op())
 	}
 }
 
@@ -477,9 +621,9 @@ func (c *ResidualCelClient) mutate(ctx context.Context, m *ResidualCelMutation) 
 // hooks and interceptors per client, for fast access.
 type (
 	hooks struct {
-		MixedFieldRules, ResidualCel []ent.Hook
+		MessageRules, MixedFieldRules, ResidualCel []ent.Hook
 	}
 	inters struct {
-		MixedFieldRules, ResidualCel []ent.Interceptor
+		MessageRules, MixedFieldRules, ResidualCel []ent.Interceptor
 	}
 )

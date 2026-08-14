@@ -8,6 +8,18 @@ import (
 )
 
 var (
+	// MessageRulesColumns holds the columns for the "message_rules" table.
+	MessageRulesColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "lo", Type: field.TypeInt32, Default: 0},
+		{Name: "hi", Type: field.TypeInt32, Default: 0},
+	}
+	// MessageRulesTable holds the schema information for the "message_rules" table.
+	MessageRulesTable = &schema.Table{
+		Name:       "message_rules",
+		Columns:    MessageRulesColumns,
+		PrimaryKey: []*schema.Column{MessageRulesColumns[0]},
+	}
 	// MixedFieldRulesColumns holds the columns for the "mixed_field_rules" table.
 	MixedFieldRulesColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt, Increment: true},
@@ -34,6 +46,7 @@ var (
 	}
 	// Tables holds all the tables in the schema.
 	Tables = []*schema.Table{
+		MessageRulesTable,
 		MixedFieldRulesTable,
 		ResidualCelsTable,
 	}

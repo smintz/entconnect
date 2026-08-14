@@ -12,6 +12,7 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
+	"github.com/smintz/entconnect/mixinforproto/internal/difftest/ent/messagerules"
 	"github.com/smintz/entconnect/mixinforproto/internal/difftest/ent/mixedfieldrules"
 	"github.com/smintz/entconnect/mixinforproto/internal/difftest/ent/residualcel"
 )
@@ -74,6 +75,7 @@ var (
 func checkColumn(t, c string) error {
 	initCheck.Do(func() {
 		columnCheck = sql.NewColumnCheck(map[string]func(string) bool{
+			messagerules.Table:    messagerules.ValidColumn,
 			mixedfieldrules.Table: mixedfieldrules.ValidColumn,
 			residualcel.Table:     residualcel.ValidColumn,
 		})

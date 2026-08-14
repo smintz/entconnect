@@ -120,6 +120,12 @@ type hookState struct {
 	md         protoreflect.MessageDescriptor
 	validator  protovalidate.Validator
 	evaluators []fieldEvaluator
+	// messageRulesOnCreate records whether WithMessageRules(OnCreate) was
+	// passed (option.go/messagerules.go, VAL-08/D-10). It is the ONE
+	// boolean evaluate()'s Filter checks to decide whether the message
+	// descriptor itself is in scope for protovalidate's own evaluator —
+	// no second evaluation path, per messagerules.go's own doc comment.
+	messageRulesOnCreate bool
 }
 
 // buildHookState walks md's fields at schema-load time, resolving each
@@ -152,10 +158,35 @@ type hookState struct {
 // (03-RESEARCH.md Pattern 1). A construction failure is a collected
 // failure fed through the same newDerivationError path, never a bare
 // panic.
-func buildHookState(md protoreflect.MessageDescriptor) (*hookState, error) {
+//
+// opts carries the SAME Option values the mixin's Fields()/Annotations()
+// were constructed with (mixin.go's protoMixin[M].opts) — needed here so
+// this function can see whether WithMessageRules(OnCreate) was passed
+// (VAL-08/D-10, messagerules.go). When it was, checkMessageRuleReferences
+// runs BEFORE the per-field loop below: its own failures join this
+// function's failures slice, and — when it finds none — its returned
+// field-reference set seeds extraFields, guaranteeing every field a
+// message-level rule reads gets an evaluators entry (and therefore gets
+// reverse-converted into the reconstructed dynamicpb message) even when
+// that field carries no protovalidate rule of its own (D-03's phantom-
+// violation protection extended to message scope — see
+// checkMessageRuleReferences' doc comment).
+func buildHookState(md protoreflect.MessageDescriptor, opts ...Option) (*hookState, error) {
 	msgName := string(md.FullName())
-	hs := &hookState{msgName: msgName, md: md}
+	o := applyOptions(opts)
+	hs := &hookState{msgName: msgName, md: md, messageRulesOnCreate: o.messageRulesEnabled()}
 	var failures []failure
+
+	extraFields := map[protoreflect.FieldNumber]bool{}
+	if hs.messageRulesOnCreate {
+		refs, msgFailures := checkMessageRuleReferences(msgName, md, o)
+		failures = append(failures, msgFailures...)
+		if len(msgFailures) == 0 {
+			for _, fd := range refs {
+				extraFields[fd.Number()] = true
+			}
+		}
+	}
 
 	fds := md.Fields()
 	for i := 0; i < fds.Len(); i++ {
@@ -174,9 +205,11 @@ func buildHookState(md protoreflect.MessageDescriptor) (*hookState, error) {
 			})
 			continue
 		}
-		if rules == nil {
-			// No protovalidate rule of any kind on this field — nothing
-			// for either half of the hybrid to enforce.
+		isExtra := extraFields[fd.Number()]
+		if rules == nil && !isExtra {
+			// No protovalidate rule of any kind on this field, and no
+			// message-level rule reads it either — nothing for any half
+			// of the hybrid to enforce.
 			continue
 		}
 
@@ -184,7 +217,10 @@ func buildHookState(md protoreflect.MessageDescriptor) (*hookState, error) {
 		if class == "" {
 			// D-09: unbindable field kind, recorded as still-boundary-only
 			// elsewhere by simply not compiling it here — see doc comment
-			// above.
+			// above. checkMessageRuleReferences already rejected this
+			// class as a message-rule reference (messageRuleFieldUnavailable),
+			// so isExtra is never true here when messageRulesOnCreate
+			// succeeded — this branch is field-level-rule-only territory.
 			continue
 		}
 
@@ -439,13 +475,22 @@ func (hs *hookState) evaluate(m ent.Mutation) ([]*validate.Violation, error) {
 	// translated and residual alike, and (per Pitfall 1's resolution) a
 	// mixed field's structural half too — is evaluated by protovalidate's
 	// OWN evaluator, restricted to exactly the in-scope field set by the
-	// Filter below. VAL-08: message-level (cross-field) rules stay
+	// Filter below. VAL-08/D-10: message-level (cross-field) rules stay
 	// boundary-only by default — the filter refuses the message
 	// descriptor itself, independently of the per-field checks
-	// (03-RESEARCH.md Pattern 2).
+	// (03-RESEARCH.md Pattern 2) — UNLESS hs.messageRulesOnCreate was set
+	// (WithMessageRules(OnCreate), option.go) AND this mutation is a
+	// Create. This is the ONE boolean messagerules.go's own doc comment
+	// promises: no second evaluation path, no separate compiled-program
+	// mechanism for message-level rules — hs.validator already compiled
+	// them (protovalidate's own builder always processes a message's
+	// message-level CEL rules when constructing its Validator), this
+	// Filter is the only thing standing between "compiled" and "actually
+	// evaluated".
+	messageRulesInScope := hs.messageRulesOnCreate && m.Op() == ent.OpCreate
 	scope := protovalidate.FilterFunc(func(msg protoreflect.Message, d protoreflect.Descriptor) bool {
 		if d == msg.Descriptor() {
-			return false
+			return messageRulesInScope
 		}
 		fd, ok := d.(protoreflect.FieldDescriptor)
 		if !ok {

@@ -3,6 +3,7 @@
 package runtime
 
 import (
+	"github.com/smintz/entconnect/mixinforproto/internal/difftest/ent/messagerules"
 	"github.com/smintz/entconnect/mixinforproto/internal/difftest/ent/mixedfieldrules"
 	"github.com/smintz/entconnect/mixinforproto/internal/difftest/ent/residualcel"
 	"github.com/smintz/entconnect/mixinforproto/internal/difftest/ent/schema"
@@ -12,6 +13,21 @@ import (
 // (default values, validators, hooks and policies) and stitches it
 // to their package variables.
 func init() {
+	messagerulesMixin := schema.MessageRules{}.Mixin()
+	messagerulesMixinHooks0 := messagerulesMixin[0].Hooks()
+	messagerules.Hooks[0] = messagerulesMixinHooks0[0]
+	messagerulesMixinFields0 := messagerulesMixin[0].Fields()
+	_ = messagerulesMixinFields0
+	messagerulesFields := schema.MessageRules{}.Fields()
+	_ = messagerulesFields
+	// messagerulesDescLo is the schema descriptor for lo field.
+	messagerulesDescLo := messagerulesMixinFields0[0].Descriptor()
+	// messagerules.DefaultLo holds the default value on creation for the lo field.
+	messagerules.DefaultLo = messagerulesDescLo.Default.(int32)
+	// messagerulesDescHi is the schema descriptor for hi field.
+	messagerulesDescHi := messagerulesMixinFields0[1].Descriptor()
+	// messagerules.DefaultHi holds the default value on creation for the hi field.
+	messagerules.DefaultHi = messagerulesDescHi.Default.(int32)
 	mixedfieldrulesMixin := schema.MixedFieldRules{}.Mixin()
 	mixedfieldrulesMixinHooks0 := mixedfieldrulesMixin[0].Hooks()
 	mixedfieldrules.Hooks[0] = mixedfieldrulesMixinHooks0[0]

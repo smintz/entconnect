@@ -372,6 +372,26 @@ var corpusCoverage = map[string]string{
 	// opted-in field value), never derived on its own — its shape is
 	// exercised indirectly through ReverseAsJSON's own golden.
 	"mixinforprototest.v1.ReversePayload": "test:TestReverseCorpusGolden",
+
+	// Plan 03-05's WithMessageRules(OnCreate)/D-10 corpus
+	// (messagerules.proto). MessageRuleOk and MessageRuleExcludedRef both
+	// derive cleanly with no options (their own "excluded" naming only
+	// applies once a specific test opts a field out via Exclude), so they
+	// get ordinary golden fixtures like every other plain corpus message.
+	// The rest deliberately fail full derivation under specific options,
+	// or exist purely to prove a schema-load property with no field-level
+	// shape of its own interest — named tests, per this map's own
+	// documented convention above.
+	"mixinforprototest.v1.MessageRuleOk":          "golden:messagerules_ok",
+	"mixinforprototest.v1.MessageRuleExcludedRef": "golden:messagerules_excluded_ref",
+	"mixinforprototest.v1.MessageRuleTwoExcludedRefs": "test:TestBuildHookState_MessageRuleTwoExcludedRefsFailsInOnePass",
+	// MessageRuleDetail is a reference-only type (MessageRuleUnderivableRef's
+	// message-typed "detail" field value, deliberately never AsJSON-opted-in) —
+	// its role is exercised indirectly through MessageRuleUnderivableRef's own test.
+	"mixinforprototest.v1.MessageRuleDetail":           "test:TestBuildHookState_MessageRuleUnderivableRefFailsSchemaLoad",
+	"mixinforprototest.v1.MessageRuleUnderivableRef":   "test:TestBuildHookState_MessageRuleUnderivableRefFailsSchemaLoad",
+	"mixinforprototest.v1.MessageRuleNone":             "test:TestBuildHookState_MessageRuleNoneIsLegalNoOp",
+	"mixinforprototest.v1.MessageRuleLookalike":        "test:TestBuildHookState_MessageRuleLookalikeDoesNotFalsePositive",
 }
 
 // TestCorpusMessagesHaveRecordedCoverage checks corpusCoverage in BOTH

@@ -61,13 +61,17 @@ func (m *protoMixin[M]) Annotations() []schema.Annotation {
 // Hooks implements ent.Mixin (VAL-04). It compiles this plan's residual
 // custom-CEL evaluation state once, at schema-load time (buildHookState,
 // hooks.go), and panics — the same panicking-adapter shape Fields()
-// above uses — if a residual CEL expression fails to compile (D-09). A
-// message with no residual CEL rules at all gets no hook: len(evaluators)
-// == 0 returns nil, so mixinforproto adds zero mutation-time cost for a
-// contract that carries none.
+// above uses — if a residual CEL expression fails to compile (D-09), or
+// (Plan 03-05, VAL-08/D-10) if m.opts carries WithMessageRules(OnCreate)
+// and a message-level rule references a field this package cannot
+// reconstruct — excluded, overridden, or underivable
+// (messagerules.go's checkMessageRuleReferences). A message with no
+// residual CEL rules, no standard rules, and no message-level rules at
+// all gets no hook: len(evaluators) == 0 returns nil, so mixinforproto
+// adds zero mutation-time cost for a contract that carries none.
 func (m *protoMixin[M]) Hooks() []ent.Hook {
 	md := (*new(M)).ProtoReflect().Descriptor()
-	hs, err := buildHookState(md)
+	hs, err := buildHookState(md, m.opts...)
 	if err != nil {
 		panic(err)
 	}

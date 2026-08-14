@@ -6,6 +6,9 @@ import (
 	"entgo.io/ent/dialect/sql"
 )
 
+// MessageRules is the predicate function for messagerules builders.
+type MessageRules func(*sql.Selector)
+
 // MixedFieldRules is the predicate function for mixedfieldrules builders.
 type MixedFieldRules func(*sql.Selector)
 

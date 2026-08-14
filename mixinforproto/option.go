@@ -8,9 +8,18 @@ import (
 
 // Option configures a MixinForProto (or Validate[M]) derivation.
 //
-// WithMessageRules is deliberately not declared here: its behavior is
-// Tier 3 (Phase 3) and a no-op symbol today would be an API that lies
-// (see 01-04-PLAN.md's action text for Task 1).
+// WithMessageRules IS now declared (messagerules.go, Plan 03-05): message-
+// level (cross-field) rules stay boundary-only by default, and
+// WithMessageRules(OnCreate) opts a schema into storage-layer enforcement
+// of them on Create only. What remains deliberately absent is
+// OnUpdateWithFetch — a hypothetical Update-side trigger that would fetch
+// the pre-mutation row to reconstruct a complete entity before evaluating
+// a message-level rule — named in mixinforproto.md §4.3 as
+// deliberately-excluded-from-v1 (hidden query cost, unclear semantics
+// under concurrent writes). Declaring it today would be exactly the kind
+// of no-op-that-lies symbol Phase 1's own precedent rejects (see this
+// comment's prior wording, retained in spirit): a real symbol only ships
+// once its behavior is real.
 type Option func(*options)
 
 // options is the unexported, accumulated configuration a set of Option
@@ -18,11 +27,17 @@ type Option func(*options)
 // named field to its supplied replacement — the map key's presence
 // (not the value) records that Override was called at all, so a nil
 // replacement is distinguishable from "never overridden" rather than
-// silently treated as "not overridden" (MIX-08 empty edge).
+// silently treated as "not overridden" (MIX-08 empty edge). messageRules
+// records whether WithMessageRules(OnCreate) was passed — the trigger
+// argument's own value is never stored, since MessageRuleTrigger
+// (messagerules.go) declares exactly one legal value today; storing a
+// bare bool here is not a shortcut around that, it is what "exactly one
+// value" already means.
 type options struct {
-	excluded   map[string]bool
-	overridden map[string]ent.Field
-	asJSON     map[string]bool
+	excluded     map[string]bool
+	overridden   map[string]ent.Field
+	asJSON       map[string]bool
+	messageRules bool
 }
 
 // applyOptions builds the effective options struct for one derive[M]
@@ -72,6 +87,12 @@ func (o *options) isAsJSON(name string) bool {
 	return o.asJSON[name]
 }
 
+// messageRulesEnabled reports whether WithMessageRules(OnCreate) was
+// passed to this derivation's options.
+func (o *options) messageRulesEnabled() bool {
+	return o.messageRules
+}
+
 // Exclude marks proto field names as not materialized into derived ent
 // fields (MIX-07). Exclude() with no arguments is a legal no-op — the
 // full field set derives normally. Naming a field that does not exist
@@ -112,6 +133,30 @@ func Override(name string, f ent.Field) Option {
 func AsJSON(name string) Option {
 	return func(o *options) {
 		o.asJSON[name] = true
+	}
+}
+
+// WithMessageRules opts a schema into storage-layer enforcement of its
+// message's message-level (cross-field) protovalidate rules — boundary-
+// only by default (VAL-08). trigger's only declared value is OnCreate
+// (messagerules.go): the mixin's hook enforces message-level rules on
+// Create only. Passing WithMessageRules(OnCreate) to a message that
+// declares no message-level rules at all is a legal no-op — schema load
+// succeeds and no evaluation is added.
+//
+// Opting in is a deliberate act, and it carries a deliberate schema-load
+// cost: every message-level rule's this.<field> selects are statically
+// enumerated at schema load, and a reference to a field this package
+// cannot reconstruct — excluded via Exclude, replaced via Override, or
+// underivable — fails schema load naming the message, the rule id, and
+// the field (D-10; see messagerules.go's checkMessageRuleReferences).
+// This is deliberately stricter than the plain field-level case: a
+// message-level rule computed against a field's phantom proto3 zero
+// would return a real pass/fail verdict from data that was never real,
+// which is worse than refusing to load at all.
+func WithMessageRules(trigger MessageRuleTrigger) Option {
+	return func(o *options) {
+		o.messageRules = true
 	}
 }
 
