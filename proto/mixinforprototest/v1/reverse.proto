@@ -1,0 +1,70 @@
+// Reverse is the D-05 conformance fixture for mixinforproto/reverse.go's
+// mirror table: one dedicated, single-purpose message per reversible
+// derivation kind (scalar, optionalScalar, enum, wkt, scalarMap,
+// asJSON), so a single-field-message assumption never hides a defect the
+// way it did in Phase 1 (see constraints.proto's header comment).
+syntax = "proto3";
+
+package mixinforprototest.v1;
+
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/struct.proto";
+import "mixinforprototest/v1/enums.proto";
+
+// ReverseScalars carries one field per proto scalar kind, matching
+// scalars.proto's inventory, for reverse_test.go's table-driven
+// round-trip test.
+message ReverseScalars {
+  double double_field = 1;
+  float float_field = 2;
+  int32 int32_field = 3;
+  int64 int64_field = 4;
+  uint32 uint32_field = 5;
+  uint64 uint64_field = 6;
+  sint32 sint32_field = 7;
+  sint64 sint64_field = 8;
+  fixed32 fixed32_field = 9;
+  fixed64 fixed64_field = 10;
+  sfixed32 sfixed32_field = 11;
+  sfixed64 sfixed64_field = 12;
+  bool bool_field = 13;
+  string string_field = 14;
+  bytes bytes_field = 15;
+}
+
+// ReverseEnum reuses enums.proto's Status enum (declared once, in that
+// file — proto packages share one namespace across files).
+message ReverseEnum {
+  Status status = 1;
+}
+
+// ReverseWkt carries a Timestamp, a Struct, and a Value field. Task 1
+// implements the Timestamp leg; the Struct/Value legs fail loudly with
+// the unbindable-kind sentinel until Task 2's JSON-to-dynamicpb leg lands.
+message ReverseWkt {
+  google.protobuf.Timestamp timestamp_field = 1;
+  google.protobuf.Struct struct_field = 2;
+  google.protobuf.Value value_field = 3;
+}
+
+// ReverseScalarMap carries a map<string, string> and a map<int32, int64>
+// so the deterministic sorted-key-order requirement (Phase 1 D-24) is
+// exercised against both a string-keyed and an integer-keyed map.
+message ReverseScalarMap {
+  map<string, string> string_map = 1;
+  map<int32, int64> int_map = 2;
+}
+
+// ReversePayload is a plain message type used only as ReverseAsJSON's
+// AsJSON-opted-in field value, giving Task 2's JSON-to-dynamicpb leg a
+// concrete message shape to round-trip through protojson.Unmarshal.
+message ReversePayload {
+  string note = 1;
+  int32 count = 2;
+}
+
+// ReverseAsJSON carries a message-typed field intended for AsJSON
+// opt-in (mapAsJSON) — Task 2's fixture.
+message ReverseAsJSON {
+  ReversePayload payload = 1;
+}

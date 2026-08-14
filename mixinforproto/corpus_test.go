@@ -362,6 +362,16 @@ var corpusCoverage = map[string]string{
 	"mixinforprototest.v1.Int32Overflow":             "golden:constraints_int32_overflow",
 	"mixinforprototest.v1.FloatComparators":          "golden:constraints_float_comparators",
 	"mixinforprototest.v1.DoubleComparators":         "golden:constraints_double_comparators",
+	"mixinforprototest.v1.MixedFieldRules":           "golden:constraints_mixed_field_rules",
+	"mixinforprototest.v1.ReverseScalars":            "golden:reverse_scalars",
+	"mixinforprototest.v1.ReverseEnum":               "golden:reverse_enum",
+	"mixinforprototest.v1.ReverseWkt":                "golden:reverse_wkt",
+	"mixinforprototest.v1.ReverseScalarMap":          "golden:reverse_scalar_map",
+	"mixinforprototest.v1.ReverseAsJSON":             "golden:reverse_as_json",
+	// ReversePayload is a reference-only type (ReverseAsJSON's AsJSON-
+	// opted-in field value), never derived on its own — its shape is
+	// exercised indirectly through ReverseAsJSON's own golden.
+	"mixinforprototest.v1.ReversePayload": "test:TestReverseCorpusGolden",
 }
 
 // TestCorpusMessagesHaveRecordedCoverage checks corpusCoverage in BOTH

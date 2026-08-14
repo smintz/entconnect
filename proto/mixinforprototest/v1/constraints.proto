@@ -244,3 +244,25 @@ message DoubleComparators {
   double gt_field = 1 [(buf.validate.field).double.gt = 1.5];
   double gte_lte_field = 2 [(buf.validate.field).double = { gte: 1.5, lte: 9.5 }];
 }
+
+// MixedFieldRules is Plan 03-03's fixture for settling RESEARCH Pitfall 1
+// (D-07/D-08's hybrid-evaluator convergence risk): one field carries BOTH
+// a standard rule (string.min_len) AND a custom (buf.validate.field).cel
+// rule, a sibling field carries only the standard rule, and a sibling
+// carries only the custom CEL rule.
+message MixedFieldRules {
+  string both = 1 [
+    (buf.validate.field).string.min_len = 3,
+    (buf.validate.field).cel = {
+      id: "constraints.mixed_field_rules.both.starts_with_x"
+      message: "value must start with X"
+      expression: "this.startsWith('X')"
+    }
+  ];
+  string standard_only = 2 [(buf.validate.field).string.min_len = 3];
+  string cel_only = 3 [(buf.validate.field).cel = {
+    id: "constraints.mixed_field_rules.cel_only.starts_with_x"
+    message: "value must start with X"
+    expression: "this.startsWith('X')"
+  }];
+}
