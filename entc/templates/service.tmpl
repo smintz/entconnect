@@ -13,6 +13,9 @@ import (
 // no accessor of any kind to the *ent.Client it holds (CRUD-07/D-12).
 type {{.StructName}} struct {
 	client *ent.Client
+	{{- range .ManualFields}}
+	{{.FieldName}} {{.FuncType}}
+	{{- end}}
 }
 
 var _ {{.ConnectPkgAlias}}.{{.ServiceName}}Handler = (*{{.StructName}})(nil)

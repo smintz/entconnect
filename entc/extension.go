@@ -99,6 +99,7 @@ type serviceBuild struct {
 	serviceFullName string
 	connectImport   string
 	connectPkgAlias string
+	svcDesc         protoreflect.ServiceDescriptor
 	entries         []bindingEntry
 }
 
@@ -107,6 +108,16 @@ type bindingEntry struct {
 	binding Binding
 	method  protoreflect.MethodDescriptor
 	sm      mixinforproto.SourceMessage
+}
+
+// renderEntry is one method's rendered output, pending the per-service
+// D-20 sort-by-procedure that makes claimed and synthetic-unclaimed
+// (Task 1/T-02-29) entries interleave deterministically within one
+// emitted file.
+type renderEntry struct {
+	procedure   string
+	body        string
+	manualField *ManualField
 }
 
 // Generate runs the entconnect codegen pass: read every ent schema's
@@ -208,7 +219,7 @@ func Generate(g *gen.Graph, e *Extension) error {
 					})
 					continue
 				}
-				sb = &serviceBuild{serviceFullName: svcFullName, connectImport: connectImport, connectPkgAlias: connectAlias}
+				sb = &serviceBuild{serviceFullName: svcFullName, connectImport: connectImport, connectPkgAlias: connectAlias, svcDesc: svcDesc}
 				services[svcFullName] = sb
 			}
 			sb.entries = append(sb.entries, bindingEntry{typ: typ, binding: b, method: method, sm: sm})
@@ -243,16 +254,7 @@ func Generate(g *gen.Graph, e *Extension) error {
 		serviceShortName := svcFullName[lastDot(svcFullName)+1:]
 		structName := lowerFirst(serviceShortName) + "Server"
 
-		serverEntries = append(serverEntries, serverEntry{
-			ServiceName:     serviceShortName,
-			StructName:      structName,
-			ConnectPkgAlias: sb.connectPkgAlias,
-			InstanceVar:     fmt.Sprintf("svc%d", i),
-			PathVar:         fmt.Sprintf("path%d", i),
-			HandlerVar:      fmt.Sprintf("handler%d", i),
-		})
-
-		var methodBodies []string
+		var renderEntries []renderEntry
 		var genFailures []failure
 		for _, entry := range sb.entries {
 			gen, ok := generators[entry.binding.Op]
@@ -276,22 +278,83 @@ func Generate(g *gen.Graph, e *Extension) error {
 				})
 				continue
 			}
-			methodBodies = append(methodBodies, impl.Body)
+			renderEntries = append(renderEntries, renderEntry{
+				procedure: entry.binding.Procedure, body: impl.Body, manualField: impl.ManualField,
+			})
+		}
+
+		// Every method the proto service declares that no binding claimed
+		// (Task 1/T-02-29): a partly-claimed service must still satisfy its
+		// FULL <Service>Handler interface, so an unclaimed method gets the
+		// same Manual-shaped compile-time obligation a real
+		// entconnect.Manual(...) binding would — a forced app-supplied func
+		// field, never a silent auto-generated no-op. These synthetic
+		// entries carry no owning ent.Type and are never schema-claimed, so
+		// entc/claims.go's report still names them "unclaimed" (INT-05) —
+		// this is a codegen-completeness concern only, orthogonal to the
+		// claims report.
+		claimedMethods := make(map[protoreflect.Name]bool, len(sb.entries))
+		for _, entry := range sb.entries {
+			claimedMethods[entry.method.Name()] = true
+		}
+		ms := sb.svcDesc.Methods()
+		for mi := 0; mi < ms.Len(); mi++ {
+			m := ms.Get(mi)
+			if claimedMethods[m.Name()] {
+				continue
+			}
+			procedure := fmt.Sprintf("/%s/%s", sb.svcDesc.FullName(), m.Name())
+			impl, err := generators[OpManual](GenRequest{
+				Graph: g, Binding: Binding{Op: OpManual, Procedure: procedure}, Method: m, ServiceStructName: structName,
+			})
+			if err != nil {
+				genFailures = append(genFailures, failure{
+					schemaName: "(unclaimed)", op: string(OpManual), sortKey: svcFullName,
+					rule: "generate-unclaimed", description: err.Error(), remedy: "see the error above",
+				})
+				continue
+			}
+			renderEntries = append(renderEntries, renderEntry{
+				procedure: procedure, body: impl.Body, manualField: impl.ManualField,
+			})
 		}
 		if genErr := newGenerateError(genFailures); genErr != nil {
 			return genErr
 		}
+
+		sort.Slice(renderEntries, func(i, j int) bool { return renderEntries[i].procedure < renderEntries[j].procedure })
+
+		var methodBodies []string
+		var manualFields []ManualField
+		for _, re := range renderEntries {
+			methodBodies = append(methodBodies, re.body)
+			if re.manualField != nil {
+				manualFields = append(manualFields, *re.manualField)
+			}
+		}
+
+		serverEntries = append(serverEntries, serverEntry{
+			ServiceName:     serviceShortName,
+			StructName:      structName,
+			ConnectPkgAlias: sb.connectPkgAlias,
+			InstanceVar:     fmt.Sprintf("svc%d", i),
+			PathVar:         fmt.Sprintf("path%d", i),
+			HandlerVar:      fmt.Sprintf("handler%d", i),
+			ManualParams:    manualFields,
+		})
 
 		data := struct {
 			ServiceName     string
 			StructName      string
 			ConnectPkgAlias string
 			Methods         []string
+			ManualFields    []ManualField
 		}{
 			ServiceName:     serviceShortName,
 			StructName:      structName,
 			ConnectPkgAlias: sb.connectPkgAlias,
 			Methods:         methodBodies,
+			ManualFields:    manualFields,
 		}
 
 		var buf bytes.Buffer
@@ -340,6 +403,12 @@ type serverEntry struct {
 	InstanceVar     string
 	PathVar         string
 	HandlerVar      string
+	// ManualParams is this service's app-supplied handler-func slots
+	// (Task 1/T-02-29), in the same deterministic procedure order the
+	// struct's own ManualFields were emitted in — server.tmpl threads each
+	// into both NewServer's parameter list and the service's struct
+	// literal, by FieldName/ParamName/FuncType.
+	ManualParams []ManualField
 }
 
 func lastDot(s string) int {

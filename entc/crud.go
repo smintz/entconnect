@@ -45,6 +45,26 @@ type GenRequest struct {
 type MethodImpl struct {
 	Body    string
 	Imports []string
+	// ManualField, when non-nil, is an app-supplied func field this
+	// method's generator needs added to the per-service struct (Task 1,
+	// INT-04/D-06): an explicit Manual binding, or an unclaimed method on
+	// an otherwise-claimed service (T-02-29's compile-time obligation —
+	// never a silent auto-stub). Only entc/crud_manual.go's generator
+	// populates this.
+	ManualField *ManualField
+}
+
+// ManualField is one app-supplied handler-func slot a generated
+// per-service struct exposes: a struct field (FieldName) of type
+// FuncType, and the corresponding NewServer constructor parameter name
+// (ParamName) the application passes its handler func through. FuncType
+// is shared verbatim between the struct field declaration
+// (entc/templates/service.tmpl) and the NewServer parameter declaration
+// (entc/templates/server.tmpl) so the two can never drift apart.
+type ManualField struct {
+	FieldName string
+	ParamName string
+	FuncType  string
 }
 
 // Generator renders one CRUD verb's method body from req.

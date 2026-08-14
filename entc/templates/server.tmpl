@@ -15,14 +15,14 @@ import (
 // Connect paths and http.Handlers across every bound service.
 // Application code receives this return value, never the *ent.Client
 // passed in.
-func NewServer(client *ent.Client, authenticator entconnectruntime.Authenticator, opts ...entconnectruntime.Option) (*entconnectruntime.Server, error) {
+func NewServer(client *ent.Client, authenticator entconnectruntime.Authenticator, {{range .Services}}{{range .ManualParams}}{{.ParamName}} {{.FuncType}}, {{end}}{{end}}opts ...entconnectruntime.Option) (*entconnectruntime.Server, error) {
 	chain, err := entconnectruntime.Chain(authenticator, opts...)
 	if err != nil {
 		return nil, err
 	}
 	var routes []entconnectruntime.Route
 	{{range .Services}}
-	{{.InstanceVar}} := &{{.StructName}}{client: client}
+	{{.InstanceVar}} := &{{.StructName}}{client: client{{range .ManualParams}}, {{.FieldName}}: {{.ParamName}}{{end}}}
 	{{.PathVar}}, {{.HandlerVar}} := {{.ConnectPkgAlias}}.New{{.ServiceName}}Handler({{.InstanceVar}}, chain)
 	routes = append(routes, entconnectruntime.Route{Path: {{.PathVar}}, Handler: {{.HandlerVar}}})
 	{{end}}

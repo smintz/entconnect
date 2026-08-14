@@ -1,0 +1,66 @@
+// Package entconnecttest.v1 (this file) is Plan 02-05's slice of the
+// synthetic, test-only, service-bearing contract: one entity (Admin), one
+// procedure claimed through the Manual escape hatch (ArchiveAdmin), and one
+// procedure deliberately left unclaimed (Ping) so the claims report (INT-05)
+// has a real "unclaimed" row to name. These messages are never part of
+// entconnect's public API surface — they exist only as a fixture for the
+// entc extension's own test suite and internal/entconnecttest/manual's
+// tests.
+//
+// See read.proto (02-01), write.proto (02-02), list.proto (02-03),
+// update.proto (02-04) for this same corpus's sibling files.
+syntax = "proto3";
+
+package entconnecttest.v1;
+
+// go_package is set explicitly for the same reason every sibling file in
+// this corpus documents: the committed FileDescriptorSet is built via a
+// separate `buf build` invocation that never applies buf.gen.yaml's
+// managed-mode overrides, and entc/'s Go-import-path derivation for
+// emitted handler code reads this option directly off the descriptor set.
+option go_package = "github.com/smintz/entconnect/internal/gen/entconnecttestv1";
+
+import "buf/validate/validate.proto";
+
+// Admin is the Manual-escape-hatch slice's entity: just enough to exercise
+// MixinForProto derivation (id excluded, name kept) even though the one
+// bound RPC (ArchiveAdmin) never touches the ent client at all — the manual
+// generator emits no ent client call, by design (INT-04/D-06).
+message Admin {
+  string id = 1;
+  string name = 2;
+}
+
+// ArchiveAdminRequest carries the sole lookup key ArchiveAdmin needs. Its id
+// field carries a real protovalidate rule so manual_test.go can exercise the
+// generated interceptor chain's protovalidate stage on an inbound manual
+// request directly (T-02-24: refused before the hand-written body runs).
+message ArchiveAdminRequest {
+  string id = 1 [(buf.validate.field).string.min_len = 1];
+}
+
+// ArchiveAdminResponse reports whether the archive operation ran — the
+// hand-written handler body sets this itself; no generated code touches it.
+message ArchiveAdminResponse {
+  bool archived = 1;
+}
+
+// PingRequest/PingResponse back the deliberately-unclaimed Ping RPC (see
+// AdminService below).
+message PingRequest {}
+
+message PingResponse {
+  string pong = 1;
+}
+
+// AdminService binds two RPCs: ArchiveAdmin is claimed manually by
+// internal/entconnecttest/manual/ent/schema/admin.go via
+// entconnect.Manual(...); Ping is deliberately left unclaimed by any
+// schema, so the claims report (entc/claims.go, INT-05) has a real
+// "unclaimed" row, and so the generated wiring's own compile-time
+// obligation for an unclaimed method on a partly-claimed service (Task 1)
+// has a real second method to prove itself against.
+service AdminService {
+  rpc ArchiveAdmin(ArchiveAdminRequest) returns (ArchiveAdminResponse);
+  rpc Ping(PingRequest) returns (PingResponse);
+}
