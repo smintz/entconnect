@@ -9,6 +9,66 @@ import (
 	"github.com/smintz/entconnect/mixinforproto/internal/difftest/ent"
 )
 
+// The DoubleComparatorsFunc type is an adapter to allow the use of ordinary
+// function as DoubleComparators mutator.
+type DoubleComparatorsFunc func(context.Context, *ent.DoubleComparatorsMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f DoubleComparatorsFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.DoubleComparatorsMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.DoubleComparatorsMutation", m)
+}
+
+// The FloatComparatorsFunc type is an adapter to allow the use of ordinary
+// function as FloatComparators mutator.
+type FloatComparatorsFunc func(context.Context, *ent.FloatComparatorsMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f FloatComparatorsFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.FloatComparatorsMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.FloatComparatorsMutation", m)
+}
+
+// The Int32AdjacentFunc type is an adapter to allow the use of ordinary
+// function as Int32Adjacent mutator.
+type Int32AdjacentFunc func(context.Context, *ent.Int32AdjacentMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f Int32AdjacentFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.Int32AdjacentMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.Int32AdjacentMutation", m)
+}
+
+// The Int32ComparatorsFunc type is an adapter to allow the use of ordinary
+// function as Int32Comparators mutator.
+type Int32ComparatorsFunc func(context.Context, *ent.Int32ComparatorsMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f Int32ComparatorsFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.Int32ComparatorsMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.Int32ComparatorsMutation", m)
+}
+
+// The Int32OverflowFunc type is an adapter to allow the use of ordinary
+// function as Int32Overflow mutator.
+type Int32OverflowFunc func(context.Context, *ent.Int32OverflowMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f Int32OverflowFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.Int32OverflowMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.Int32OverflowMutation", m)
+}
+
 // The MessageRulesFunc type is an adapter to allow the use of ordinary
 // function as MessageRules mutator.
 type MessageRulesFunc func(context.Context, *ent.MessageRulesMutation) (ent.Value, error)
@@ -33,6 +93,66 @@ func (f MixedFieldRulesFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Va
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.MixedFieldRulesMutation", m)
 }
 
+// The RequiredOptionalBytesFunc type is an adapter to allow the use of ordinary
+// function as RequiredOptionalBytes mutator.
+type RequiredOptionalBytesFunc func(context.Context, *ent.RequiredOptionalBytesMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f RequiredOptionalBytesFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.RequiredOptionalBytesMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.RequiredOptionalBytesMutation", m)
+}
+
+// The RequiredOptionalNonStringFunc type is an adapter to allow the use of ordinary
+// function as RequiredOptionalNonString mutator.
+type RequiredOptionalNonStringFunc func(context.Context, *ent.RequiredOptionalNonStringMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f RequiredOptionalNonStringFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.RequiredOptionalNonStringMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.RequiredOptionalNonStringMutation", m)
+}
+
+// The RequiredOptionalStringFunc type is an adapter to allow the use of ordinary
+// function as RequiredOptionalString mutator.
+type RequiredOptionalStringFunc func(context.Context, *ent.RequiredOptionalStringMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f RequiredOptionalStringFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.RequiredOptionalStringMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.RequiredOptionalStringMutation", m)
+}
+
+// The RequiredPlainNonStringFunc type is an adapter to allow the use of ordinary
+// function as RequiredPlainNonString mutator.
+type RequiredPlainNonStringFunc func(context.Context, *ent.RequiredPlainNonStringMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f RequiredPlainNonStringFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.RequiredPlainNonStringMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.RequiredPlainNonStringMutation", m)
+}
+
+// The RequiredStringFunc type is an adapter to allow the use of ordinary
+// function as RequiredString mutator.
+type RequiredStringFunc func(context.Context, *ent.RequiredStringMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f RequiredStringFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.RequiredStringMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.RequiredStringMutation", m)
+}
+
 // The ResidualCelFunc type is an adapter to allow the use of ordinary
 // function as ResidualCel mutator.
 type ResidualCelFunc func(context.Context, *ent.ResidualCelMutation) (ent.Value, error)
@@ -43,6 +163,114 @@ func (f ResidualCelFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value,
 		return f(ctx, mv)
 	}
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.ResidualCelMutation", m)
+}
+
+// The StringByteBoundsFunc type is an adapter to allow the use of ordinary
+// function as StringByteBounds mutator.
+type StringByteBoundsFunc func(context.Context, *ent.StringByteBoundsMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f StringByteBoundsFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.StringByteBoundsMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.StringByteBoundsMutation", m)
+}
+
+// The StringCodePointBoundsFunc type is an adapter to allow the use of ordinary
+// function as StringCodePointBounds mutator.
+type StringCodePointBoundsFunc func(context.Context, *ent.StringCodePointBoundsMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f StringCodePointBoundsFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.StringCodePointBoundsMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.StringCodePointBoundsMutation", m)
+}
+
+// The StringFormatEmailFunc type is an adapter to allow the use of ordinary
+// function as StringFormatEmail mutator.
+type StringFormatEmailFunc func(context.Context, *ent.StringFormatEmailMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f StringFormatEmailFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.StringFormatEmailMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.StringFormatEmailMutation", m)
+}
+
+// The StringFormatHostnameFunc type is an adapter to allow the use of ordinary
+// function as StringFormatHostname mutator.
+type StringFormatHostnameFunc func(context.Context, *ent.StringFormatHostnameMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f StringFormatHostnameFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.StringFormatHostnameMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.StringFormatHostnameMutation", m)
+}
+
+// The StringFormatIpFunc type is an adapter to allow the use of ordinary
+// function as StringFormatIp mutator.
+type StringFormatIpFunc func(context.Context, *ent.StringFormatIpMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f StringFormatIpFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.StringFormatIpMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.StringFormatIpMutation", m)
+}
+
+// The StringFormatUriFunc type is an adapter to allow the use of ordinary
+// function as StringFormatUri mutator.
+type StringFormatUriFunc func(context.Context, *ent.StringFormatUriMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f StringFormatUriFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.StringFormatUriMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.StringFormatUriMutation", m)
+}
+
+// The StringFormatUuidFunc type is an adapter to allow the use of ordinary
+// function as StringFormatUuid mutator.
+type StringFormatUuidFunc func(context.Context, *ent.StringFormatUuidMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f StringFormatUuidFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.StringFormatUuidMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.StringFormatUuidMutation", m)
+}
+
+// The StringFormatWithSiblingFunc type is an adapter to allow the use of ordinary
+// function as StringFormatWithSibling mutator.
+type StringFormatWithSiblingFunc func(context.Context, *ent.StringFormatWithSiblingMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f StringFormatWithSiblingFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.StringFormatWithSiblingMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.StringFormatWithSiblingMutation", m)
+}
+
+// The StringPatternFunc type is an adapter to allow the use of ordinary
+// function as StringPattern mutator.
+type StringPatternFunc func(context.Context, *ent.StringPatternMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f StringPatternFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.StringPatternMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.StringPatternMutation", m)
 }
 
 // Condition is a hook condition function.

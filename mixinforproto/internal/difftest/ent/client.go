@@ -14,9 +14,28 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect"
 	"entgo.io/ent/dialect/sql"
+	"github.com/smintz/entconnect/mixinforproto/internal/difftest/ent/doublecomparators"
+	"github.com/smintz/entconnect/mixinforproto/internal/difftest/ent/floatcomparators"
+	"github.com/smintz/entconnect/mixinforproto/internal/difftest/ent/int32adjacent"
+	"github.com/smintz/entconnect/mixinforproto/internal/difftest/ent/int32comparators"
+	"github.com/smintz/entconnect/mixinforproto/internal/difftest/ent/int32overflow"
 	"github.com/smintz/entconnect/mixinforproto/internal/difftest/ent/messagerules"
 	"github.com/smintz/entconnect/mixinforproto/internal/difftest/ent/mixedfieldrules"
+	"github.com/smintz/entconnect/mixinforproto/internal/difftest/ent/requiredoptionalbytes"
+	"github.com/smintz/entconnect/mixinforproto/internal/difftest/ent/requiredoptionalnonstring"
+	"github.com/smintz/entconnect/mixinforproto/internal/difftest/ent/requiredoptionalstring"
+	"github.com/smintz/entconnect/mixinforproto/internal/difftest/ent/requiredplainnonstring"
+	"github.com/smintz/entconnect/mixinforproto/internal/difftest/ent/requiredstring"
 	"github.com/smintz/entconnect/mixinforproto/internal/difftest/ent/residualcel"
+	"github.com/smintz/entconnect/mixinforproto/internal/difftest/ent/stringbytebounds"
+	"github.com/smintz/entconnect/mixinforproto/internal/difftest/ent/stringcodepointbounds"
+	"github.com/smintz/entconnect/mixinforproto/internal/difftest/ent/stringformatemail"
+	"github.com/smintz/entconnect/mixinforproto/internal/difftest/ent/stringformathostname"
+	"github.com/smintz/entconnect/mixinforproto/internal/difftest/ent/stringformatip"
+	"github.com/smintz/entconnect/mixinforproto/internal/difftest/ent/stringformaturi"
+	"github.com/smintz/entconnect/mixinforproto/internal/difftest/ent/stringformatuuid"
+	"github.com/smintz/entconnect/mixinforproto/internal/difftest/ent/stringformatwithsibling"
+	"github.com/smintz/entconnect/mixinforproto/internal/difftest/ent/stringpattern"
 )
 
 // Client is the client that holds all ent builders.
@@ -24,12 +43,50 @@ type Client struct {
 	config
 	// Schema is the client for creating, migrating and dropping schema.
 	Schema *migrate.Schema
+	// DoubleComparators is the client for interacting with the DoubleComparators builders.
+	DoubleComparators *DoubleComparatorsClient
+	// FloatComparators is the client for interacting with the FloatComparators builders.
+	FloatComparators *FloatComparatorsClient
+	// Int32Adjacent is the client for interacting with the Int32Adjacent builders.
+	Int32Adjacent *Int32AdjacentClient
+	// Int32Comparators is the client for interacting with the Int32Comparators builders.
+	Int32Comparators *Int32ComparatorsClient
+	// Int32Overflow is the client for interacting with the Int32Overflow builders.
+	Int32Overflow *Int32OverflowClient
 	// MessageRules is the client for interacting with the MessageRules builders.
 	MessageRules *MessageRulesClient
 	// MixedFieldRules is the client for interacting with the MixedFieldRules builders.
 	MixedFieldRules *MixedFieldRulesClient
+	// RequiredOptionalBytes is the client for interacting with the RequiredOptionalBytes builders.
+	RequiredOptionalBytes *RequiredOptionalBytesClient
+	// RequiredOptionalNonString is the client for interacting with the RequiredOptionalNonString builders.
+	RequiredOptionalNonString *RequiredOptionalNonStringClient
+	// RequiredOptionalString is the client for interacting with the RequiredOptionalString builders.
+	RequiredOptionalString *RequiredOptionalStringClient
+	// RequiredPlainNonString is the client for interacting with the RequiredPlainNonString builders.
+	RequiredPlainNonString *RequiredPlainNonStringClient
+	// RequiredString is the client for interacting with the RequiredString builders.
+	RequiredString *RequiredStringClient
 	// ResidualCel is the client for interacting with the ResidualCel builders.
 	ResidualCel *ResidualCelClient
+	// StringByteBounds is the client for interacting with the StringByteBounds builders.
+	StringByteBounds *StringByteBoundsClient
+	// StringCodePointBounds is the client for interacting with the StringCodePointBounds builders.
+	StringCodePointBounds *StringCodePointBoundsClient
+	// StringFormatEmail is the client for interacting with the StringFormatEmail builders.
+	StringFormatEmail *StringFormatEmailClient
+	// StringFormatHostname is the client for interacting with the StringFormatHostname builders.
+	StringFormatHostname *StringFormatHostnameClient
+	// StringFormatIp is the client for interacting with the StringFormatIp builders.
+	StringFormatIp *StringFormatIpClient
+	// StringFormatUri is the client for interacting with the StringFormatUri builders.
+	StringFormatUri *StringFormatUriClient
+	// StringFormatUuid is the client for interacting with the StringFormatUuid builders.
+	StringFormatUuid *StringFormatUuidClient
+	// StringFormatWithSibling is the client for interacting with the StringFormatWithSibling builders.
+	StringFormatWithSibling *StringFormatWithSiblingClient
+	// StringPattern is the client for interacting with the StringPattern builders.
+	StringPattern *StringPatternClient
 }
 
 // NewClient creates a new client configured with the given options.
@@ -41,9 +98,28 @@ func NewClient(opts ...Option) *Client {
 
 func (c *Client) init() {
 	c.Schema = migrate.NewSchema(c.driver)
+	c.DoubleComparators = NewDoubleComparatorsClient(c.config)
+	c.FloatComparators = NewFloatComparatorsClient(c.config)
+	c.Int32Adjacent = NewInt32AdjacentClient(c.config)
+	c.Int32Comparators = NewInt32ComparatorsClient(c.config)
+	c.Int32Overflow = NewInt32OverflowClient(c.config)
 	c.MessageRules = NewMessageRulesClient(c.config)
 	c.MixedFieldRules = NewMixedFieldRulesClient(c.config)
+	c.RequiredOptionalBytes = NewRequiredOptionalBytesClient(c.config)
+	c.RequiredOptionalNonString = NewRequiredOptionalNonStringClient(c.config)
+	c.RequiredOptionalString = NewRequiredOptionalStringClient(c.config)
+	c.RequiredPlainNonString = NewRequiredPlainNonStringClient(c.config)
+	c.RequiredString = NewRequiredStringClient(c.config)
 	c.ResidualCel = NewResidualCelClient(c.config)
+	c.StringByteBounds = NewStringByteBoundsClient(c.config)
+	c.StringCodePointBounds = NewStringCodePointBoundsClient(c.config)
+	c.StringFormatEmail = NewStringFormatEmailClient(c.config)
+	c.StringFormatHostname = NewStringFormatHostnameClient(c.config)
+	c.StringFormatIp = NewStringFormatIpClient(c.config)
+	c.StringFormatUri = NewStringFormatUriClient(c.config)
+	c.StringFormatUuid = NewStringFormatUuidClient(c.config)
+	c.StringFormatWithSibling = NewStringFormatWithSiblingClient(c.config)
+	c.StringPattern = NewStringPatternClient(c.config)
 }
 
 type (
@@ -134,11 +210,30 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 	cfg := c.config
 	cfg.driver = tx
 	return &Tx{
-		ctx:             ctx,
-		config:          cfg,
-		MessageRules:    NewMessageRulesClient(cfg),
-		MixedFieldRules: NewMixedFieldRulesClient(cfg),
-		ResidualCel:     NewResidualCelClient(cfg),
+		ctx:                       ctx,
+		config:                    cfg,
+		DoubleComparators:         NewDoubleComparatorsClient(cfg),
+		FloatComparators:          NewFloatComparatorsClient(cfg),
+		Int32Adjacent:             NewInt32AdjacentClient(cfg),
+		Int32Comparators:          NewInt32ComparatorsClient(cfg),
+		Int32Overflow:             NewInt32OverflowClient(cfg),
+		MessageRules:              NewMessageRulesClient(cfg),
+		MixedFieldRules:           NewMixedFieldRulesClient(cfg),
+		RequiredOptionalBytes:     NewRequiredOptionalBytesClient(cfg),
+		RequiredOptionalNonString: NewRequiredOptionalNonStringClient(cfg),
+		RequiredOptionalString:    NewRequiredOptionalStringClient(cfg),
+		RequiredPlainNonString:    NewRequiredPlainNonStringClient(cfg),
+		RequiredString:            NewRequiredStringClient(cfg),
+		ResidualCel:               NewResidualCelClient(cfg),
+		StringByteBounds:          NewStringByteBoundsClient(cfg),
+		StringCodePointBounds:     NewStringCodePointBoundsClient(cfg),
+		StringFormatEmail:         NewStringFormatEmailClient(cfg),
+		StringFormatHostname:      NewStringFormatHostnameClient(cfg),
+		StringFormatIp:            NewStringFormatIpClient(cfg),
+		StringFormatUri:           NewStringFormatUriClient(cfg),
+		StringFormatUuid:          NewStringFormatUuidClient(cfg),
+		StringFormatWithSibling:   NewStringFormatWithSiblingClient(cfg),
+		StringPattern:             NewStringPatternClient(cfg),
 	}, nil
 }
 
@@ -156,18 +251,37 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 	cfg := c.config
 	cfg.driver = &txDriver{tx: tx, drv: c.driver}
 	return &Tx{
-		ctx:             ctx,
-		config:          cfg,
-		MessageRules:    NewMessageRulesClient(cfg),
-		MixedFieldRules: NewMixedFieldRulesClient(cfg),
-		ResidualCel:     NewResidualCelClient(cfg),
+		ctx:                       ctx,
+		config:                    cfg,
+		DoubleComparators:         NewDoubleComparatorsClient(cfg),
+		FloatComparators:          NewFloatComparatorsClient(cfg),
+		Int32Adjacent:             NewInt32AdjacentClient(cfg),
+		Int32Comparators:          NewInt32ComparatorsClient(cfg),
+		Int32Overflow:             NewInt32OverflowClient(cfg),
+		MessageRules:              NewMessageRulesClient(cfg),
+		MixedFieldRules:           NewMixedFieldRulesClient(cfg),
+		RequiredOptionalBytes:     NewRequiredOptionalBytesClient(cfg),
+		RequiredOptionalNonString: NewRequiredOptionalNonStringClient(cfg),
+		RequiredOptionalString:    NewRequiredOptionalStringClient(cfg),
+		RequiredPlainNonString:    NewRequiredPlainNonStringClient(cfg),
+		RequiredString:            NewRequiredStringClient(cfg),
+		ResidualCel:               NewResidualCelClient(cfg),
+		StringByteBounds:          NewStringByteBoundsClient(cfg),
+		StringCodePointBounds:     NewStringCodePointBoundsClient(cfg),
+		StringFormatEmail:         NewStringFormatEmailClient(cfg),
+		StringFormatHostname:      NewStringFormatHostnameClient(cfg),
+		StringFormatIp:            NewStringFormatIpClient(cfg),
+		StringFormatUri:           NewStringFormatUriClient(cfg),
+		StringFormatUuid:          NewStringFormatUuidClient(cfg),
+		StringFormatWithSibling:   NewStringFormatWithSiblingClient(cfg),
+		StringPattern:             NewStringPatternClient(cfg),
 	}, nil
 }
 
 // Debug returns a new debug-client. It's used to get verbose logging on specific operations.
 //
 //	client.Debug().
-//		MessageRules.
+//		DoubleComparators.
 //		Query().
 //		Count(ctx)
 func (c *Client) Debug() *Client {
@@ -189,30 +303,754 @@ func (c *Client) Close() error {
 // Use adds the mutation hooks to all the entity clients.
 // In order to add hooks to a specific client, call: `client.Node.Use(...)`.
 func (c *Client) Use(hooks ...Hook) {
-	c.MessageRules.Use(hooks...)
-	c.MixedFieldRules.Use(hooks...)
-	c.ResidualCel.Use(hooks...)
+	for _, n := range []interface{ Use(...Hook) }{
+		c.DoubleComparators, c.FloatComparators, c.Int32Adjacent, c.Int32Comparators,
+		c.Int32Overflow, c.MessageRules, c.MixedFieldRules, c.RequiredOptionalBytes,
+		c.RequiredOptionalNonString, c.RequiredOptionalString,
+		c.RequiredPlainNonString, c.RequiredString, c.ResidualCel, c.StringByteBounds,
+		c.StringCodePointBounds, c.StringFormatEmail, c.StringFormatHostname,
+		c.StringFormatIp, c.StringFormatUri, c.StringFormatUuid,
+		c.StringFormatWithSibling, c.StringPattern,
+	} {
+		n.Use(hooks...)
+	}
 }
 
 // Intercept adds the query interceptors to all the entity clients.
 // In order to add interceptors to a specific client, call: `client.Node.Intercept(...)`.
 func (c *Client) Intercept(interceptors ...Interceptor) {
-	c.MessageRules.Intercept(interceptors...)
-	c.MixedFieldRules.Intercept(interceptors...)
-	c.ResidualCel.Intercept(interceptors...)
+	for _, n := range []interface{ Intercept(...Interceptor) }{
+		c.DoubleComparators, c.FloatComparators, c.Int32Adjacent, c.Int32Comparators,
+		c.Int32Overflow, c.MessageRules, c.MixedFieldRules, c.RequiredOptionalBytes,
+		c.RequiredOptionalNonString, c.RequiredOptionalString,
+		c.RequiredPlainNonString, c.RequiredString, c.ResidualCel, c.StringByteBounds,
+		c.StringCodePointBounds, c.StringFormatEmail, c.StringFormatHostname,
+		c.StringFormatIp, c.StringFormatUri, c.StringFormatUuid,
+		c.StringFormatWithSibling, c.StringPattern,
+	} {
+		n.Intercept(interceptors...)
+	}
 }
 
 // Mutate implements the ent.Mutator interface.
 func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 	switch m := m.(type) {
+	case *DoubleComparatorsMutation:
+		return c.DoubleComparators.mutate(ctx, m)
+	case *FloatComparatorsMutation:
+		return c.FloatComparators.mutate(ctx, m)
+	case *Int32AdjacentMutation:
+		return c.Int32Adjacent.mutate(ctx, m)
+	case *Int32ComparatorsMutation:
+		return c.Int32Comparators.mutate(ctx, m)
+	case *Int32OverflowMutation:
+		return c.Int32Overflow.mutate(ctx, m)
 	case *MessageRulesMutation:
 		return c.MessageRules.mutate(ctx, m)
 	case *MixedFieldRulesMutation:
 		return c.MixedFieldRules.mutate(ctx, m)
+	case *RequiredOptionalBytesMutation:
+		return c.RequiredOptionalBytes.mutate(ctx, m)
+	case *RequiredOptionalNonStringMutation:
+		return c.RequiredOptionalNonString.mutate(ctx, m)
+	case *RequiredOptionalStringMutation:
+		return c.RequiredOptionalString.mutate(ctx, m)
+	case *RequiredPlainNonStringMutation:
+		return c.RequiredPlainNonString.mutate(ctx, m)
+	case *RequiredStringMutation:
+		return c.RequiredString.mutate(ctx, m)
 	case *ResidualCelMutation:
 		return c.ResidualCel.mutate(ctx, m)
+	case *StringByteBoundsMutation:
+		return c.StringByteBounds.mutate(ctx, m)
+	case *StringCodePointBoundsMutation:
+		return c.StringCodePointBounds.mutate(ctx, m)
+	case *StringFormatEmailMutation:
+		return c.StringFormatEmail.mutate(ctx, m)
+	case *StringFormatHostnameMutation:
+		return c.StringFormatHostname.mutate(ctx, m)
+	case *StringFormatIpMutation:
+		return c.StringFormatIp.mutate(ctx, m)
+	case *StringFormatUriMutation:
+		return c.StringFormatUri.mutate(ctx, m)
+	case *StringFormatUuidMutation:
+		return c.StringFormatUuid.mutate(ctx, m)
+	case *StringFormatWithSiblingMutation:
+		return c.StringFormatWithSibling.mutate(ctx, m)
+	case *StringPatternMutation:
+		return c.StringPattern.mutate(ctx, m)
 	default:
 		return nil, fmt.Errorf("ent: unknown mutation type %T", m)
+	}
+}
+
+// DoubleComparatorsClient is a client for the DoubleComparators schema.
+type DoubleComparatorsClient struct {
+	config
+}
+
+// NewDoubleComparatorsClient returns a client for the DoubleComparators from the given config.
+func NewDoubleComparatorsClient(c config) *DoubleComparatorsClient {
+	return &DoubleComparatorsClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `doublecomparators.Hooks(f(g(h())))`.
+func (c *DoubleComparatorsClient) Use(hooks ...Hook) {
+	c.hooks.DoubleComparators = append(c.hooks.DoubleComparators, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `doublecomparators.Intercept(f(g(h())))`.
+func (c *DoubleComparatorsClient) Intercept(interceptors ...Interceptor) {
+	c.inters.DoubleComparators = append(c.inters.DoubleComparators, interceptors...)
+}
+
+// Create returns a builder for creating a DoubleComparators entity.
+func (c *DoubleComparatorsClient) Create() *DoubleComparatorsCreate {
+	mutation := newDoubleComparatorsMutation(c.config, OpCreate)
+	return &DoubleComparatorsCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of DoubleComparators entities.
+func (c *DoubleComparatorsClient) CreateBulk(builders ...*DoubleComparatorsCreate) *DoubleComparatorsCreateBulk {
+	return &DoubleComparatorsCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *DoubleComparatorsClient) MapCreateBulk(slice any, setFunc func(*DoubleComparatorsCreate, int)) *DoubleComparatorsCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &DoubleComparatorsCreateBulk{err: fmt.Errorf("calling to DoubleComparatorsClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*DoubleComparatorsCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &DoubleComparatorsCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for DoubleComparators.
+func (c *DoubleComparatorsClient) Update() *DoubleComparatorsUpdate {
+	mutation := newDoubleComparatorsMutation(c.config, OpUpdate)
+	return &DoubleComparatorsUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *DoubleComparatorsClient) UpdateOne(_m *DoubleComparators) *DoubleComparatorsUpdateOne {
+	mutation := newDoubleComparatorsMutation(c.config, OpUpdateOne, withDoubleComparators(_m))
+	return &DoubleComparatorsUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *DoubleComparatorsClient) UpdateOneID(id int) *DoubleComparatorsUpdateOne {
+	mutation := newDoubleComparatorsMutation(c.config, OpUpdateOne, withDoubleComparatorsID(id))
+	return &DoubleComparatorsUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for DoubleComparators.
+func (c *DoubleComparatorsClient) Delete() *DoubleComparatorsDelete {
+	mutation := newDoubleComparatorsMutation(c.config, OpDelete)
+	return &DoubleComparatorsDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *DoubleComparatorsClient) DeleteOne(_m *DoubleComparators) *DoubleComparatorsDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *DoubleComparatorsClient) DeleteOneID(id int) *DoubleComparatorsDeleteOne {
+	builder := c.Delete().Where(doublecomparators.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &DoubleComparatorsDeleteOne{builder}
+}
+
+// Query returns a query builder for DoubleComparators.
+func (c *DoubleComparatorsClient) Query() *DoubleComparatorsQuery {
+	return &DoubleComparatorsQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeDoubleComparators},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a DoubleComparators entity by its id.
+func (c *DoubleComparatorsClient) Get(ctx context.Context, id int) (*DoubleComparators, error) {
+	return c.Query().Where(doublecomparators.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *DoubleComparatorsClient) GetX(ctx context.Context, id int) *DoubleComparators {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *DoubleComparatorsClient) Hooks() []Hook {
+	hooks := c.hooks.DoubleComparators
+	return append(hooks[:len(hooks):len(hooks)], doublecomparators.Hooks[:]...)
+}
+
+// Interceptors returns the client interceptors.
+func (c *DoubleComparatorsClient) Interceptors() []Interceptor {
+	return c.inters.DoubleComparators
+}
+
+func (c *DoubleComparatorsClient) mutate(ctx context.Context, m *DoubleComparatorsMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&DoubleComparatorsCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&DoubleComparatorsUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&DoubleComparatorsUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&DoubleComparatorsDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown DoubleComparators mutation op: %q", m.Op())
+	}
+}
+
+// FloatComparatorsClient is a client for the FloatComparators schema.
+type FloatComparatorsClient struct {
+	config
+}
+
+// NewFloatComparatorsClient returns a client for the FloatComparators from the given config.
+func NewFloatComparatorsClient(c config) *FloatComparatorsClient {
+	return &FloatComparatorsClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `floatcomparators.Hooks(f(g(h())))`.
+func (c *FloatComparatorsClient) Use(hooks ...Hook) {
+	c.hooks.FloatComparators = append(c.hooks.FloatComparators, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `floatcomparators.Intercept(f(g(h())))`.
+func (c *FloatComparatorsClient) Intercept(interceptors ...Interceptor) {
+	c.inters.FloatComparators = append(c.inters.FloatComparators, interceptors...)
+}
+
+// Create returns a builder for creating a FloatComparators entity.
+func (c *FloatComparatorsClient) Create() *FloatComparatorsCreate {
+	mutation := newFloatComparatorsMutation(c.config, OpCreate)
+	return &FloatComparatorsCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of FloatComparators entities.
+func (c *FloatComparatorsClient) CreateBulk(builders ...*FloatComparatorsCreate) *FloatComparatorsCreateBulk {
+	return &FloatComparatorsCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *FloatComparatorsClient) MapCreateBulk(slice any, setFunc func(*FloatComparatorsCreate, int)) *FloatComparatorsCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &FloatComparatorsCreateBulk{err: fmt.Errorf("calling to FloatComparatorsClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*FloatComparatorsCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &FloatComparatorsCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for FloatComparators.
+func (c *FloatComparatorsClient) Update() *FloatComparatorsUpdate {
+	mutation := newFloatComparatorsMutation(c.config, OpUpdate)
+	return &FloatComparatorsUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *FloatComparatorsClient) UpdateOne(_m *FloatComparators) *FloatComparatorsUpdateOne {
+	mutation := newFloatComparatorsMutation(c.config, OpUpdateOne, withFloatComparators(_m))
+	return &FloatComparatorsUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *FloatComparatorsClient) UpdateOneID(id int) *FloatComparatorsUpdateOne {
+	mutation := newFloatComparatorsMutation(c.config, OpUpdateOne, withFloatComparatorsID(id))
+	return &FloatComparatorsUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for FloatComparators.
+func (c *FloatComparatorsClient) Delete() *FloatComparatorsDelete {
+	mutation := newFloatComparatorsMutation(c.config, OpDelete)
+	return &FloatComparatorsDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *FloatComparatorsClient) DeleteOne(_m *FloatComparators) *FloatComparatorsDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *FloatComparatorsClient) DeleteOneID(id int) *FloatComparatorsDeleteOne {
+	builder := c.Delete().Where(floatcomparators.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &FloatComparatorsDeleteOne{builder}
+}
+
+// Query returns a query builder for FloatComparators.
+func (c *FloatComparatorsClient) Query() *FloatComparatorsQuery {
+	return &FloatComparatorsQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeFloatComparators},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a FloatComparators entity by its id.
+func (c *FloatComparatorsClient) Get(ctx context.Context, id int) (*FloatComparators, error) {
+	return c.Query().Where(floatcomparators.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *FloatComparatorsClient) GetX(ctx context.Context, id int) *FloatComparators {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *FloatComparatorsClient) Hooks() []Hook {
+	hooks := c.hooks.FloatComparators
+	return append(hooks[:len(hooks):len(hooks)], floatcomparators.Hooks[:]...)
+}
+
+// Interceptors returns the client interceptors.
+func (c *FloatComparatorsClient) Interceptors() []Interceptor {
+	return c.inters.FloatComparators
+}
+
+func (c *FloatComparatorsClient) mutate(ctx context.Context, m *FloatComparatorsMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&FloatComparatorsCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&FloatComparatorsUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&FloatComparatorsUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&FloatComparatorsDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown FloatComparators mutation op: %q", m.Op())
+	}
+}
+
+// Int32AdjacentClient is a client for the Int32Adjacent schema.
+type Int32AdjacentClient struct {
+	config
+}
+
+// NewInt32AdjacentClient returns a client for the Int32Adjacent from the given config.
+func NewInt32AdjacentClient(c config) *Int32AdjacentClient {
+	return &Int32AdjacentClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `int32adjacent.Hooks(f(g(h())))`.
+func (c *Int32AdjacentClient) Use(hooks ...Hook) {
+	c.hooks.Int32Adjacent = append(c.hooks.Int32Adjacent, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `int32adjacent.Intercept(f(g(h())))`.
+func (c *Int32AdjacentClient) Intercept(interceptors ...Interceptor) {
+	c.inters.Int32Adjacent = append(c.inters.Int32Adjacent, interceptors...)
+}
+
+// Create returns a builder for creating a Int32Adjacent entity.
+func (c *Int32AdjacentClient) Create() *Int32AdjacentCreate {
+	mutation := newInt32AdjacentMutation(c.config, OpCreate)
+	return &Int32AdjacentCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of Int32Adjacent entities.
+func (c *Int32AdjacentClient) CreateBulk(builders ...*Int32AdjacentCreate) *Int32AdjacentCreateBulk {
+	return &Int32AdjacentCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *Int32AdjacentClient) MapCreateBulk(slice any, setFunc func(*Int32AdjacentCreate, int)) *Int32AdjacentCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &Int32AdjacentCreateBulk{err: fmt.Errorf("calling to Int32AdjacentClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*Int32AdjacentCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &Int32AdjacentCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for Int32Adjacent.
+func (c *Int32AdjacentClient) Update() *Int32AdjacentUpdate {
+	mutation := newInt32AdjacentMutation(c.config, OpUpdate)
+	return &Int32AdjacentUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *Int32AdjacentClient) UpdateOne(_m *Int32Adjacent) *Int32AdjacentUpdateOne {
+	mutation := newInt32AdjacentMutation(c.config, OpUpdateOne, withInt32Adjacent(_m))
+	return &Int32AdjacentUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *Int32AdjacentClient) UpdateOneID(id int) *Int32AdjacentUpdateOne {
+	mutation := newInt32AdjacentMutation(c.config, OpUpdateOne, withInt32AdjacentID(id))
+	return &Int32AdjacentUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for Int32Adjacent.
+func (c *Int32AdjacentClient) Delete() *Int32AdjacentDelete {
+	mutation := newInt32AdjacentMutation(c.config, OpDelete)
+	return &Int32AdjacentDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *Int32AdjacentClient) DeleteOne(_m *Int32Adjacent) *Int32AdjacentDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *Int32AdjacentClient) DeleteOneID(id int) *Int32AdjacentDeleteOne {
+	builder := c.Delete().Where(int32adjacent.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &Int32AdjacentDeleteOne{builder}
+}
+
+// Query returns a query builder for Int32Adjacent.
+func (c *Int32AdjacentClient) Query() *Int32AdjacentQuery {
+	return &Int32AdjacentQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeInt32Adjacent},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a Int32Adjacent entity by its id.
+func (c *Int32AdjacentClient) Get(ctx context.Context, id int) (*Int32Adjacent, error) {
+	return c.Query().Where(int32adjacent.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *Int32AdjacentClient) GetX(ctx context.Context, id int) *Int32Adjacent {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *Int32AdjacentClient) Hooks() []Hook {
+	hooks := c.hooks.Int32Adjacent
+	return append(hooks[:len(hooks):len(hooks)], int32adjacent.Hooks[:]...)
+}
+
+// Interceptors returns the client interceptors.
+func (c *Int32AdjacentClient) Interceptors() []Interceptor {
+	return c.inters.Int32Adjacent
+}
+
+func (c *Int32AdjacentClient) mutate(ctx context.Context, m *Int32AdjacentMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&Int32AdjacentCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&Int32AdjacentUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&Int32AdjacentUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&Int32AdjacentDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown Int32Adjacent mutation op: %q", m.Op())
+	}
+}
+
+// Int32ComparatorsClient is a client for the Int32Comparators schema.
+type Int32ComparatorsClient struct {
+	config
+}
+
+// NewInt32ComparatorsClient returns a client for the Int32Comparators from the given config.
+func NewInt32ComparatorsClient(c config) *Int32ComparatorsClient {
+	return &Int32ComparatorsClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `int32comparators.Hooks(f(g(h())))`.
+func (c *Int32ComparatorsClient) Use(hooks ...Hook) {
+	c.hooks.Int32Comparators = append(c.hooks.Int32Comparators, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `int32comparators.Intercept(f(g(h())))`.
+func (c *Int32ComparatorsClient) Intercept(interceptors ...Interceptor) {
+	c.inters.Int32Comparators = append(c.inters.Int32Comparators, interceptors...)
+}
+
+// Create returns a builder for creating a Int32Comparators entity.
+func (c *Int32ComparatorsClient) Create() *Int32ComparatorsCreate {
+	mutation := newInt32ComparatorsMutation(c.config, OpCreate)
+	return &Int32ComparatorsCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of Int32Comparators entities.
+func (c *Int32ComparatorsClient) CreateBulk(builders ...*Int32ComparatorsCreate) *Int32ComparatorsCreateBulk {
+	return &Int32ComparatorsCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *Int32ComparatorsClient) MapCreateBulk(slice any, setFunc func(*Int32ComparatorsCreate, int)) *Int32ComparatorsCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &Int32ComparatorsCreateBulk{err: fmt.Errorf("calling to Int32ComparatorsClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*Int32ComparatorsCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &Int32ComparatorsCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for Int32Comparators.
+func (c *Int32ComparatorsClient) Update() *Int32ComparatorsUpdate {
+	mutation := newInt32ComparatorsMutation(c.config, OpUpdate)
+	return &Int32ComparatorsUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *Int32ComparatorsClient) UpdateOne(_m *Int32Comparators) *Int32ComparatorsUpdateOne {
+	mutation := newInt32ComparatorsMutation(c.config, OpUpdateOne, withInt32Comparators(_m))
+	return &Int32ComparatorsUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *Int32ComparatorsClient) UpdateOneID(id int) *Int32ComparatorsUpdateOne {
+	mutation := newInt32ComparatorsMutation(c.config, OpUpdateOne, withInt32ComparatorsID(id))
+	return &Int32ComparatorsUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for Int32Comparators.
+func (c *Int32ComparatorsClient) Delete() *Int32ComparatorsDelete {
+	mutation := newInt32ComparatorsMutation(c.config, OpDelete)
+	return &Int32ComparatorsDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *Int32ComparatorsClient) DeleteOne(_m *Int32Comparators) *Int32ComparatorsDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *Int32ComparatorsClient) DeleteOneID(id int) *Int32ComparatorsDeleteOne {
+	builder := c.Delete().Where(int32comparators.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &Int32ComparatorsDeleteOne{builder}
+}
+
+// Query returns a query builder for Int32Comparators.
+func (c *Int32ComparatorsClient) Query() *Int32ComparatorsQuery {
+	return &Int32ComparatorsQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeInt32Comparators},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a Int32Comparators entity by its id.
+func (c *Int32ComparatorsClient) Get(ctx context.Context, id int) (*Int32Comparators, error) {
+	return c.Query().Where(int32comparators.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *Int32ComparatorsClient) GetX(ctx context.Context, id int) *Int32Comparators {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *Int32ComparatorsClient) Hooks() []Hook {
+	hooks := c.hooks.Int32Comparators
+	return append(hooks[:len(hooks):len(hooks)], int32comparators.Hooks[:]...)
+}
+
+// Interceptors returns the client interceptors.
+func (c *Int32ComparatorsClient) Interceptors() []Interceptor {
+	return c.inters.Int32Comparators
+}
+
+func (c *Int32ComparatorsClient) mutate(ctx context.Context, m *Int32ComparatorsMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&Int32ComparatorsCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&Int32ComparatorsUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&Int32ComparatorsUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&Int32ComparatorsDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown Int32Comparators mutation op: %q", m.Op())
+	}
+}
+
+// Int32OverflowClient is a client for the Int32Overflow schema.
+type Int32OverflowClient struct {
+	config
+}
+
+// NewInt32OverflowClient returns a client for the Int32Overflow from the given config.
+func NewInt32OverflowClient(c config) *Int32OverflowClient {
+	return &Int32OverflowClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `int32overflow.Hooks(f(g(h())))`.
+func (c *Int32OverflowClient) Use(hooks ...Hook) {
+	c.hooks.Int32Overflow = append(c.hooks.Int32Overflow, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `int32overflow.Intercept(f(g(h())))`.
+func (c *Int32OverflowClient) Intercept(interceptors ...Interceptor) {
+	c.inters.Int32Overflow = append(c.inters.Int32Overflow, interceptors...)
+}
+
+// Create returns a builder for creating a Int32Overflow entity.
+func (c *Int32OverflowClient) Create() *Int32OverflowCreate {
+	mutation := newInt32OverflowMutation(c.config, OpCreate)
+	return &Int32OverflowCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of Int32Overflow entities.
+func (c *Int32OverflowClient) CreateBulk(builders ...*Int32OverflowCreate) *Int32OverflowCreateBulk {
+	return &Int32OverflowCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *Int32OverflowClient) MapCreateBulk(slice any, setFunc func(*Int32OverflowCreate, int)) *Int32OverflowCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &Int32OverflowCreateBulk{err: fmt.Errorf("calling to Int32OverflowClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*Int32OverflowCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &Int32OverflowCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for Int32Overflow.
+func (c *Int32OverflowClient) Update() *Int32OverflowUpdate {
+	mutation := newInt32OverflowMutation(c.config, OpUpdate)
+	return &Int32OverflowUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *Int32OverflowClient) UpdateOne(_m *Int32Overflow) *Int32OverflowUpdateOne {
+	mutation := newInt32OverflowMutation(c.config, OpUpdateOne, withInt32Overflow(_m))
+	return &Int32OverflowUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *Int32OverflowClient) UpdateOneID(id int) *Int32OverflowUpdateOne {
+	mutation := newInt32OverflowMutation(c.config, OpUpdateOne, withInt32OverflowID(id))
+	return &Int32OverflowUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for Int32Overflow.
+func (c *Int32OverflowClient) Delete() *Int32OverflowDelete {
+	mutation := newInt32OverflowMutation(c.config, OpDelete)
+	return &Int32OverflowDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *Int32OverflowClient) DeleteOne(_m *Int32Overflow) *Int32OverflowDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *Int32OverflowClient) DeleteOneID(id int) *Int32OverflowDeleteOne {
+	builder := c.Delete().Where(int32overflow.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &Int32OverflowDeleteOne{builder}
+}
+
+// Query returns a query builder for Int32Overflow.
+func (c *Int32OverflowClient) Query() *Int32OverflowQuery {
+	return &Int32OverflowQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeInt32Overflow},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a Int32Overflow entity by its id.
+func (c *Int32OverflowClient) Get(ctx context.Context, id int) (*Int32Overflow, error) {
+	return c.Query().Where(int32overflow.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *Int32OverflowClient) GetX(ctx context.Context, id int) *Int32Overflow {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *Int32OverflowClient) Hooks() []Hook {
+	hooks := c.hooks.Int32Overflow
+	return append(hooks[:len(hooks):len(hooks)], int32overflow.Hooks[:]...)
+}
+
+// Interceptors returns the client interceptors.
+func (c *Int32OverflowClient) Interceptors() []Interceptor {
+	return c.inters.Int32Overflow
+}
+
+func (c *Int32OverflowClient) mutate(ctx context.Context, m *Int32OverflowMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&Int32OverflowCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&Int32OverflowUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&Int32OverflowUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&Int32OverflowDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown Int32Overflow mutation op: %q", m.Op())
 	}
 }
 
@@ -484,6 +1322,676 @@ func (c *MixedFieldRulesClient) mutate(ctx context.Context, m *MixedFieldRulesMu
 	}
 }
 
+// RequiredOptionalBytesClient is a client for the RequiredOptionalBytes schema.
+type RequiredOptionalBytesClient struct {
+	config
+}
+
+// NewRequiredOptionalBytesClient returns a client for the RequiredOptionalBytes from the given config.
+func NewRequiredOptionalBytesClient(c config) *RequiredOptionalBytesClient {
+	return &RequiredOptionalBytesClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `requiredoptionalbytes.Hooks(f(g(h())))`.
+func (c *RequiredOptionalBytesClient) Use(hooks ...Hook) {
+	c.hooks.RequiredOptionalBytes = append(c.hooks.RequiredOptionalBytes, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `requiredoptionalbytes.Intercept(f(g(h())))`.
+func (c *RequiredOptionalBytesClient) Intercept(interceptors ...Interceptor) {
+	c.inters.RequiredOptionalBytes = append(c.inters.RequiredOptionalBytes, interceptors...)
+}
+
+// Create returns a builder for creating a RequiredOptionalBytes entity.
+func (c *RequiredOptionalBytesClient) Create() *RequiredOptionalBytesCreate {
+	mutation := newRequiredOptionalBytesMutation(c.config, OpCreate)
+	return &RequiredOptionalBytesCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of RequiredOptionalBytes entities.
+func (c *RequiredOptionalBytesClient) CreateBulk(builders ...*RequiredOptionalBytesCreate) *RequiredOptionalBytesCreateBulk {
+	return &RequiredOptionalBytesCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *RequiredOptionalBytesClient) MapCreateBulk(slice any, setFunc func(*RequiredOptionalBytesCreate, int)) *RequiredOptionalBytesCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &RequiredOptionalBytesCreateBulk{err: fmt.Errorf("calling to RequiredOptionalBytesClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*RequiredOptionalBytesCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &RequiredOptionalBytesCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for RequiredOptionalBytes.
+func (c *RequiredOptionalBytesClient) Update() *RequiredOptionalBytesUpdate {
+	mutation := newRequiredOptionalBytesMutation(c.config, OpUpdate)
+	return &RequiredOptionalBytesUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *RequiredOptionalBytesClient) UpdateOne(_m *RequiredOptionalBytes) *RequiredOptionalBytesUpdateOne {
+	mutation := newRequiredOptionalBytesMutation(c.config, OpUpdateOne, withRequiredOptionalBytes(_m))
+	return &RequiredOptionalBytesUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *RequiredOptionalBytesClient) UpdateOneID(id int) *RequiredOptionalBytesUpdateOne {
+	mutation := newRequiredOptionalBytesMutation(c.config, OpUpdateOne, withRequiredOptionalBytesID(id))
+	return &RequiredOptionalBytesUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for RequiredOptionalBytes.
+func (c *RequiredOptionalBytesClient) Delete() *RequiredOptionalBytesDelete {
+	mutation := newRequiredOptionalBytesMutation(c.config, OpDelete)
+	return &RequiredOptionalBytesDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *RequiredOptionalBytesClient) DeleteOne(_m *RequiredOptionalBytes) *RequiredOptionalBytesDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *RequiredOptionalBytesClient) DeleteOneID(id int) *RequiredOptionalBytesDeleteOne {
+	builder := c.Delete().Where(requiredoptionalbytes.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &RequiredOptionalBytesDeleteOne{builder}
+}
+
+// Query returns a query builder for RequiredOptionalBytes.
+func (c *RequiredOptionalBytesClient) Query() *RequiredOptionalBytesQuery {
+	return &RequiredOptionalBytesQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeRequiredOptionalBytes},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a RequiredOptionalBytes entity by its id.
+func (c *RequiredOptionalBytesClient) Get(ctx context.Context, id int) (*RequiredOptionalBytes, error) {
+	return c.Query().Where(requiredoptionalbytes.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *RequiredOptionalBytesClient) GetX(ctx context.Context, id int) *RequiredOptionalBytes {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *RequiredOptionalBytesClient) Hooks() []Hook {
+	hooks := c.hooks.RequiredOptionalBytes
+	return append(hooks[:len(hooks):len(hooks)], requiredoptionalbytes.Hooks[:]...)
+}
+
+// Interceptors returns the client interceptors.
+func (c *RequiredOptionalBytesClient) Interceptors() []Interceptor {
+	return c.inters.RequiredOptionalBytes
+}
+
+func (c *RequiredOptionalBytesClient) mutate(ctx context.Context, m *RequiredOptionalBytesMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&RequiredOptionalBytesCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&RequiredOptionalBytesUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&RequiredOptionalBytesUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&RequiredOptionalBytesDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown RequiredOptionalBytes mutation op: %q", m.Op())
+	}
+}
+
+// RequiredOptionalNonStringClient is a client for the RequiredOptionalNonString schema.
+type RequiredOptionalNonStringClient struct {
+	config
+}
+
+// NewRequiredOptionalNonStringClient returns a client for the RequiredOptionalNonString from the given config.
+func NewRequiredOptionalNonStringClient(c config) *RequiredOptionalNonStringClient {
+	return &RequiredOptionalNonStringClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `requiredoptionalnonstring.Hooks(f(g(h())))`.
+func (c *RequiredOptionalNonStringClient) Use(hooks ...Hook) {
+	c.hooks.RequiredOptionalNonString = append(c.hooks.RequiredOptionalNonString, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `requiredoptionalnonstring.Intercept(f(g(h())))`.
+func (c *RequiredOptionalNonStringClient) Intercept(interceptors ...Interceptor) {
+	c.inters.RequiredOptionalNonString = append(c.inters.RequiredOptionalNonString, interceptors...)
+}
+
+// Create returns a builder for creating a RequiredOptionalNonString entity.
+func (c *RequiredOptionalNonStringClient) Create() *RequiredOptionalNonStringCreate {
+	mutation := newRequiredOptionalNonStringMutation(c.config, OpCreate)
+	return &RequiredOptionalNonStringCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of RequiredOptionalNonString entities.
+func (c *RequiredOptionalNonStringClient) CreateBulk(builders ...*RequiredOptionalNonStringCreate) *RequiredOptionalNonStringCreateBulk {
+	return &RequiredOptionalNonStringCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *RequiredOptionalNonStringClient) MapCreateBulk(slice any, setFunc func(*RequiredOptionalNonStringCreate, int)) *RequiredOptionalNonStringCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &RequiredOptionalNonStringCreateBulk{err: fmt.Errorf("calling to RequiredOptionalNonStringClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*RequiredOptionalNonStringCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &RequiredOptionalNonStringCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for RequiredOptionalNonString.
+func (c *RequiredOptionalNonStringClient) Update() *RequiredOptionalNonStringUpdate {
+	mutation := newRequiredOptionalNonStringMutation(c.config, OpUpdate)
+	return &RequiredOptionalNonStringUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *RequiredOptionalNonStringClient) UpdateOne(_m *RequiredOptionalNonString) *RequiredOptionalNonStringUpdateOne {
+	mutation := newRequiredOptionalNonStringMutation(c.config, OpUpdateOne, withRequiredOptionalNonString(_m))
+	return &RequiredOptionalNonStringUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *RequiredOptionalNonStringClient) UpdateOneID(id int) *RequiredOptionalNonStringUpdateOne {
+	mutation := newRequiredOptionalNonStringMutation(c.config, OpUpdateOne, withRequiredOptionalNonStringID(id))
+	return &RequiredOptionalNonStringUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for RequiredOptionalNonString.
+func (c *RequiredOptionalNonStringClient) Delete() *RequiredOptionalNonStringDelete {
+	mutation := newRequiredOptionalNonStringMutation(c.config, OpDelete)
+	return &RequiredOptionalNonStringDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *RequiredOptionalNonStringClient) DeleteOne(_m *RequiredOptionalNonString) *RequiredOptionalNonStringDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *RequiredOptionalNonStringClient) DeleteOneID(id int) *RequiredOptionalNonStringDeleteOne {
+	builder := c.Delete().Where(requiredoptionalnonstring.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &RequiredOptionalNonStringDeleteOne{builder}
+}
+
+// Query returns a query builder for RequiredOptionalNonString.
+func (c *RequiredOptionalNonStringClient) Query() *RequiredOptionalNonStringQuery {
+	return &RequiredOptionalNonStringQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeRequiredOptionalNonString},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a RequiredOptionalNonString entity by its id.
+func (c *RequiredOptionalNonStringClient) Get(ctx context.Context, id int) (*RequiredOptionalNonString, error) {
+	return c.Query().Where(requiredoptionalnonstring.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *RequiredOptionalNonStringClient) GetX(ctx context.Context, id int) *RequiredOptionalNonString {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *RequiredOptionalNonStringClient) Hooks() []Hook {
+	hooks := c.hooks.RequiredOptionalNonString
+	return append(hooks[:len(hooks):len(hooks)], requiredoptionalnonstring.Hooks[:]...)
+}
+
+// Interceptors returns the client interceptors.
+func (c *RequiredOptionalNonStringClient) Interceptors() []Interceptor {
+	return c.inters.RequiredOptionalNonString
+}
+
+func (c *RequiredOptionalNonStringClient) mutate(ctx context.Context, m *RequiredOptionalNonStringMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&RequiredOptionalNonStringCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&RequiredOptionalNonStringUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&RequiredOptionalNonStringUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&RequiredOptionalNonStringDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown RequiredOptionalNonString mutation op: %q", m.Op())
+	}
+}
+
+// RequiredOptionalStringClient is a client for the RequiredOptionalString schema.
+type RequiredOptionalStringClient struct {
+	config
+}
+
+// NewRequiredOptionalStringClient returns a client for the RequiredOptionalString from the given config.
+func NewRequiredOptionalStringClient(c config) *RequiredOptionalStringClient {
+	return &RequiredOptionalStringClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `requiredoptionalstring.Hooks(f(g(h())))`.
+func (c *RequiredOptionalStringClient) Use(hooks ...Hook) {
+	c.hooks.RequiredOptionalString = append(c.hooks.RequiredOptionalString, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `requiredoptionalstring.Intercept(f(g(h())))`.
+func (c *RequiredOptionalStringClient) Intercept(interceptors ...Interceptor) {
+	c.inters.RequiredOptionalString = append(c.inters.RequiredOptionalString, interceptors...)
+}
+
+// Create returns a builder for creating a RequiredOptionalString entity.
+func (c *RequiredOptionalStringClient) Create() *RequiredOptionalStringCreate {
+	mutation := newRequiredOptionalStringMutation(c.config, OpCreate)
+	return &RequiredOptionalStringCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of RequiredOptionalString entities.
+func (c *RequiredOptionalStringClient) CreateBulk(builders ...*RequiredOptionalStringCreate) *RequiredOptionalStringCreateBulk {
+	return &RequiredOptionalStringCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *RequiredOptionalStringClient) MapCreateBulk(slice any, setFunc func(*RequiredOptionalStringCreate, int)) *RequiredOptionalStringCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &RequiredOptionalStringCreateBulk{err: fmt.Errorf("calling to RequiredOptionalStringClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*RequiredOptionalStringCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &RequiredOptionalStringCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for RequiredOptionalString.
+func (c *RequiredOptionalStringClient) Update() *RequiredOptionalStringUpdate {
+	mutation := newRequiredOptionalStringMutation(c.config, OpUpdate)
+	return &RequiredOptionalStringUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *RequiredOptionalStringClient) UpdateOne(_m *RequiredOptionalString) *RequiredOptionalStringUpdateOne {
+	mutation := newRequiredOptionalStringMutation(c.config, OpUpdateOne, withRequiredOptionalString(_m))
+	return &RequiredOptionalStringUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *RequiredOptionalStringClient) UpdateOneID(id int) *RequiredOptionalStringUpdateOne {
+	mutation := newRequiredOptionalStringMutation(c.config, OpUpdateOne, withRequiredOptionalStringID(id))
+	return &RequiredOptionalStringUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for RequiredOptionalString.
+func (c *RequiredOptionalStringClient) Delete() *RequiredOptionalStringDelete {
+	mutation := newRequiredOptionalStringMutation(c.config, OpDelete)
+	return &RequiredOptionalStringDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *RequiredOptionalStringClient) DeleteOne(_m *RequiredOptionalString) *RequiredOptionalStringDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *RequiredOptionalStringClient) DeleteOneID(id int) *RequiredOptionalStringDeleteOne {
+	builder := c.Delete().Where(requiredoptionalstring.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &RequiredOptionalStringDeleteOne{builder}
+}
+
+// Query returns a query builder for RequiredOptionalString.
+func (c *RequiredOptionalStringClient) Query() *RequiredOptionalStringQuery {
+	return &RequiredOptionalStringQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeRequiredOptionalString},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a RequiredOptionalString entity by its id.
+func (c *RequiredOptionalStringClient) Get(ctx context.Context, id int) (*RequiredOptionalString, error) {
+	return c.Query().Where(requiredoptionalstring.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *RequiredOptionalStringClient) GetX(ctx context.Context, id int) *RequiredOptionalString {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *RequiredOptionalStringClient) Hooks() []Hook {
+	hooks := c.hooks.RequiredOptionalString
+	return append(hooks[:len(hooks):len(hooks)], requiredoptionalstring.Hooks[:]...)
+}
+
+// Interceptors returns the client interceptors.
+func (c *RequiredOptionalStringClient) Interceptors() []Interceptor {
+	return c.inters.RequiredOptionalString
+}
+
+func (c *RequiredOptionalStringClient) mutate(ctx context.Context, m *RequiredOptionalStringMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&RequiredOptionalStringCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&RequiredOptionalStringUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&RequiredOptionalStringUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&RequiredOptionalStringDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown RequiredOptionalString mutation op: %q", m.Op())
+	}
+}
+
+// RequiredPlainNonStringClient is a client for the RequiredPlainNonString schema.
+type RequiredPlainNonStringClient struct {
+	config
+}
+
+// NewRequiredPlainNonStringClient returns a client for the RequiredPlainNonString from the given config.
+func NewRequiredPlainNonStringClient(c config) *RequiredPlainNonStringClient {
+	return &RequiredPlainNonStringClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `requiredplainnonstring.Hooks(f(g(h())))`.
+func (c *RequiredPlainNonStringClient) Use(hooks ...Hook) {
+	c.hooks.RequiredPlainNonString = append(c.hooks.RequiredPlainNonString, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `requiredplainnonstring.Intercept(f(g(h())))`.
+func (c *RequiredPlainNonStringClient) Intercept(interceptors ...Interceptor) {
+	c.inters.RequiredPlainNonString = append(c.inters.RequiredPlainNonString, interceptors...)
+}
+
+// Create returns a builder for creating a RequiredPlainNonString entity.
+func (c *RequiredPlainNonStringClient) Create() *RequiredPlainNonStringCreate {
+	mutation := newRequiredPlainNonStringMutation(c.config, OpCreate)
+	return &RequiredPlainNonStringCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of RequiredPlainNonString entities.
+func (c *RequiredPlainNonStringClient) CreateBulk(builders ...*RequiredPlainNonStringCreate) *RequiredPlainNonStringCreateBulk {
+	return &RequiredPlainNonStringCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *RequiredPlainNonStringClient) MapCreateBulk(slice any, setFunc func(*RequiredPlainNonStringCreate, int)) *RequiredPlainNonStringCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &RequiredPlainNonStringCreateBulk{err: fmt.Errorf("calling to RequiredPlainNonStringClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*RequiredPlainNonStringCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &RequiredPlainNonStringCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for RequiredPlainNonString.
+func (c *RequiredPlainNonStringClient) Update() *RequiredPlainNonStringUpdate {
+	mutation := newRequiredPlainNonStringMutation(c.config, OpUpdate)
+	return &RequiredPlainNonStringUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *RequiredPlainNonStringClient) UpdateOne(_m *RequiredPlainNonString) *RequiredPlainNonStringUpdateOne {
+	mutation := newRequiredPlainNonStringMutation(c.config, OpUpdateOne, withRequiredPlainNonString(_m))
+	return &RequiredPlainNonStringUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *RequiredPlainNonStringClient) UpdateOneID(id int) *RequiredPlainNonStringUpdateOne {
+	mutation := newRequiredPlainNonStringMutation(c.config, OpUpdateOne, withRequiredPlainNonStringID(id))
+	return &RequiredPlainNonStringUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for RequiredPlainNonString.
+func (c *RequiredPlainNonStringClient) Delete() *RequiredPlainNonStringDelete {
+	mutation := newRequiredPlainNonStringMutation(c.config, OpDelete)
+	return &RequiredPlainNonStringDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *RequiredPlainNonStringClient) DeleteOne(_m *RequiredPlainNonString) *RequiredPlainNonStringDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *RequiredPlainNonStringClient) DeleteOneID(id int) *RequiredPlainNonStringDeleteOne {
+	builder := c.Delete().Where(requiredplainnonstring.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &RequiredPlainNonStringDeleteOne{builder}
+}
+
+// Query returns a query builder for RequiredPlainNonString.
+func (c *RequiredPlainNonStringClient) Query() *RequiredPlainNonStringQuery {
+	return &RequiredPlainNonStringQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeRequiredPlainNonString},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a RequiredPlainNonString entity by its id.
+func (c *RequiredPlainNonStringClient) Get(ctx context.Context, id int) (*RequiredPlainNonString, error) {
+	return c.Query().Where(requiredplainnonstring.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *RequiredPlainNonStringClient) GetX(ctx context.Context, id int) *RequiredPlainNonString {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *RequiredPlainNonStringClient) Hooks() []Hook {
+	hooks := c.hooks.RequiredPlainNonString
+	return append(hooks[:len(hooks):len(hooks)], requiredplainnonstring.Hooks[:]...)
+}
+
+// Interceptors returns the client interceptors.
+func (c *RequiredPlainNonStringClient) Interceptors() []Interceptor {
+	return c.inters.RequiredPlainNonString
+}
+
+func (c *RequiredPlainNonStringClient) mutate(ctx context.Context, m *RequiredPlainNonStringMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&RequiredPlainNonStringCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&RequiredPlainNonStringUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&RequiredPlainNonStringUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&RequiredPlainNonStringDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown RequiredPlainNonString mutation op: %q", m.Op())
+	}
+}
+
+// RequiredStringClient is a client for the RequiredString schema.
+type RequiredStringClient struct {
+	config
+}
+
+// NewRequiredStringClient returns a client for the RequiredString from the given config.
+func NewRequiredStringClient(c config) *RequiredStringClient {
+	return &RequiredStringClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `requiredstring.Hooks(f(g(h())))`.
+func (c *RequiredStringClient) Use(hooks ...Hook) {
+	c.hooks.RequiredString = append(c.hooks.RequiredString, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `requiredstring.Intercept(f(g(h())))`.
+func (c *RequiredStringClient) Intercept(interceptors ...Interceptor) {
+	c.inters.RequiredString = append(c.inters.RequiredString, interceptors...)
+}
+
+// Create returns a builder for creating a RequiredString entity.
+func (c *RequiredStringClient) Create() *RequiredStringCreate {
+	mutation := newRequiredStringMutation(c.config, OpCreate)
+	return &RequiredStringCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of RequiredString entities.
+func (c *RequiredStringClient) CreateBulk(builders ...*RequiredStringCreate) *RequiredStringCreateBulk {
+	return &RequiredStringCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *RequiredStringClient) MapCreateBulk(slice any, setFunc func(*RequiredStringCreate, int)) *RequiredStringCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &RequiredStringCreateBulk{err: fmt.Errorf("calling to RequiredStringClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*RequiredStringCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &RequiredStringCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for RequiredString.
+func (c *RequiredStringClient) Update() *RequiredStringUpdate {
+	mutation := newRequiredStringMutation(c.config, OpUpdate)
+	return &RequiredStringUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *RequiredStringClient) UpdateOne(_m *RequiredString) *RequiredStringUpdateOne {
+	mutation := newRequiredStringMutation(c.config, OpUpdateOne, withRequiredString(_m))
+	return &RequiredStringUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *RequiredStringClient) UpdateOneID(id int) *RequiredStringUpdateOne {
+	mutation := newRequiredStringMutation(c.config, OpUpdateOne, withRequiredStringID(id))
+	return &RequiredStringUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for RequiredString.
+func (c *RequiredStringClient) Delete() *RequiredStringDelete {
+	mutation := newRequiredStringMutation(c.config, OpDelete)
+	return &RequiredStringDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *RequiredStringClient) DeleteOne(_m *RequiredString) *RequiredStringDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *RequiredStringClient) DeleteOneID(id int) *RequiredStringDeleteOne {
+	builder := c.Delete().Where(requiredstring.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &RequiredStringDeleteOne{builder}
+}
+
+// Query returns a query builder for RequiredString.
+func (c *RequiredStringClient) Query() *RequiredStringQuery {
+	return &RequiredStringQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeRequiredString},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a RequiredString entity by its id.
+func (c *RequiredStringClient) Get(ctx context.Context, id int) (*RequiredString, error) {
+	return c.Query().Where(requiredstring.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *RequiredStringClient) GetX(ctx context.Context, id int) *RequiredString {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *RequiredStringClient) Hooks() []Hook {
+	hooks := c.hooks.RequiredString
+	return append(hooks[:len(hooks):len(hooks)], requiredstring.Hooks[:]...)
+}
+
+// Interceptors returns the client interceptors.
+func (c *RequiredStringClient) Interceptors() []Interceptor {
+	return c.inters.RequiredString
+}
+
+func (c *RequiredStringClient) mutate(ctx context.Context, m *RequiredStringMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&RequiredStringCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&RequiredStringUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&RequiredStringUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&RequiredStringDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown RequiredString mutation op: %q", m.Op())
+	}
+}
+
 // ResidualCelClient is a client for the ResidualCel schema.
 type ResidualCelClient struct {
 	config
@@ -618,12 +2126,1228 @@ func (c *ResidualCelClient) mutate(ctx context.Context, m *ResidualCelMutation) 
 	}
 }
 
+// StringByteBoundsClient is a client for the StringByteBounds schema.
+type StringByteBoundsClient struct {
+	config
+}
+
+// NewStringByteBoundsClient returns a client for the StringByteBounds from the given config.
+func NewStringByteBoundsClient(c config) *StringByteBoundsClient {
+	return &StringByteBoundsClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `stringbytebounds.Hooks(f(g(h())))`.
+func (c *StringByteBoundsClient) Use(hooks ...Hook) {
+	c.hooks.StringByteBounds = append(c.hooks.StringByteBounds, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `stringbytebounds.Intercept(f(g(h())))`.
+func (c *StringByteBoundsClient) Intercept(interceptors ...Interceptor) {
+	c.inters.StringByteBounds = append(c.inters.StringByteBounds, interceptors...)
+}
+
+// Create returns a builder for creating a StringByteBounds entity.
+func (c *StringByteBoundsClient) Create() *StringByteBoundsCreate {
+	mutation := newStringByteBoundsMutation(c.config, OpCreate)
+	return &StringByteBoundsCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of StringByteBounds entities.
+func (c *StringByteBoundsClient) CreateBulk(builders ...*StringByteBoundsCreate) *StringByteBoundsCreateBulk {
+	return &StringByteBoundsCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *StringByteBoundsClient) MapCreateBulk(slice any, setFunc func(*StringByteBoundsCreate, int)) *StringByteBoundsCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &StringByteBoundsCreateBulk{err: fmt.Errorf("calling to StringByteBoundsClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*StringByteBoundsCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &StringByteBoundsCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for StringByteBounds.
+func (c *StringByteBoundsClient) Update() *StringByteBoundsUpdate {
+	mutation := newStringByteBoundsMutation(c.config, OpUpdate)
+	return &StringByteBoundsUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *StringByteBoundsClient) UpdateOne(_m *StringByteBounds) *StringByteBoundsUpdateOne {
+	mutation := newStringByteBoundsMutation(c.config, OpUpdateOne, withStringByteBounds(_m))
+	return &StringByteBoundsUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *StringByteBoundsClient) UpdateOneID(id int) *StringByteBoundsUpdateOne {
+	mutation := newStringByteBoundsMutation(c.config, OpUpdateOne, withStringByteBoundsID(id))
+	return &StringByteBoundsUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for StringByteBounds.
+func (c *StringByteBoundsClient) Delete() *StringByteBoundsDelete {
+	mutation := newStringByteBoundsMutation(c.config, OpDelete)
+	return &StringByteBoundsDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *StringByteBoundsClient) DeleteOne(_m *StringByteBounds) *StringByteBoundsDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *StringByteBoundsClient) DeleteOneID(id int) *StringByteBoundsDeleteOne {
+	builder := c.Delete().Where(stringbytebounds.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &StringByteBoundsDeleteOne{builder}
+}
+
+// Query returns a query builder for StringByteBounds.
+func (c *StringByteBoundsClient) Query() *StringByteBoundsQuery {
+	return &StringByteBoundsQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeStringByteBounds},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a StringByteBounds entity by its id.
+func (c *StringByteBoundsClient) Get(ctx context.Context, id int) (*StringByteBounds, error) {
+	return c.Query().Where(stringbytebounds.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *StringByteBoundsClient) GetX(ctx context.Context, id int) *StringByteBounds {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *StringByteBoundsClient) Hooks() []Hook {
+	hooks := c.hooks.StringByteBounds
+	return append(hooks[:len(hooks):len(hooks)], stringbytebounds.Hooks[:]...)
+}
+
+// Interceptors returns the client interceptors.
+func (c *StringByteBoundsClient) Interceptors() []Interceptor {
+	return c.inters.StringByteBounds
+}
+
+func (c *StringByteBoundsClient) mutate(ctx context.Context, m *StringByteBoundsMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&StringByteBoundsCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&StringByteBoundsUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&StringByteBoundsUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&StringByteBoundsDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown StringByteBounds mutation op: %q", m.Op())
+	}
+}
+
+// StringCodePointBoundsClient is a client for the StringCodePointBounds schema.
+type StringCodePointBoundsClient struct {
+	config
+}
+
+// NewStringCodePointBoundsClient returns a client for the StringCodePointBounds from the given config.
+func NewStringCodePointBoundsClient(c config) *StringCodePointBoundsClient {
+	return &StringCodePointBoundsClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `stringcodepointbounds.Hooks(f(g(h())))`.
+func (c *StringCodePointBoundsClient) Use(hooks ...Hook) {
+	c.hooks.StringCodePointBounds = append(c.hooks.StringCodePointBounds, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `stringcodepointbounds.Intercept(f(g(h())))`.
+func (c *StringCodePointBoundsClient) Intercept(interceptors ...Interceptor) {
+	c.inters.StringCodePointBounds = append(c.inters.StringCodePointBounds, interceptors...)
+}
+
+// Create returns a builder for creating a StringCodePointBounds entity.
+func (c *StringCodePointBoundsClient) Create() *StringCodePointBoundsCreate {
+	mutation := newStringCodePointBoundsMutation(c.config, OpCreate)
+	return &StringCodePointBoundsCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of StringCodePointBounds entities.
+func (c *StringCodePointBoundsClient) CreateBulk(builders ...*StringCodePointBoundsCreate) *StringCodePointBoundsCreateBulk {
+	return &StringCodePointBoundsCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *StringCodePointBoundsClient) MapCreateBulk(slice any, setFunc func(*StringCodePointBoundsCreate, int)) *StringCodePointBoundsCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &StringCodePointBoundsCreateBulk{err: fmt.Errorf("calling to StringCodePointBoundsClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*StringCodePointBoundsCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &StringCodePointBoundsCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for StringCodePointBounds.
+func (c *StringCodePointBoundsClient) Update() *StringCodePointBoundsUpdate {
+	mutation := newStringCodePointBoundsMutation(c.config, OpUpdate)
+	return &StringCodePointBoundsUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *StringCodePointBoundsClient) UpdateOne(_m *StringCodePointBounds) *StringCodePointBoundsUpdateOne {
+	mutation := newStringCodePointBoundsMutation(c.config, OpUpdateOne, withStringCodePointBounds(_m))
+	return &StringCodePointBoundsUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *StringCodePointBoundsClient) UpdateOneID(id int) *StringCodePointBoundsUpdateOne {
+	mutation := newStringCodePointBoundsMutation(c.config, OpUpdateOne, withStringCodePointBoundsID(id))
+	return &StringCodePointBoundsUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for StringCodePointBounds.
+func (c *StringCodePointBoundsClient) Delete() *StringCodePointBoundsDelete {
+	mutation := newStringCodePointBoundsMutation(c.config, OpDelete)
+	return &StringCodePointBoundsDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *StringCodePointBoundsClient) DeleteOne(_m *StringCodePointBounds) *StringCodePointBoundsDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *StringCodePointBoundsClient) DeleteOneID(id int) *StringCodePointBoundsDeleteOne {
+	builder := c.Delete().Where(stringcodepointbounds.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &StringCodePointBoundsDeleteOne{builder}
+}
+
+// Query returns a query builder for StringCodePointBounds.
+func (c *StringCodePointBoundsClient) Query() *StringCodePointBoundsQuery {
+	return &StringCodePointBoundsQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeStringCodePointBounds},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a StringCodePointBounds entity by its id.
+func (c *StringCodePointBoundsClient) Get(ctx context.Context, id int) (*StringCodePointBounds, error) {
+	return c.Query().Where(stringcodepointbounds.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *StringCodePointBoundsClient) GetX(ctx context.Context, id int) *StringCodePointBounds {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *StringCodePointBoundsClient) Hooks() []Hook {
+	hooks := c.hooks.StringCodePointBounds
+	return append(hooks[:len(hooks):len(hooks)], stringcodepointbounds.Hooks[:]...)
+}
+
+// Interceptors returns the client interceptors.
+func (c *StringCodePointBoundsClient) Interceptors() []Interceptor {
+	return c.inters.StringCodePointBounds
+}
+
+func (c *StringCodePointBoundsClient) mutate(ctx context.Context, m *StringCodePointBoundsMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&StringCodePointBoundsCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&StringCodePointBoundsUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&StringCodePointBoundsUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&StringCodePointBoundsDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown StringCodePointBounds mutation op: %q", m.Op())
+	}
+}
+
+// StringFormatEmailClient is a client for the StringFormatEmail schema.
+type StringFormatEmailClient struct {
+	config
+}
+
+// NewStringFormatEmailClient returns a client for the StringFormatEmail from the given config.
+func NewStringFormatEmailClient(c config) *StringFormatEmailClient {
+	return &StringFormatEmailClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `stringformatemail.Hooks(f(g(h())))`.
+func (c *StringFormatEmailClient) Use(hooks ...Hook) {
+	c.hooks.StringFormatEmail = append(c.hooks.StringFormatEmail, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `stringformatemail.Intercept(f(g(h())))`.
+func (c *StringFormatEmailClient) Intercept(interceptors ...Interceptor) {
+	c.inters.StringFormatEmail = append(c.inters.StringFormatEmail, interceptors...)
+}
+
+// Create returns a builder for creating a StringFormatEmail entity.
+func (c *StringFormatEmailClient) Create() *StringFormatEmailCreate {
+	mutation := newStringFormatEmailMutation(c.config, OpCreate)
+	return &StringFormatEmailCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of StringFormatEmail entities.
+func (c *StringFormatEmailClient) CreateBulk(builders ...*StringFormatEmailCreate) *StringFormatEmailCreateBulk {
+	return &StringFormatEmailCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *StringFormatEmailClient) MapCreateBulk(slice any, setFunc func(*StringFormatEmailCreate, int)) *StringFormatEmailCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &StringFormatEmailCreateBulk{err: fmt.Errorf("calling to StringFormatEmailClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*StringFormatEmailCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &StringFormatEmailCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for StringFormatEmail.
+func (c *StringFormatEmailClient) Update() *StringFormatEmailUpdate {
+	mutation := newStringFormatEmailMutation(c.config, OpUpdate)
+	return &StringFormatEmailUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *StringFormatEmailClient) UpdateOne(_m *StringFormatEmail) *StringFormatEmailUpdateOne {
+	mutation := newStringFormatEmailMutation(c.config, OpUpdateOne, withStringFormatEmail(_m))
+	return &StringFormatEmailUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *StringFormatEmailClient) UpdateOneID(id int) *StringFormatEmailUpdateOne {
+	mutation := newStringFormatEmailMutation(c.config, OpUpdateOne, withStringFormatEmailID(id))
+	return &StringFormatEmailUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for StringFormatEmail.
+func (c *StringFormatEmailClient) Delete() *StringFormatEmailDelete {
+	mutation := newStringFormatEmailMutation(c.config, OpDelete)
+	return &StringFormatEmailDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *StringFormatEmailClient) DeleteOne(_m *StringFormatEmail) *StringFormatEmailDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *StringFormatEmailClient) DeleteOneID(id int) *StringFormatEmailDeleteOne {
+	builder := c.Delete().Where(stringformatemail.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &StringFormatEmailDeleteOne{builder}
+}
+
+// Query returns a query builder for StringFormatEmail.
+func (c *StringFormatEmailClient) Query() *StringFormatEmailQuery {
+	return &StringFormatEmailQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeStringFormatEmail},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a StringFormatEmail entity by its id.
+func (c *StringFormatEmailClient) Get(ctx context.Context, id int) (*StringFormatEmail, error) {
+	return c.Query().Where(stringformatemail.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *StringFormatEmailClient) GetX(ctx context.Context, id int) *StringFormatEmail {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *StringFormatEmailClient) Hooks() []Hook {
+	hooks := c.hooks.StringFormatEmail
+	return append(hooks[:len(hooks):len(hooks)], stringformatemail.Hooks[:]...)
+}
+
+// Interceptors returns the client interceptors.
+func (c *StringFormatEmailClient) Interceptors() []Interceptor {
+	return c.inters.StringFormatEmail
+}
+
+func (c *StringFormatEmailClient) mutate(ctx context.Context, m *StringFormatEmailMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&StringFormatEmailCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&StringFormatEmailUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&StringFormatEmailUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&StringFormatEmailDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown StringFormatEmail mutation op: %q", m.Op())
+	}
+}
+
+// StringFormatHostnameClient is a client for the StringFormatHostname schema.
+type StringFormatHostnameClient struct {
+	config
+}
+
+// NewStringFormatHostnameClient returns a client for the StringFormatHostname from the given config.
+func NewStringFormatHostnameClient(c config) *StringFormatHostnameClient {
+	return &StringFormatHostnameClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `stringformathostname.Hooks(f(g(h())))`.
+func (c *StringFormatHostnameClient) Use(hooks ...Hook) {
+	c.hooks.StringFormatHostname = append(c.hooks.StringFormatHostname, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `stringformathostname.Intercept(f(g(h())))`.
+func (c *StringFormatHostnameClient) Intercept(interceptors ...Interceptor) {
+	c.inters.StringFormatHostname = append(c.inters.StringFormatHostname, interceptors...)
+}
+
+// Create returns a builder for creating a StringFormatHostname entity.
+func (c *StringFormatHostnameClient) Create() *StringFormatHostnameCreate {
+	mutation := newStringFormatHostnameMutation(c.config, OpCreate)
+	return &StringFormatHostnameCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of StringFormatHostname entities.
+func (c *StringFormatHostnameClient) CreateBulk(builders ...*StringFormatHostnameCreate) *StringFormatHostnameCreateBulk {
+	return &StringFormatHostnameCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *StringFormatHostnameClient) MapCreateBulk(slice any, setFunc func(*StringFormatHostnameCreate, int)) *StringFormatHostnameCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &StringFormatHostnameCreateBulk{err: fmt.Errorf("calling to StringFormatHostnameClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*StringFormatHostnameCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &StringFormatHostnameCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for StringFormatHostname.
+func (c *StringFormatHostnameClient) Update() *StringFormatHostnameUpdate {
+	mutation := newStringFormatHostnameMutation(c.config, OpUpdate)
+	return &StringFormatHostnameUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *StringFormatHostnameClient) UpdateOne(_m *StringFormatHostname) *StringFormatHostnameUpdateOne {
+	mutation := newStringFormatHostnameMutation(c.config, OpUpdateOne, withStringFormatHostname(_m))
+	return &StringFormatHostnameUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *StringFormatHostnameClient) UpdateOneID(id int) *StringFormatHostnameUpdateOne {
+	mutation := newStringFormatHostnameMutation(c.config, OpUpdateOne, withStringFormatHostnameID(id))
+	return &StringFormatHostnameUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for StringFormatHostname.
+func (c *StringFormatHostnameClient) Delete() *StringFormatHostnameDelete {
+	mutation := newStringFormatHostnameMutation(c.config, OpDelete)
+	return &StringFormatHostnameDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *StringFormatHostnameClient) DeleteOne(_m *StringFormatHostname) *StringFormatHostnameDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *StringFormatHostnameClient) DeleteOneID(id int) *StringFormatHostnameDeleteOne {
+	builder := c.Delete().Where(stringformathostname.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &StringFormatHostnameDeleteOne{builder}
+}
+
+// Query returns a query builder for StringFormatHostname.
+func (c *StringFormatHostnameClient) Query() *StringFormatHostnameQuery {
+	return &StringFormatHostnameQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeStringFormatHostname},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a StringFormatHostname entity by its id.
+func (c *StringFormatHostnameClient) Get(ctx context.Context, id int) (*StringFormatHostname, error) {
+	return c.Query().Where(stringformathostname.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *StringFormatHostnameClient) GetX(ctx context.Context, id int) *StringFormatHostname {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *StringFormatHostnameClient) Hooks() []Hook {
+	hooks := c.hooks.StringFormatHostname
+	return append(hooks[:len(hooks):len(hooks)], stringformathostname.Hooks[:]...)
+}
+
+// Interceptors returns the client interceptors.
+func (c *StringFormatHostnameClient) Interceptors() []Interceptor {
+	return c.inters.StringFormatHostname
+}
+
+func (c *StringFormatHostnameClient) mutate(ctx context.Context, m *StringFormatHostnameMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&StringFormatHostnameCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&StringFormatHostnameUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&StringFormatHostnameUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&StringFormatHostnameDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown StringFormatHostname mutation op: %q", m.Op())
+	}
+}
+
+// StringFormatIpClient is a client for the StringFormatIp schema.
+type StringFormatIpClient struct {
+	config
+}
+
+// NewStringFormatIpClient returns a client for the StringFormatIp from the given config.
+func NewStringFormatIpClient(c config) *StringFormatIpClient {
+	return &StringFormatIpClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `stringformatip.Hooks(f(g(h())))`.
+func (c *StringFormatIpClient) Use(hooks ...Hook) {
+	c.hooks.StringFormatIp = append(c.hooks.StringFormatIp, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `stringformatip.Intercept(f(g(h())))`.
+func (c *StringFormatIpClient) Intercept(interceptors ...Interceptor) {
+	c.inters.StringFormatIp = append(c.inters.StringFormatIp, interceptors...)
+}
+
+// Create returns a builder for creating a StringFormatIp entity.
+func (c *StringFormatIpClient) Create() *StringFormatIpCreate {
+	mutation := newStringFormatIpMutation(c.config, OpCreate)
+	return &StringFormatIpCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of StringFormatIp entities.
+func (c *StringFormatIpClient) CreateBulk(builders ...*StringFormatIpCreate) *StringFormatIpCreateBulk {
+	return &StringFormatIpCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *StringFormatIpClient) MapCreateBulk(slice any, setFunc func(*StringFormatIpCreate, int)) *StringFormatIpCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &StringFormatIpCreateBulk{err: fmt.Errorf("calling to StringFormatIpClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*StringFormatIpCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &StringFormatIpCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for StringFormatIp.
+func (c *StringFormatIpClient) Update() *StringFormatIpUpdate {
+	mutation := newStringFormatIpMutation(c.config, OpUpdate)
+	return &StringFormatIpUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *StringFormatIpClient) UpdateOne(_m *StringFormatIp) *StringFormatIpUpdateOne {
+	mutation := newStringFormatIpMutation(c.config, OpUpdateOne, withStringFormatIp(_m))
+	return &StringFormatIpUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *StringFormatIpClient) UpdateOneID(id int) *StringFormatIpUpdateOne {
+	mutation := newStringFormatIpMutation(c.config, OpUpdateOne, withStringFormatIpID(id))
+	return &StringFormatIpUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for StringFormatIp.
+func (c *StringFormatIpClient) Delete() *StringFormatIpDelete {
+	mutation := newStringFormatIpMutation(c.config, OpDelete)
+	return &StringFormatIpDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *StringFormatIpClient) DeleteOne(_m *StringFormatIp) *StringFormatIpDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *StringFormatIpClient) DeleteOneID(id int) *StringFormatIpDeleteOne {
+	builder := c.Delete().Where(stringformatip.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &StringFormatIpDeleteOne{builder}
+}
+
+// Query returns a query builder for StringFormatIp.
+func (c *StringFormatIpClient) Query() *StringFormatIpQuery {
+	return &StringFormatIpQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeStringFormatIp},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a StringFormatIp entity by its id.
+func (c *StringFormatIpClient) Get(ctx context.Context, id int) (*StringFormatIp, error) {
+	return c.Query().Where(stringformatip.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *StringFormatIpClient) GetX(ctx context.Context, id int) *StringFormatIp {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *StringFormatIpClient) Hooks() []Hook {
+	hooks := c.hooks.StringFormatIp
+	return append(hooks[:len(hooks):len(hooks)], stringformatip.Hooks[:]...)
+}
+
+// Interceptors returns the client interceptors.
+func (c *StringFormatIpClient) Interceptors() []Interceptor {
+	return c.inters.StringFormatIp
+}
+
+func (c *StringFormatIpClient) mutate(ctx context.Context, m *StringFormatIpMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&StringFormatIpCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&StringFormatIpUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&StringFormatIpUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&StringFormatIpDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown StringFormatIp mutation op: %q", m.Op())
+	}
+}
+
+// StringFormatUriClient is a client for the StringFormatUri schema.
+type StringFormatUriClient struct {
+	config
+}
+
+// NewStringFormatUriClient returns a client for the StringFormatUri from the given config.
+func NewStringFormatUriClient(c config) *StringFormatUriClient {
+	return &StringFormatUriClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `stringformaturi.Hooks(f(g(h())))`.
+func (c *StringFormatUriClient) Use(hooks ...Hook) {
+	c.hooks.StringFormatUri = append(c.hooks.StringFormatUri, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `stringformaturi.Intercept(f(g(h())))`.
+func (c *StringFormatUriClient) Intercept(interceptors ...Interceptor) {
+	c.inters.StringFormatUri = append(c.inters.StringFormatUri, interceptors...)
+}
+
+// Create returns a builder for creating a StringFormatUri entity.
+func (c *StringFormatUriClient) Create() *StringFormatUriCreate {
+	mutation := newStringFormatUriMutation(c.config, OpCreate)
+	return &StringFormatUriCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of StringFormatUri entities.
+func (c *StringFormatUriClient) CreateBulk(builders ...*StringFormatUriCreate) *StringFormatUriCreateBulk {
+	return &StringFormatUriCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *StringFormatUriClient) MapCreateBulk(slice any, setFunc func(*StringFormatUriCreate, int)) *StringFormatUriCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &StringFormatUriCreateBulk{err: fmt.Errorf("calling to StringFormatUriClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*StringFormatUriCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &StringFormatUriCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for StringFormatUri.
+func (c *StringFormatUriClient) Update() *StringFormatUriUpdate {
+	mutation := newStringFormatUriMutation(c.config, OpUpdate)
+	return &StringFormatUriUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *StringFormatUriClient) UpdateOne(_m *StringFormatUri) *StringFormatUriUpdateOne {
+	mutation := newStringFormatUriMutation(c.config, OpUpdateOne, withStringFormatUri(_m))
+	return &StringFormatUriUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *StringFormatUriClient) UpdateOneID(id int) *StringFormatUriUpdateOne {
+	mutation := newStringFormatUriMutation(c.config, OpUpdateOne, withStringFormatUriID(id))
+	return &StringFormatUriUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for StringFormatUri.
+func (c *StringFormatUriClient) Delete() *StringFormatUriDelete {
+	mutation := newStringFormatUriMutation(c.config, OpDelete)
+	return &StringFormatUriDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *StringFormatUriClient) DeleteOne(_m *StringFormatUri) *StringFormatUriDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *StringFormatUriClient) DeleteOneID(id int) *StringFormatUriDeleteOne {
+	builder := c.Delete().Where(stringformaturi.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &StringFormatUriDeleteOne{builder}
+}
+
+// Query returns a query builder for StringFormatUri.
+func (c *StringFormatUriClient) Query() *StringFormatUriQuery {
+	return &StringFormatUriQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeStringFormatUri},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a StringFormatUri entity by its id.
+func (c *StringFormatUriClient) Get(ctx context.Context, id int) (*StringFormatUri, error) {
+	return c.Query().Where(stringformaturi.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *StringFormatUriClient) GetX(ctx context.Context, id int) *StringFormatUri {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *StringFormatUriClient) Hooks() []Hook {
+	hooks := c.hooks.StringFormatUri
+	return append(hooks[:len(hooks):len(hooks)], stringformaturi.Hooks[:]...)
+}
+
+// Interceptors returns the client interceptors.
+func (c *StringFormatUriClient) Interceptors() []Interceptor {
+	return c.inters.StringFormatUri
+}
+
+func (c *StringFormatUriClient) mutate(ctx context.Context, m *StringFormatUriMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&StringFormatUriCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&StringFormatUriUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&StringFormatUriUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&StringFormatUriDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown StringFormatUri mutation op: %q", m.Op())
+	}
+}
+
+// StringFormatUuidClient is a client for the StringFormatUuid schema.
+type StringFormatUuidClient struct {
+	config
+}
+
+// NewStringFormatUuidClient returns a client for the StringFormatUuid from the given config.
+func NewStringFormatUuidClient(c config) *StringFormatUuidClient {
+	return &StringFormatUuidClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `stringformatuuid.Hooks(f(g(h())))`.
+func (c *StringFormatUuidClient) Use(hooks ...Hook) {
+	c.hooks.StringFormatUuid = append(c.hooks.StringFormatUuid, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `stringformatuuid.Intercept(f(g(h())))`.
+func (c *StringFormatUuidClient) Intercept(interceptors ...Interceptor) {
+	c.inters.StringFormatUuid = append(c.inters.StringFormatUuid, interceptors...)
+}
+
+// Create returns a builder for creating a StringFormatUuid entity.
+func (c *StringFormatUuidClient) Create() *StringFormatUuidCreate {
+	mutation := newStringFormatUuidMutation(c.config, OpCreate)
+	return &StringFormatUuidCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of StringFormatUuid entities.
+func (c *StringFormatUuidClient) CreateBulk(builders ...*StringFormatUuidCreate) *StringFormatUuidCreateBulk {
+	return &StringFormatUuidCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *StringFormatUuidClient) MapCreateBulk(slice any, setFunc func(*StringFormatUuidCreate, int)) *StringFormatUuidCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &StringFormatUuidCreateBulk{err: fmt.Errorf("calling to StringFormatUuidClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*StringFormatUuidCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &StringFormatUuidCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for StringFormatUuid.
+func (c *StringFormatUuidClient) Update() *StringFormatUuidUpdate {
+	mutation := newStringFormatUuidMutation(c.config, OpUpdate)
+	return &StringFormatUuidUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *StringFormatUuidClient) UpdateOne(_m *StringFormatUuid) *StringFormatUuidUpdateOne {
+	mutation := newStringFormatUuidMutation(c.config, OpUpdateOne, withStringFormatUuid(_m))
+	return &StringFormatUuidUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *StringFormatUuidClient) UpdateOneID(id int) *StringFormatUuidUpdateOne {
+	mutation := newStringFormatUuidMutation(c.config, OpUpdateOne, withStringFormatUuidID(id))
+	return &StringFormatUuidUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for StringFormatUuid.
+func (c *StringFormatUuidClient) Delete() *StringFormatUuidDelete {
+	mutation := newStringFormatUuidMutation(c.config, OpDelete)
+	return &StringFormatUuidDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *StringFormatUuidClient) DeleteOne(_m *StringFormatUuid) *StringFormatUuidDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *StringFormatUuidClient) DeleteOneID(id int) *StringFormatUuidDeleteOne {
+	builder := c.Delete().Where(stringformatuuid.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &StringFormatUuidDeleteOne{builder}
+}
+
+// Query returns a query builder for StringFormatUuid.
+func (c *StringFormatUuidClient) Query() *StringFormatUuidQuery {
+	return &StringFormatUuidQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeStringFormatUuid},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a StringFormatUuid entity by its id.
+func (c *StringFormatUuidClient) Get(ctx context.Context, id int) (*StringFormatUuid, error) {
+	return c.Query().Where(stringformatuuid.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *StringFormatUuidClient) GetX(ctx context.Context, id int) *StringFormatUuid {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *StringFormatUuidClient) Hooks() []Hook {
+	hooks := c.hooks.StringFormatUuid
+	return append(hooks[:len(hooks):len(hooks)], stringformatuuid.Hooks[:]...)
+}
+
+// Interceptors returns the client interceptors.
+func (c *StringFormatUuidClient) Interceptors() []Interceptor {
+	return c.inters.StringFormatUuid
+}
+
+func (c *StringFormatUuidClient) mutate(ctx context.Context, m *StringFormatUuidMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&StringFormatUuidCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&StringFormatUuidUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&StringFormatUuidUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&StringFormatUuidDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown StringFormatUuid mutation op: %q", m.Op())
+	}
+}
+
+// StringFormatWithSiblingClient is a client for the StringFormatWithSibling schema.
+type StringFormatWithSiblingClient struct {
+	config
+}
+
+// NewStringFormatWithSiblingClient returns a client for the StringFormatWithSibling from the given config.
+func NewStringFormatWithSiblingClient(c config) *StringFormatWithSiblingClient {
+	return &StringFormatWithSiblingClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `stringformatwithsibling.Hooks(f(g(h())))`.
+func (c *StringFormatWithSiblingClient) Use(hooks ...Hook) {
+	c.hooks.StringFormatWithSibling = append(c.hooks.StringFormatWithSibling, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `stringformatwithsibling.Intercept(f(g(h())))`.
+func (c *StringFormatWithSiblingClient) Intercept(interceptors ...Interceptor) {
+	c.inters.StringFormatWithSibling = append(c.inters.StringFormatWithSibling, interceptors...)
+}
+
+// Create returns a builder for creating a StringFormatWithSibling entity.
+func (c *StringFormatWithSiblingClient) Create() *StringFormatWithSiblingCreate {
+	mutation := newStringFormatWithSiblingMutation(c.config, OpCreate)
+	return &StringFormatWithSiblingCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of StringFormatWithSibling entities.
+func (c *StringFormatWithSiblingClient) CreateBulk(builders ...*StringFormatWithSiblingCreate) *StringFormatWithSiblingCreateBulk {
+	return &StringFormatWithSiblingCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *StringFormatWithSiblingClient) MapCreateBulk(slice any, setFunc func(*StringFormatWithSiblingCreate, int)) *StringFormatWithSiblingCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &StringFormatWithSiblingCreateBulk{err: fmt.Errorf("calling to StringFormatWithSiblingClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*StringFormatWithSiblingCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &StringFormatWithSiblingCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for StringFormatWithSibling.
+func (c *StringFormatWithSiblingClient) Update() *StringFormatWithSiblingUpdate {
+	mutation := newStringFormatWithSiblingMutation(c.config, OpUpdate)
+	return &StringFormatWithSiblingUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *StringFormatWithSiblingClient) UpdateOne(_m *StringFormatWithSibling) *StringFormatWithSiblingUpdateOne {
+	mutation := newStringFormatWithSiblingMutation(c.config, OpUpdateOne, withStringFormatWithSibling(_m))
+	return &StringFormatWithSiblingUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *StringFormatWithSiblingClient) UpdateOneID(id int) *StringFormatWithSiblingUpdateOne {
+	mutation := newStringFormatWithSiblingMutation(c.config, OpUpdateOne, withStringFormatWithSiblingID(id))
+	return &StringFormatWithSiblingUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for StringFormatWithSibling.
+func (c *StringFormatWithSiblingClient) Delete() *StringFormatWithSiblingDelete {
+	mutation := newStringFormatWithSiblingMutation(c.config, OpDelete)
+	return &StringFormatWithSiblingDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *StringFormatWithSiblingClient) DeleteOne(_m *StringFormatWithSibling) *StringFormatWithSiblingDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *StringFormatWithSiblingClient) DeleteOneID(id int) *StringFormatWithSiblingDeleteOne {
+	builder := c.Delete().Where(stringformatwithsibling.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &StringFormatWithSiblingDeleteOne{builder}
+}
+
+// Query returns a query builder for StringFormatWithSibling.
+func (c *StringFormatWithSiblingClient) Query() *StringFormatWithSiblingQuery {
+	return &StringFormatWithSiblingQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeStringFormatWithSibling},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a StringFormatWithSibling entity by its id.
+func (c *StringFormatWithSiblingClient) Get(ctx context.Context, id int) (*StringFormatWithSibling, error) {
+	return c.Query().Where(stringformatwithsibling.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *StringFormatWithSiblingClient) GetX(ctx context.Context, id int) *StringFormatWithSibling {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *StringFormatWithSiblingClient) Hooks() []Hook {
+	hooks := c.hooks.StringFormatWithSibling
+	return append(hooks[:len(hooks):len(hooks)], stringformatwithsibling.Hooks[:]...)
+}
+
+// Interceptors returns the client interceptors.
+func (c *StringFormatWithSiblingClient) Interceptors() []Interceptor {
+	return c.inters.StringFormatWithSibling
+}
+
+func (c *StringFormatWithSiblingClient) mutate(ctx context.Context, m *StringFormatWithSiblingMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&StringFormatWithSiblingCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&StringFormatWithSiblingUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&StringFormatWithSiblingUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&StringFormatWithSiblingDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown StringFormatWithSibling mutation op: %q", m.Op())
+	}
+}
+
+// StringPatternClient is a client for the StringPattern schema.
+type StringPatternClient struct {
+	config
+}
+
+// NewStringPatternClient returns a client for the StringPattern from the given config.
+func NewStringPatternClient(c config) *StringPatternClient {
+	return &StringPatternClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `stringpattern.Hooks(f(g(h())))`.
+func (c *StringPatternClient) Use(hooks ...Hook) {
+	c.hooks.StringPattern = append(c.hooks.StringPattern, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `stringpattern.Intercept(f(g(h())))`.
+func (c *StringPatternClient) Intercept(interceptors ...Interceptor) {
+	c.inters.StringPattern = append(c.inters.StringPattern, interceptors...)
+}
+
+// Create returns a builder for creating a StringPattern entity.
+func (c *StringPatternClient) Create() *StringPatternCreate {
+	mutation := newStringPatternMutation(c.config, OpCreate)
+	return &StringPatternCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of StringPattern entities.
+func (c *StringPatternClient) CreateBulk(builders ...*StringPatternCreate) *StringPatternCreateBulk {
+	return &StringPatternCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *StringPatternClient) MapCreateBulk(slice any, setFunc func(*StringPatternCreate, int)) *StringPatternCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &StringPatternCreateBulk{err: fmt.Errorf("calling to StringPatternClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*StringPatternCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &StringPatternCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for StringPattern.
+func (c *StringPatternClient) Update() *StringPatternUpdate {
+	mutation := newStringPatternMutation(c.config, OpUpdate)
+	return &StringPatternUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *StringPatternClient) UpdateOne(_m *StringPattern) *StringPatternUpdateOne {
+	mutation := newStringPatternMutation(c.config, OpUpdateOne, withStringPattern(_m))
+	return &StringPatternUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *StringPatternClient) UpdateOneID(id int) *StringPatternUpdateOne {
+	mutation := newStringPatternMutation(c.config, OpUpdateOne, withStringPatternID(id))
+	return &StringPatternUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for StringPattern.
+func (c *StringPatternClient) Delete() *StringPatternDelete {
+	mutation := newStringPatternMutation(c.config, OpDelete)
+	return &StringPatternDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *StringPatternClient) DeleteOne(_m *StringPattern) *StringPatternDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *StringPatternClient) DeleteOneID(id int) *StringPatternDeleteOne {
+	builder := c.Delete().Where(stringpattern.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &StringPatternDeleteOne{builder}
+}
+
+// Query returns a query builder for StringPattern.
+func (c *StringPatternClient) Query() *StringPatternQuery {
+	return &StringPatternQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeStringPattern},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a StringPattern entity by its id.
+func (c *StringPatternClient) Get(ctx context.Context, id int) (*StringPattern, error) {
+	return c.Query().Where(stringpattern.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *StringPatternClient) GetX(ctx context.Context, id int) *StringPattern {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *StringPatternClient) Hooks() []Hook {
+	hooks := c.hooks.StringPattern
+	return append(hooks[:len(hooks):len(hooks)], stringpattern.Hooks[:]...)
+}
+
+// Interceptors returns the client interceptors.
+func (c *StringPatternClient) Interceptors() []Interceptor {
+	return c.inters.StringPattern
+}
+
+func (c *StringPatternClient) mutate(ctx context.Context, m *StringPatternMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&StringPatternCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&StringPatternUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&StringPatternUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&StringPatternDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown StringPattern mutation op: %q", m.Op())
+	}
+}
+
 // hooks and interceptors per client, for fast access.
 type (
 	hooks struct {
-		MessageRules, MixedFieldRules, ResidualCel []ent.Hook
+		DoubleComparators, FloatComparators, Int32Adjacent, Int32Comparators,
+		Int32Overflow, MessageRules, MixedFieldRules, RequiredOptionalBytes,
+		RequiredOptionalNonString, RequiredOptionalString, RequiredPlainNonString,
+		RequiredString, ResidualCel, StringByteBounds, StringCodePointBounds,
+		StringFormatEmail, StringFormatHostname, StringFormatIp, StringFormatUri,
+		StringFormatUuid, StringFormatWithSibling, StringPattern []ent.Hook
 	}
 	inters struct {
-		MessageRules, MixedFieldRules, ResidualCel []ent.Interceptor
+		DoubleComparators, FloatComparators, Int32Adjacent, Int32Comparators,
+		Int32Overflow, MessageRules, MixedFieldRules, RequiredOptionalBytes,
+		RequiredOptionalNonString, RequiredOptionalString, RequiredPlainNonString,
+		RequiredString, ResidualCel, StringByteBounds, StringCodePointBounds,
+		StringFormatEmail, StringFormatHostname, StringFormatIp, StringFormatUri,
+		StringFormatUuid, StringFormatWithSibling, StringPattern []ent.Interceptor
 	}
 )

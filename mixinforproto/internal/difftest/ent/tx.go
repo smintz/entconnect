@@ -12,12 +12,50 @@ import (
 // Tx is a transactional client that is created by calling Client.Tx().
 type Tx struct {
 	config
+	// DoubleComparators is the client for interacting with the DoubleComparators builders.
+	DoubleComparators *DoubleComparatorsClient
+	// FloatComparators is the client for interacting with the FloatComparators builders.
+	FloatComparators *FloatComparatorsClient
+	// Int32Adjacent is the client for interacting with the Int32Adjacent builders.
+	Int32Adjacent *Int32AdjacentClient
+	// Int32Comparators is the client for interacting with the Int32Comparators builders.
+	Int32Comparators *Int32ComparatorsClient
+	// Int32Overflow is the client for interacting with the Int32Overflow builders.
+	Int32Overflow *Int32OverflowClient
 	// MessageRules is the client for interacting with the MessageRules builders.
 	MessageRules *MessageRulesClient
 	// MixedFieldRules is the client for interacting with the MixedFieldRules builders.
 	MixedFieldRules *MixedFieldRulesClient
+	// RequiredOptionalBytes is the client for interacting with the RequiredOptionalBytes builders.
+	RequiredOptionalBytes *RequiredOptionalBytesClient
+	// RequiredOptionalNonString is the client for interacting with the RequiredOptionalNonString builders.
+	RequiredOptionalNonString *RequiredOptionalNonStringClient
+	// RequiredOptionalString is the client for interacting with the RequiredOptionalString builders.
+	RequiredOptionalString *RequiredOptionalStringClient
+	// RequiredPlainNonString is the client for interacting with the RequiredPlainNonString builders.
+	RequiredPlainNonString *RequiredPlainNonStringClient
+	// RequiredString is the client for interacting with the RequiredString builders.
+	RequiredString *RequiredStringClient
 	// ResidualCel is the client for interacting with the ResidualCel builders.
 	ResidualCel *ResidualCelClient
+	// StringByteBounds is the client for interacting with the StringByteBounds builders.
+	StringByteBounds *StringByteBoundsClient
+	// StringCodePointBounds is the client for interacting with the StringCodePointBounds builders.
+	StringCodePointBounds *StringCodePointBoundsClient
+	// StringFormatEmail is the client for interacting with the StringFormatEmail builders.
+	StringFormatEmail *StringFormatEmailClient
+	// StringFormatHostname is the client for interacting with the StringFormatHostname builders.
+	StringFormatHostname *StringFormatHostnameClient
+	// StringFormatIp is the client for interacting with the StringFormatIp builders.
+	StringFormatIp *StringFormatIpClient
+	// StringFormatUri is the client for interacting with the StringFormatUri builders.
+	StringFormatUri *StringFormatUriClient
+	// StringFormatUuid is the client for interacting with the StringFormatUuid builders.
+	StringFormatUuid *StringFormatUuidClient
+	// StringFormatWithSibling is the client for interacting with the StringFormatWithSibling builders.
+	StringFormatWithSibling *StringFormatWithSiblingClient
+	// StringPattern is the client for interacting with the StringPattern builders.
+	StringPattern *StringPatternClient
 
 	// lazily loaded.
 	client     *Client
@@ -149,9 +187,28 @@ func (tx *Tx) Client() *Client {
 }
 
 func (tx *Tx) init() {
+	tx.DoubleComparators = NewDoubleComparatorsClient(tx.config)
+	tx.FloatComparators = NewFloatComparatorsClient(tx.config)
+	tx.Int32Adjacent = NewInt32AdjacentClient(tx.config)
+	tx.Int32Comparators = NewInt32ComparatorsClient(tx.config)
+	tx.Int32Overflow = NewInt32OverflowClient(tx.config)
 	tx.MessageRules = NewMessageRulesClient(tx.config)
 	tx.MixedFieldRules = NewMixedFieldRulesClient(tx.config)
+	tx.RequiredOptionalBytes = NewRequiredOptionalBytesClient(tx.config)
+	tx.RequiredOptionalNonString = NewRequiredOptionalNonStringClient(tx.config)
+	tx.RequiredOptionalString = NewRequiredOptionalStringClient(tx.config)
+	tx.RequiredPlainNonString = NewRequiredPlainNonStringClient(tx.config)
+	tx.RequiredString = NewRequiredStringClient(tx.config)
 	tx.ResidualCel = NewResidualCelClient(tx.config)
+	tx.StringByteBounds = NewStringByteBoundsClient(tx.config)
+	tx.StringCodePointBounds = NewStringCodePointBoundsClient(tx.config)
+	tx.StringFormatEmail = NewStringFormatEmailClient(tx.config)
+	tx.StringFormatHostname = NewStringFormatHostnameClient(tx.config)
+	tx.StringFormatIp = NewStringFormatIpClient(tx.config)
+	tx.StringFormatUri = NewStringFormatUriClient(tx.config)
+	tx.StringFormatUuid = NewStringFormatUuidClient(tx.config)
+	tx.StringFormatWithSibling = NewStringFormatWithSiblingClient(tx.config)
+	tx.StringPattern = NewStringPatternClient(tx.config)
 }
 
 // txDriver wraps the given dialect.Tx with a nop dialect.Driver implementation.
@@ -161,7 +218,7 @@ func (tx *Tx) init() {
 // of them in order to commit or rollback the transaction.
 //
 // If a closed transaction is embedded in one of the generated entities, and the entity
-// applies a query, for example: MessageRules.QueryXXX(), the query will be executed
+// applies a query, for example: DoubleComparators.QueryXXX(), the query will be executed
 // through the driver which created this transaction.
 //
 // Note that txDriver is not goroutine safe.

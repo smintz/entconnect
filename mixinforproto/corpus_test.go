@@ -391,16 +391,16 @@ var corpusCoverage = map[string]string{
 	// or exist purely to prove a schema-load property with no field-level
 	// shape of its own interest — named tests, per this map's own
 	// documented convention above.
-	"mixinforprototest.v1.MessageRuleOk":          "golden:messagerules_ok",
-	"mixinforprototest.v1.MessageRuleExcludedRef": "golden:messagerules_excluded_ref",
+	"mixinforprototest.v1.MessageRuleOk":              "golden:messagerules_ok",
+	"mixinforprototest.v1.MessageRuleExcludedRef":     "golden:messagerules_excluded_ref",
 	"mixinforprototest.v1.MessageRuleTwoExcludedRefs": "test:TestBuildHookState_MessageRuleTwoExcludedRefsFailsInOnePass",
 	// MessageRuleDetail is a reference-only type (MessageRuleUnderivableRef's
 	// message-typed "detail" field value, deliberately never AsJSON-opted-in) —
 	// its role is exercised indirectly through MessageRuleUnderivableRef's own test.
-	"mixinforprototest.v1.MessageRuleDetail":           "test:TestBuildHookState_MessageRuleUnderivableRefFailsSchemaLoad",
-	"mixinforprototest.v1.MessageRuleUnderivableRef":   "test:TestBuildHookState_MessageRuleUnderivableRefFailsSchemaLoad",
-	"mixinforprototest.v1.MessageRuleNone":             "test:TestBuildHookState_MessageRuleNoneIsLegalNoOp",
-	"mixinforprototest.v1.MessageRuleLookalike":        "test:TestBuildHookState_MessageRuleLookalikeDoesNotFalsePositive",
+	"mixinforprototest.v1.MessageRuleDetail":         "test:TestBuildHookState_MessageRuleUnderivableRefFailsSchemaLoad",
+	"mixinforprototest.v1.MessageRuleUnderivableRef": "test:TestBuildHookState_MessageRuleUnderivableRefFailsSchemaLoad",
+	"mixinforprototest.v1.MessageRuleNone":           "test:TestBuildHookState_MessageRuleNoneIsLegalNoOp",
+	"mixinforprototest.v1.MessageRuleLookalike":      "test:TestBuildHookState_MessageRuleLookalikeDoesNotFalsePositive",
 }
 
 // TestCorpusMessagesHaveRecordedCoverage checks corpusCoverage in BOTH

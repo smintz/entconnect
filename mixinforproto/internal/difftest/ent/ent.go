@@ -12,9 +12,28 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
+	"github.com/smintz/entconnect/mixinforproto/internal/difftest/ent/doublecomparators"
+	"github.com/smintz/entconnect/mixinforproto/internal/difftest/ent/floatcomparators"
+	"github.com/smintz/entconnect/mixinforproto/internal/difftest/ent/int32adjacent"
+	"github.com/smintz/entconnect/mixinforproto/internal/difftest/ent/int32comparators"
+	"github.com/smintz/entconnect/mixinforproto/internal/difftest/ent/int32overflow"
 	"github.com/smintz/entconnect/mixinforproto/internal/difftest/ent/messagerules"
 	"github.com/smintz/entconnect/mixinforproto/internal/difftest/ent/mixedfieldrules"
+	"github.com/smintz/entconnect/mixinforproto/internal/difftest/ent/requiredoptionalbytes"
+	"github.com/smintz/entconnect/mixinforproto/internal/difftest/ent/requiredoptionalnonstring"
+	"github.com/smintz/entconnect/mixinforproto/internal/difftest/ent/requiredoptionalstring"
+	"github.com/smintz/entconnect/mixinforproto/internal/difftest/ent/requiredplainnonstring"
+	"github.com/smintz/entconnect/mixinforproto/internal/difftest/ent/requiredstring"
 	"github.com/smintz/entconnect/mixinforproto/internal/difftest/ent/residualcel"
+	"github.com/smintz/entconnect/mixinforproto/internal/difftest/ent/stringbytebounds"
+	"github.com/smintz/entconnect/mixinforproto/internal/difftest/ent/stringcodepointbounds"
+	"github.com/smintz/entconnect/mixinforproto/internal/difftest/ent/stringformatemail"
+	"github.com/smintz/entconnect/mixinforproto/internal/difftest/ent/stringformathostname"
+	"github.com/smintz/entconnect/mixinforproto/internal/difftest/ent/stringformatip"
+	"github.com/smintz/entconnect/mixinforproto/internal/difftest/ent/stringformaturi"
+	"github.com/smintz/entconnect/mixinforproto/internal/difftest/ent/stringformatuuid"
+	"github.com/smintz/entconnect/mixinforproto/internal/difftest/ent/stringformatwithsibling"
+	"github.com/smintz/entconnect/mixinforproto/internal/difftest/ent/stringpattern"
 )
 
 // ent aliases to avoid import conflicts in user's code.
@@ -75,9 +94,28 @@ var (
 func checkColumn(t, c string) error {
 	initCheck.Do(func() {
 		columnCheck = sql.NewColumnCheck(map[string]func(string) bool{
-			messagerules.Table:    messagerules.ValidColumn,
-			mixedfieldrules.Table: mixedfieldrules.ValidColumn,
-			residualcel.Table:     residualcel.ValidColumn,
+			doublecomparators.Table:         doublecomparators.ValidColumn,
+			floatcomparators.Table:          floatcomparators.ValidColumn,
+			int32adjacent.Table:             int32adjacent.ValidColumn,
+			int32comparators.Table:          int32comparators.ValidColumn,
+			int32overflow.Table:             int32overflow.ValidColumn,
+			messagerules.Table:              messagerules.ValidColumn,
+			mixedfieldrules.Table:           mixedfieldrules.ValidColumn,
+			requiredoptionalbytes.Table:     requiredoptionalbytes.ValidColumn,
+			requiredoptionalnonstring.Table: requiredoptionalnonstring.ValidColumn,
+			requiredoptionalstring.Table:    requiredoptionalstring.ValidColumn,
+			requiredplainnonstring.Table:    requiredplainnonstring.ValidColumn,
+			requiredstring.Table:            requiredstring.ValidColumn,
+			residualcel.Table:               residualcel.ValidColumn,
+			stringbytebounds.Table:          stringbytebounds.ValidColumn,
+			stringcodepointbounds.Table:     stringcodepointbounds.ValidColumn,
+			stringformatemail.Table:         stringformatemail.ValidColumn,
+			stringformathostname.Table:      stringformathostname.ValidColumn,
+			stringformatip.Table:            stringformatip.ValidColumn,
+			stringformaturi.Table:           stringformaturi.ValidColumn,
+			stringformatuuid.Table:          stringformatuuid.ValidColumn,
+			stringformatwithsibling.Table:   stringformatwithsibling.ValidColumn,
+			stringpattern.Table:             stringpattern.ValidColumn,
 		})
 	})
 	return columnCheck(t, c)

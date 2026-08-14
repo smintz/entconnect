@@ -13,7 +13,6 @@ package difftest
 import (
 	"context"
 	stdsql "database/sql"
-	"errors"
 	"fmt"
 	"sync/atomic"
 
@@ -100,14 +99,30 @@ func (d *fakeDriver) Query(_ context.Context, _ string, _, v any) error {
 	return nil
 }
 
-// Tx implements dialect.Driver. Never called by this harness's edge-free
-// schema (dialect/sql/sqlgraph's creator uses dialect.NopTx(drv) instead
-// whenever hasExternalEdges is false), so this is a named, descriptive
-// error rather than a working implementation — a future plan adding
-// edges to this harness's schema would need to implement this for real,
-// and this error is exactly what would tell it so.
+// Tx implements dialect.Driver. dialect/sql/sqlgraph's UpdateNode (the
+// single-entity UpdateOneID(id).Save(ctx) path — as opposed to
+// UpdateNodes, the bulk Update().Where(...).Save(ctx) path 03-03's
+// hybrid_test.go already exercises) calls drv.Tx(ctx) UNCONDITIONALLY,
+// regardless of whether the schema has any edges at all (verified this
+// session against entgo.io/ent@v0.14.6/dialect/sql/sqlgraph/graph.go's
+// UpdateNode, which is not gated by hasExternalEdges the way the
+// creator's/bulk updater's OWN mayTx helpers are). Plan 03-05 Task 3's
+// differential sweep drives UpdateOneID generically via reflection (no
+// per-type Where predicate needed), so this can no longer be a
+// descriptive not-implemented error the way it was when only
+// hybrid_test.go's Where-based bulk Update existed.
+//
+// dialect.NopTx(d) is the exact, real, exported ent helper edge-free
+// dialect/sql/sqlgraph code already uses for itself in every OTHER
+// Tx-needing path this harness reaches (creator.mayTx, updater's own
+// bulk-edge helpers) — a Tx wrapper whose Commit/Rollback are no-ops and
+// whose Exec/Query delegate straight through to the underlying driver.
+// Returning it here is not a new behavior invented for this harness; it
+// is the same "no edges, no real transaction needed" answer dialect/sql/
+// sqlgraph gives itself everywhere else, applied to the one call site
+// (UpdateNode) that does not ask first.
 func (d *fakeDriver) Tx(_ context.Context) (dialect.Tx, error) {
-	return nil, errors.New("difftest: fakeDriver.Tx: not implemented — not needed for this edge-free, hook-only harness")
+	return dialect.NopTx(d), nil
 }
 
 // Close implements dialect.Driver.

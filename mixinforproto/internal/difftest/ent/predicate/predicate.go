@@ -6,11 +6,68 @@ import (
 	"entgo.io/ent/dialect/sql"
 )
 
+// DoubleComparators is the predicate function for doublecomparators builders.
+type DoubleComparators func(*sql.Selector)
+
+// FloatComparators is the predicate function for floatcomparators builders.
+type FloatComparators func(*sql.Selector)
+
+// Int32Adjacent is the predicate function for int32adjacent builders.
+type Int32Adjacent func(*sql.Selector)
+
+// Int32Comparators is the predicate function for int32comparators builders.
+type Int32Comparators func(*sql.Selector)
+
+// Int32Overflow is the predicate function for int32overflow builders.
+type Int32Overflow func(*sql.Selector)
+
 // MessageRules is the predicate function for messagerules builders.
 type MessageRules func(*sql.Selector)
 
 // MixedFieldRules is the predicate function for mixedfieldrules builders.
 type MixedFieldRules func(*sql.Selector)
 
+// RequiredOptionalBytes is the predicate function for requiredoptionalbytes builders.
+type RequiredOptionalBytes func(*sql.Selector)
+
+// RequiredOptionalNonString is the predicate function for requiredoptionalnonstring builders.
+type RequiredOptionalNonString func(*sql.Selector)
+
+// RequiredOptionalString is the predicate function for requiredoptionalstring builders.
+type RequiredOptionalString func(*sql.Selector)
+
+// RequiredPlainNonString is the predicate function for requiredplainnonstring builders.
+type RequiredPlainNonString func(*sql.Selector)
+
+// RequiredString is the predicate function for requiredstring builders.
+type RequiredString func(*sql.Selector)
+
 // ResidualCel is the predicate function for residualcel builders.
 type ResidualCel func(*sql.Selector)
+
+// StringByteBounds is the predicate function for stringbytebounds builders.
+type StringByteBounds func(*sql.Selector)
+
+// StringCodePointBounds is the predicate function for stringcodepointbounds builders.
+type StringCodePointBounds func(*sql.Selector)
+
+// StringFormatEmail is the predicate function for stringformatemail builders.
+type StringFormatEmail func(*sql.Selector)
+
+// StringFormatHostname is the predicate function for stringformathostname builders.
+type StringFormatHostname func(*sql.Selector)
+
+// StringFormatIp is the predicate function for stringformatip builders.
+type StringFormatIp func(*sql.Selector)
+
+// StringFormatUri is the predicate function for stringformaturi builders.
+type StringFormatUri func(*sql.Selector)
+
+// StringFormatUuid is the predicate function for stringformatuuid builders.
+type StringFormatUuid func(*sql.Selector)
+
+// StringFormatWithSibling is the predicate function for stringformatwithsibling builders.
+type StringFormatWithSibling func(*sql.Selector)
+
+// StringPattern is the predicate function for stringpattern builders.
+type StringPattern func(*sql.Selector)
