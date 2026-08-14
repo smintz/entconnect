@@ -14,7 +14,7 @@ entconnect inverts entproto's generation direction: a protobuf contract drives e
 Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: MixinForProto Core** - Contract-derived ent fields, provenance annotations, Tier 1 validation, and the two-module CI scaffold
-- [ ] **Phase 2: CRUD Handlers & Interceptor Chain** - Generated Get/List/Create/Update/Delete Connect handlers with FieldMask-gated updates and a fixed, privacy-aware interceptor chain
+- [x] **Phase 2: CRUD Handlers & Interceptor Chain** - Generated Get/List/Create/Update/Delete Connect handlers with FieldMask-gated updates and a fixed, privacy-aware interceptor chain
 - [ ] **Phase 3: Validation Fidelity** - Tier 2/3 CEL passthrough, structured schema-layer errors, and a differential validation harness
 - [ ] **Phase 4: Flow Binding** - RPC-to-flow matching, generated flow-bound handlers, and long-running run status
 - [ ] **Phase 5: Full Drift Check & Reference App** - Bidirectional drift checking and an end-to-end reference application proving the canonical pipeline
@@ -91,21 +91,21 @@ Plans:
 > builds. See `.planning/phases/02-crud-handlers-interceptor-chain/02-RESEARCH.md` §Summary and
 > Pitfall 1.
 
-**Plans**: 5 plans
+**Plans**: 5/5 plans executed
 Plans:
 **Wave 1**
 
-- [ ] 02-01-PLAN.md — Tracer: one entity, one Get RPC, contract to descriptor to emitted handler to a real Connect response through the fixed chain
+- [x] 02-01-PLAN.md — Tracer: one entity, one Get RPC, contract to descriptor to emitted handler to a real Connect response through the fixed chain
 
 **Wave 2** *(blocked on Wave 1 completion; three parallel plans, disjoint files)*
 
-- [ ] 02-02-PLAN.md — Create and Delete handlers against the ent client, with mutation-shaped error mapping
-- [ ] 02-03-PLAN.md — List with hand-emitted keyset paging and the fingerprinted page token, plus the CRUD-03 requirement-text correction
-- [ ] 02-04-PLAN.md — FieldMask-gated Update, validated at build time against descriptor and Phase 1 provenance and at request time against the live message
+- [x] 02-02-PLAN.md — Create and Delete handlers against the ent client, with mutation-shaped error mapping
+- [x] 02-03-PLAN.md — List with hand-emitted keyset paging and the fingerprinted page token, plus the CRUD-03 requirement-text correction
+- [x] 02-04-PLAN.md — FieldMask-gated Update, validated at build time against descriptor and Phase 1 provenance and at request time against the live message
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
-- [ ] 02-05-PLAN.md — Manual escape hatch inside the generated chain, the deterministic claims report and duplicate-claim gate, and golden/byte-stability CI hardening
+- [x] 02-05-PLAN.md — Manual escape hatch inside the generated chain, the deterministic claims report and duplicate-claim gate, and golden/byte-stability CI hardening
 
 ### Phase 3: Validation Fidelity
 
