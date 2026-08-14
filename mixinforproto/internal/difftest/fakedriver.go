@@ -53,14 +53,37 @@ func newFakeDriver(dialectName string) *fakeDriver {
 	return d
 }
 
-// Exec implements dialect.ExecQuerier. See the type doc comment: never
-// reached by the mutations this harness drives (no edges, no
-// MySQL-style LAST_INSERT_ID path), kept as a real no-op rather than an
-// error so a future plan extending this harness does not trip over it
-// unnecessarily.
-func (d *fakeDriver) Exec(_ context.Context, _ string, _, _ any) error {
+// Exec implements dialect.ExecQuerier. Plan 03-01/03-02's Create-only
+// harness never reached this with a real scan target (no edges, no
+// MySQL-style LAST_INSERT_ID path — Create's insertLastID goes through
+// Query instead, see fakeDriver's own type doc comment). Plan 03-03 adds
+// real Update() coverage (hybrid_test.go's D-06/Pitfall 4 tests), and
+// dialect/sql/sqlgraph's updateTable unconditionally calls
+// res.RowsAffected() on whatever *entsql.Result Exec populates
+// (graph.go:1283-1284) — a nil sql.Result interface there panics on the
+// method call, not merely returns a wrong count. When v is a
+// *entsql.Result, this reports exactly one row affected: every mutation
+// this harness drives targets exactly one entity by primary key.
+func (d *fakeDriver) Exec(_ context.Context, _ string, _, v any) error {
+	if res, ok := v.(*entsql.Result); ok {
+		*res = fakeResult{rowsAffected: 1}
+	}
 	return nil
 }
+
+// fakeResult is the database/sql.Result (aliased entsql.Result) this
+// harness's Update path needs: dialect/sql/sqlgraph's updateTable calls
+// RowsAffected() unconditionally after every non-empty UPDATE statement.
+// LastInsertId is never called on this path (that is Create's
+// insertLastID, which never reaches Exec for this harness's non-MySQL
+// dialect — see fakeDriver.Query's own doc comment) but is implemented
+// for completeness and to satisfy the entsql.Result interface.
+type fakeResult struct{ rowsAffected int64 }
+
+func (r fakeResult) LastInsertId() (int64, error) { return 0, nil }
+func (r fakeResult) RowsAffected() (int64, error) { return r.rowsAffected, nil }
+
+var _ entsql.Result = fakeResult{}
 
 // Query implements dialect.ExecQuerier. v is always a *entsql.Rows for
 // every code path this harness exercises (dialect/sql/sqlgraph's

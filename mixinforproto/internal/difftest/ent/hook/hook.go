@@ -9,6 +9,18 @@ import (
 	"github.com/smintz/entconnect/mixinforproto/internal/difftest/ent"
 )
 
+// The MixedFieldRulesFunc type is an adapter to allow the use of ordinary
+// function as MixedFieldRules mutator.
+type MixedFieldRulesFunc func(context.Context, *ent.MixedFieldRulesMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f MixedFieldRulesFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.MixedFieldRulesMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.MixedFieldRulesMutation", m)
+}
+
 // The ResidualCelFunc type is an adapter to allow the use of ordinary
 // function as ResidualCel mutator.
 type ResidualCelFunc func(context.Context, *ent.ResidualCelMutation) (ent.Value, error)

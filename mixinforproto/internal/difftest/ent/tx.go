@@ -12,6 +12,8 @@ import (
 // Tx is a transactional client that is created by calling Client.Tx().
 type Tx struct {
 	config
+	// MixedFieldRules is the client for interacting with the MixedFieldRules builders.
+	MixedFieldRules *MixedFieldRulesClient
 	// ResidualCel is the client for interacting with the ResidualCel builders.
 	ResidualCel *ResidualCelClient
 
@@ -145,6 +147,7 @@ func (tx *Tx) Client() *Client {
 }
 
 func (tx *Tx) init() {
+	tx.MixedFieldRules = NewMixedFieldRulesClient(tx.config)
 	tx.ResidualCel = NewResidualCelClient(tx.config)
 }
 
@@ -155,7 +158,7 @@ func (tx *Tx) init() {
 // of them in order to commit or rollback the transaction.
 //
 // If a closed transaction is embedded in one of the generated entities, and the entity
-// applies a query, for example: ResidualCel.QueryXXX(), the query will be executed
+// applies a query, for example: MixedFieldRules.QueryXXX(), the query will be executed
 // through the driver which created this transaction.
 //
 // Note that txDriver is not goroutine safe.

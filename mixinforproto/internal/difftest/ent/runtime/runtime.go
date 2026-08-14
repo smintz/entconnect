@@ -3,6 +3,7 @@
 package runtime
 
 import (
+	"github.com/smintz/entconnect/mixinforproto/internal/difftest/ent/mixedfieldrules"
 	"github.com/smintz/entconnect/mixinforproto/internal/difftest/ent/residualcel"
 	"github.com/smintz/entconnect/mixinforproto/internal/difftest/ent/schema"
 )
@@ -11,6 +12,29 @@ import (
 // (default values, validators, hooks and policies) and stitches it
 // to their package variables.
 func init() {
+	mixedfieldrulesMixin := schema.MixedFieldRules{}.Mixin()
+	mixedfieldrulesMixinHooks0 := mixedfieldrulesMixin[0].Hooks()
+	mixedfieldrules.Hooks[0] = mixedfieldrulesMixinHooks0[0]
+	mixedfieldrulesMixinFields0 := mixedfieldrulesMixin[0].Fields()
+	_ = mixedfieldrulesMixinFields0
+	mixedfieldrulesFields := schema.MixedFieldRules{}.Fields()
+	_ = mixedfieldrulesFields
+	// mixedfieldrulesDescBoth is the schema descriptor for both field.
+	mixedfieldrulesDescBoth := mixedfieldrulesMixinFields0[0].Descriptor()
+	// mixedfieldrules.DefaultBoth holds the default value on creation for the both field.
+	mixedfieldrules.DefaultBoth = mixedfieldrulesDescBoth.Default.(string)
+	// mixedfieldrules.BothValidator is a validator for the "both" field. It is called by the builders before save.
+	mixedfieldrules.BothValidator = mixedfieldrulesDescBoth.Validators[0].(func(string) error)
+	// mixedfieldrulesDescStandardOnly is the schema descriptor for standard_only field.
+	mixedfieldrulesDescStandardOnly := mixedfieldrulesMixinFields0[1].Descriptor()
+	// mixedfieldrules.DefaultStandardOnly holds the default value on creation for the standard_only field.
+	mixedfieldrules.DefaultStandardOnly = mixedfieldrulesDescStandardOnly.Default.(string)
+	// mixedfieldrules.StandardOnlyValidator is a validator for the "standard_only" field. It is called by the builders before save.
+	mixedfieldrules.StandardOnlyValidator = mixedfieldrulesDescStandardOnly.Validators[0].(func(string) error)
+	// mixedfieldrulesDescCelOnly is the schema descriptor for cel_only field.
+	mixedfieldrulesDescCelOnly := mixedfieldrulesMixinFields0[2].Descriptor()
+	// mixedfieldrules.DefaultCelOnly holds the default value on creation for the cel_only field.
+	mixedfieldrules.DefaultCelOnly = mixedfieldrulesDescCelOnly.Default.(string)
 	residualcelMixin := schema.ResidualCel{}.Mixin()
 	residualcelMixinHooks0 := residualcelMixin[0].Hooks()
 	residualcel.Hooks[0] = residualcelMixinHooks0[0]

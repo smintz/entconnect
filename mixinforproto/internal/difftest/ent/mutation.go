@@ -10,6 +10,7 @@ import (
 
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
+	"github.com/smintz/entconnect/mixinforproto/internal/difftest/ent/mixedfieldrules"
 	"github.com/smintz/entconnect/mixinforproto/internal/difftest/ent/predicate"
 	"github.com/smintz/entconnect/mixinforproto/internal/difftest/ent/residualcel"
 )
@@ -23,8 +24,443 @@ const (
 	OpUpdateOne = ent.OpUpdateOne
 
 	// Node types.
-	TypeResidualCel = "ResidualCel"
+	TypeMixedFieldRules = "MixedFieldRules"
+	TypeResidualCel     = "ResidualCel"
 )
+
+// MixedFieldRulesMutation represents an operation that mutates the MixedFieldRules nodes in the graph.
+type MixedFieldRulesMutation struct {
+	config
+	op            Op
+	typ           string
+	id            *int
+	both          *string
+	standard_only *string
+	cel_only      *string
+	clearedFields map[string]struct{}
+	done          bool
+	oldValue      func(context.Context) (*MixedFieldRules, error)
+	predicates    []predicate.MixedFieldRules
+}
+
+var _ ent.Mutation = (*MixedFieldRulesMutation)(nil)
+
+// mixedfieldrulesOption allows management of the mutation configuration using functional options.
+type mixedfieldrulesOption func(*MixedFieldRulesMutation)
+
+// newMixedFieldRulesMutation creates new mutation for the MixedFieldRules entity.
+func newMixedFieldRulesMutation(c config, op Op, opts ...mixedfieldrulesOption) *MixedFieldRulesMutation {
+	m := &MixedFieldRulesMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeMixedFieldRules,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withMixedFieldRulesID sets the ID field of the mutation.
+func withMixedFieldRulesID(id int) mixedfieldrulesOption {
+	return func(m *MixedFieldRulesMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *MixedFieldRules
+		)
+		m.oldValue = func(ctx context.Context) (*MixedFieldRules, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().MixedFieldRules.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withMixedFieldRules sets the old MixedFieldRules of the mutation.
+func withMixedFieldRules(node *MixedFieldRules) mixedfieldrulesOption {
+	return func(m *MixedFieldRulesMutation) {
+		m.oldValue = func(context.Context) (*MixedFieldRules, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m MixedFieldRulesMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m MixedFieldRulesMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *MixedFieldRulesMutation) ID() (id int, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *MixedFieldRulesMutation) IDs(ctx context.Context) ([]int, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []int{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().MixedFieldRules.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetBoth sets the "both" field.
+func (m *MixedFieldRulesMutation) SetBoth(s string) {
+	m.both = &s
+}
+
+// Both returns the value of the "both" field in the mutation.
+func (m *MixedFieldRulesMutation) Both() (r string, exists bool) {
+	v := m.both
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldBoth returns the old "both" field's value of the MixedFieldRules entity.
+// If the MixedFieldRules object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *MixedFieldRulesMutation) OldBoth(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldBoth is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldBoth requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldBoth: %w", err)
+	}
+	return oldValue.Both, nil
+}
+
+// ResetBoth resets all changes to the "both" field.
+func (m *MixedFieldRulesMutation) ResetBoth() {
+	m.both = nil
+}
+
+// SetStandardOnly sets the "standard_only" field.
+func (m *MixedFieldRulesMutation) SetStandardOnly(s string) {
+	m.standard_only = &s
+}
+
+// StandardOnly returns the value of the "standard_only" field in the mutation.
+func (m *MixedFieldRulesMutation) StandardOnly() (r string, exists bool) {
+	v := m.standard_only
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldStandardOnly returns the old "standard_only" field's value of the MixedFieldRules entity.
+// If the MixedFieldRules object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *MixedFieldRulesMutation) OldStandardOnly(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldStandardOnly is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldStandardOnly requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldStandardOnly: %w", err)
+	}
+	return oldValue.StandardOnly, nil
+}
+
+// ResetStandardOnly resets all changes to the "standard_only" field.
+func (m *MixedFieldRulesMutation) ResetStandardOnly() {
+	m.standard_only = nil
+}
+
+// SetCelOnly sets the "cel_only" field.
+func (m *MixedFieldRulesMutation) SetCelOnly(s string) {
+	m.cel_only = &s
+}
+
+// CelOnly returns the value of the "cel_only" field in the mutation.
+func (m *MixedFieldRulesMutation) CelOnly() (r string, exists bool) {
+	v := m.cel_only
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCelOnly returns the old "cel_only" field's value of the MixedFieldRules entity.
+// If the MixedFieldRules object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *MixedFieldRulesMutation) OldCelOnly(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCelOnly is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCelOnly requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCelOnly: %w", err)
+	}
+	return oldValue.CelOnly, nil
+}
+
+// ResetCelOnly resets all changes to the "cel_only" field.
+func (m *MixedFieldRulesMutation) ResetCelOnly() {
+	m.cel_only = nil
+}
+
+// Where appends a list predicates to the MixedFieldRulesMutation builder.
+func (m *MixedFieldRulesMutation) Where(ps ...predicate.MixedFieldRules) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the MixedFieldRulesMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *MixedFieldRulesMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.MixedFieldRules, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *MixedFieldRulesMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *MixedFieldRulesMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (MixedFieldRules).
+func (m *MixedFieldRulesMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *MixedFieldRulesMutation) Fields() []string {
+	fields := make([]string, 0, 3)
+	if m.both != nil {
+		fields = append(fields, mixedfieldrules.FieldBoth)
+	}
+	if m.standard_only != nil {
+		fields = append(fields, mixedfieldrules.FieldStandardOnly)
+	}
+	if m.cel_only != nil {
+		fields = append(fields, mixedfieldrules.FieldCelOnly)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *MixedFieldRulesMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case mixedfieldrules.FieldBoth:
+		return m.Both()
+	case mixedfieldrules.FieldStandardOnly:
+		return m.StandardOnly()
+	case mixedfieldrules.FieldCelOnly:
+		return m.CelOnly()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *MixedFieldRulesMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case mixedfieldrules.FieldBoth:
+		return m.OldBoth(ctx)
+	case mixedfieldrules.FieldStandardOnly:
+		return m.OldStandardOnly(ctx)
+	case mixedfieldrules.FieldCelOnly:
+		return m.OldCelOnly(ctx)
+	}
+	return nil, fmt.Errorf("unknown MixedFieldRules field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *MixedFieldRulesMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case mixedfieldrules.FieldBoth:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetBoth(v)
+		return nil
+	case mixedfieldrules.FieldStandardOnly:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetStandardOnly(v)
+		return nil
+	case mixedfieldrules.FieldCelOnly:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCelOnly(v)
+		return nil
+	}
+	return fmt.Errorf("unknown MixedFieldRules field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *MixedFieldRulesMutation) AddedFields() []string {
+	return nil
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *MixedFieldRulesMutation) AddedField(name string) (ent.Value, bool) {
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *MixedFieldRulesMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	}
+	return fmt.Errorf("unknown MixedFieldRules numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *MixedFieldRulesMutation) ClearedFields() []string {
+	return nil
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *MixedFieldRulesMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *MixedFieldRulesMutation) ClearField(name string) error {
+	return fmt.Errorf("unknown MixedFieldRules nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *MixedFieldRulesMutation) ResetField(name string) error {
+	switch name {
+	case mixedfieldrules.FieldBoth:
+		m.ResetBoth()
+		return nil
+	case mixedfieldrules.FieldStandardOnly:
+		m.ResetStandardOnly()
+		return nil
+	case mixedfieldrules.FieldCelOnly:
+		m.ResetCelOnly()
+		return nil
+	}
+	return fmt.Errorf("unknown MixedFieldRules field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *MixedFieldRulesMutation) AddedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *MixedFieldRulesMutation) AddedIDs(name string) []ent.Value {
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *MixedFieldRulesMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *MixedFieldRulesMutation) RemovedIDs(name string) []ent.Value {
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *MixedFieldRulesMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *MixedFieldRulesMutation) EdgeCleared(name string) bool {
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *MixedFieldRulesMutation) ClearEdge(name string) error {
+	return fmt.Errorf("unknown MixedFieldRules unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *MixedFieldRulesMutation) ResetEdge(name string) error {
+	return fmt.Errorf("unknown MixedFieldRules edge %s", name)
+}
 
 // ResidualCelMutation represents an operation that mutates the ResidualCel nodes in the graph.
 type ResidualCelMutation struct {

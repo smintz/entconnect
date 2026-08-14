@@ -8,6 +8,19 @@ import (
 )
 
 var (
+	// MixedFieldRulesColumns holds the columns for the "mixed_field_rules" table.
+	MixedFieldRulesColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "both", Type: field.TypeString, Default: ""},
+		{Name: "standard_only", Type: field.TypeString, Default: ""},
+		{Name: "cel_only", Type: field.TypeString, Default: ""},
+	}
+	// MixedFieldRulesTable holds the schema information for the "mixed_field_rules" table.
+	MixedFieldRulesTable = &schema.Table{
+		Name:       "mixed_field_rules",
+		Columns:    MixedFieldRulesColumns,
+		PrimaryKey: []*schema.Column{MixedFieldRulesColumns[0]},
+	}
 	// ResidualCelsColumns holds the columns for the "residual_cels" table.
 	ResidualCelsColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt, Increment: true},
@@ -21,6 +34,7 @@ var (
 	}
 	// Tables holds all the tables in the schema.
 	Tables = []*schema.Table{
+		MixedFieldRulesTable,
 		ResidualCelsTable,
 	}
 )

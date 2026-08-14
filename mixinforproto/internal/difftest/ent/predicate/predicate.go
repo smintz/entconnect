@@ -6,5 +6,8 @@ import (
 	"entgo.io/ent/dialect/sql"
 )
 
+// MixedFieldRules is the predicate function for mixedfieldrules builders.
+type MixedFieldRules func(*sql.Selector)
+
 // ResidualCel is the predicate function for residualcel builders.
 type ResidualCel func(*sql.Selector)

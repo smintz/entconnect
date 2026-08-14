@@ -14,6 +14,7 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect"
 	"entgo.io/ent/dialect/sql"
+	"github.com/smintz/entconnect/mixinforproto/internal/difftest/ent/mixedfieldrules"
 	"github.com/smintz/entconnect/mixinforproto/internal/difftest/ent/residualcel"
 )
 
@@ -22,6 +23,8 @@ type Client struct {
 	config
 	// Schema is the client for creating, migrating and dropping schema.
 	Schema *migrate.Schema
+	// MixedFieldRules is the client for interacting with the MixedFieldRules builders.
+	MixedFieldRules *MixedFieldRulesClient
 	// ResidualCel is the client for interacting with the ResidualCel builders.
 	ResidualCel *ResidualCelClient
 }
@@ -35,6 +38,7 @@ func NewClient(opts ...Option) *Client {
 
 func (c *Client) init() {
 	c.Schema = migrate.NewSchema(c.driver)
+	c.MixedFieldRules = NewMixedFieldRulesClient(c.config)
 	c.ResidualCel = NewResidualCelClient(c.config)
 }
 
@@ -126,9 +130,10 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 	cfg := c.config
 	cfg.driver = tx
 	return &Tx{
-		ctx:         ctx,
-		config:      cfg,
-		ResidualCel: NewResidualCelClient(cfg),
+		ctx:             ctx,
+		config:          cfg,
+		MixedFieldRules: NewMixedFieldRulesClient(cfg),
+		ResidualCel:     NewResidualCelClient(cfg),
 	}, nil
 }
 
@@ -146,16 +151,17 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 	cfg := c.config
 	cfg.driver = &txDriver{tx: tx, drv: c.driver}
 	return &Tx{
-		ctx:         ctx,
-		config:      cfg,
-		ResidualCel: NewResidualCelClient(cfg),
+		ctx:             ctx,
+		config:          cfg,
+		MixedFieldRules: NewMixedFieldRulesClient(cfg),
+		ResidualCel:     NewResidualCelClient(cfg),
 	}, nil
 }
 
 // Debug returns a new debug-client. It's used to get verbose logging on specific operations.
 //
 //	client.Debug().
-//		ResidualCel.
+//		MixedFieldRules.
 //		Query().
 //		Count(ctx)
 func (c *Client) Debug() *Client {
@@ -177,22 +183,160 @@ func (c *Client) Close() error {
 // Use adds the mutation hooks to all the entity clients.
 // In order to add hooks to a specific client, call: `client.Node.Use(...)`.
 func (c *Client) Use(hooks ...Hook) {
+	c.MixedFieldRules.Use(hooks...)
 	c.ResidualCel.Use(hooks...)
 }
 
 // Intercept adds the query interceptors to all the entity clients.
 // In order to add interceptors to a specific client, call: `client.Node.Intercept(...)`.
 func (c *Client) Intercept(interceptors ...Interceptor) {
+	c.MixedFieldRules.Intercept(interceptors...)
 	c.ResidualCel.Intercept(interceptors...)
 }
 
 // Mutate implements the ent.Mutator interface.
 func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 	switch m := m.(type) {
+	case *MixedFieldRulesMutation:
+		return c.MixedFieldRules.mutate(ctx, m)
 	case *ResidualCelMutation:
 		return c.ResidualCel.mutate(ctx, m)
 	default:
 		return nil, fmt.Errorf("ent: unknown mutation type %T", m)
+	}
+}
+
+// MixedFieldRulesClient is a client for the MixedFieldRules schema.
+type MixedFieldRulesClient struct {
+	config
+}
+
+// NewMixedFieldRulesClient returns a client for the MixedFieldRules from the given config.
+func NewMixedFieldRulesClient(c config) *MixedFieldRulesClient {
+	return &MixedFieldRulesClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `mixedfieldrules.Hooks(f(g(h())))`.
+func (c *MixedFieldRulesClient) Use(hooks ...Hook) {
+	c.hooks.MixedFieldRules = append(c.hooks.MixedFieldRules, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `mixedfieldrules.Intercept(f(g(h())))`.
+func (c *MixedFieldRulesClient) Intercept(interceptors ...Interceptor) {
+	c.inters.MixedFieldRules = append(c.inters.MixedFieldRules, interceptors...)
+}
+
+// Create returns a builder for creating a MixedFieldRules entity.
+func (c *MixedFieldRulesClient) Create() *MixedFieldRulesCreate {
+	mutation := newMixedFieldRulesMutation(c.config, OpCreate)
+	return &MixedFieldRulesCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of MixedFieldRules entities.
+func (c *MixedFieldRulesClient) CreateBulk(builders ...*MixedFieldRulesCreate) *MixedFieldRulesCreateBulk {
+	return &MixedFieldRulesCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *MixedFieldRulesClient) MapCreateBulk(slice any, setFunc func(*MixedFieldRulesCreate, int)) *MixedFieldRulesCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &MixedFieldRulesCreateBulk{err: fmt.Errorf("calling to MixedFieldRulesClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*MixedFieldRulesCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &MixedFieldRulesCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for MixedFieldRules.
+func (c *MixedFieldRulesClient) Update() *MixedFieldRulesUpdate {
+	mutation := newMixedFieldRulesMutation(c.config, OpUpdate)
+	return &MixedFieldRulesUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *MixedFieldRulesClient) UpdateOne(_m *MixedFieldRules) *MixedFieldRulesUpdateOne {
+	mutation := newMixedFieldRulesMutation(c.config, OpUpdateOne, withMixedFieldRules(_m))
+	return &MixedFieldRulesUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *MixedFieldRulesClient) UpdateOneID(id int) *MixedFieldRulesUpdateOne {
+	mutation := newMixedFieldRulesMutation(c.config, OpUpdateOne, withMixedFieldRulesID(id))
+	return &MixedFieldRulesUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for MixedFieldRules.
+func (c *MixedFieldRulesClient) Delete() *MixedFieldRulesDelete {
+	mutation := newMixedFieldRulesMutation(c.config, OpDelete)
+	return &MixedFieldRulesDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *MixedFieldRulesClient) DeleteOne(_m *MixedFieldRules) *MixedFieldRulesDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *MixedFieldRulesClient) DeleteOneID(id int) *MixedFieldRulesDeleteOne {
+	builder := c.Delete().Where(mixedfieldrules.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &MixedFieldRulesDeleteOne{builder}
+}
+
+// Query returns a query builder for MixedFieldRules.
+func (c *MixedFieldRulesClient) Query() *MixedFieldRulesQuery {
+	return &MixedFieldRulesQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeMixedFieldRules},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a MixedFieldRules entity by its id.
+func (c *MixedFieldRulesClient) Get(ctx context.Context, id int) (*MixedFieldRules, error) {
+	return c.Query().Where(mixedfieldrules.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *MixedFieldRulesClient) GetX(ctx context.Context, id int) *MixedFieldRules {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *MixedFieldRulesClient) Hooks() []Hook {
+	hooks := c.hooks.MixedFieldRules
+	return append(hooks[:len(hooks):len(hooks)], mixedfieldrules.Hooks[:]...)
+}
+
+// Interceptors returns the client interceptors.
+func (c *MixedFieldRulesClient) Interceptors() []Interceptor {
+	return c.inters.MixedFieldRules
+}
+
+func (c *MixedFieldRulesClient) mutate(ctx context.Context, m *MixedFieldRulesMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&MixedFieldRulesCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&MixedFieldRulesUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&MixedFieldRulesUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&MixedFieldRulesDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown MixedFieldRules mutation op: %q", m.Op())
 	}
 }
 
@@ -333,9 +477,9 @@ func (c *ResidualCelClient) mutate(ctx context.Context, m *ResidualCelMutation) 
 // hooks and interceptors per client, for fast access.
 type (
 	hooks struct {
-		ResidualCel []ent.Hook
+		MixedFieldRules, ResidualCel []ent.Hook
 	}
 	inters struct {
-		ResidualCel []ent.Interceptor
+		MixedFieldRules, ResidualCel []ent.Interceptor
 	}
 )
