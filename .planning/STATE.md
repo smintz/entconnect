@@ -5,15 +5,15 @@ milestone_name: milestone
 current_phase: 03
 current_phase_name: validation-fidelity
 status: executing
-stopped_at: Phase 3 planned — 5 plans, 4 waves, checker blocker resolved
-last_updated: "2026-08-14T14:09:38.340Z"
+stopped_at: Completed 03-01-PLAN.md
+last_updated: "2026-08-14T15:22:38.507Z"
 last_activity: 2026-08-14
 last_activity_desc: Phase 02 marked complete
 progress:
   total_phases: 3
   completed_phases: 2
   total_plans: 19
-  completed_plans: 14
+  completed_plans: 15
 ---
 
 # Project State
@@ -28,11 +28,11 @@ See: .planning/PROJECT.md (updated 2026-08-08)
 ## Current Position
 
 Phase: 03 (validation-fidelity) — EXECUTING
-Plan: 1 of 5
-Status: Executing Phase 03
+Plan: 2 of 5
+Status: Ready to execute
 Last activity: 2026-08-14 — Phase 03 execution started
 
-Progress: [██████████] 100%
+Progress: [████████░░] 79%
 
 ## Performance Metrics
 
@@ -67,6 +67,7 @@ Progress: [██████████] 100%
 | Phase 01 P07 | 55min | 3 tasks | 5 files |
 | Phase 01 P08 | 25min | 3 tasks | 12 files |
 | Phase 01 P09 | 15min | 3 tasks | 2 files |
+| Phase 03 P01 | 55min | 3 tasks | 33 files |
 
 ## Accumulated Context
 
@@ -104,6 +105,9 @@ Recent decisions affecting current work:
 - [Phase ?]: Phase 01 Plan 08 (gap closure): regenerated the stale proto/mixinforprototest.binpb descriptor set and closed Broken Window 4 via gsd-tools windows fixed 4.
 - [Phase ?]: TestCorpusExercisesEveryRequiredResult additionally requires requiredExactPresence to be witnessed separately by a hasNotEmpty=true (string/bytes) and hasNotEmpty=false field — plain per-outcome existence stays green under gap 3's original branch order
 - [Phase ?]: corpusMessages() filters IsMapEntry() synthetic messages; Nested/Inner (reference-only proto types never derived directly) get test:TestGolden coverage claims rather than a standalone golden
+- [Phase ?]: Phase 03 Plan 01: mixinforproto's Hooks() implements only the residual-CEL half of D-07's hybrid evaluator this plan; the standard-rule half (D-02) is deferred to a later plan in the phase, per the tracer's thinnest-possible-slice mandate
+- [Phase ?]: Phase 03 Plan 01: Open Question 1 resolved empirically — ent's generated defaults() calls a Default()-bearing field's setter before any hook runs on Create, so mutation.Fields() already contains it; D-06's Create-side scope needs no Op() branch
+- [Phase ?]: Phase 03 Plan 01: cel-go's correct import path/version is github.com/google/cel-go v0.28.0 (not cel-expr/cel-go@v0.31.0) — CLAUDE.md, REQUIREMENTS.md VAL-05, and ROADMAP.md SC1 amended accordingly (D-16/D-06/D-02)
 
 ### Pending Todos
 
@@ -126,6 +130,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-08-14T13:51:18.635Z
-Stopped at: Phase 3 planned — 5 plans, 4 waves, checker blocker resolved
-Resume file: .planning/phases/03-validation-fidelity/03-01-PLAN.md
+Last session: 2026-08-14T15:22:38.481Z
+Stopped at: Completed 03-01-PLAN.md
+Resume file: None
