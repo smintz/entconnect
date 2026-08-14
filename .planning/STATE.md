@@ -5,15 +5,15 @@ milestone_name: milestone
 current_phase: 03
 current_phase_name: validation-fidelity
 status: executing
-stopped_at: Completed 03-01-PLAN.md
-last_updated: "2026-08-14T15:22:38.507Z"
+stopped_at: Completed 03-02-PLAN.md
+last_updated: "2026-08-14T16:03:59.420Z"
 last_activity: 2026-08-14
 last_activity_desc: Phase 02 marked complete
 progress:
   total_phases: 3
   completed_phases: 2
   total_plans: 19
-  completed_plans: 15
+  completed_plans: 16
 ---
 
 # Project State
@@ -28,11 +28,11 @@ See: .planning/PROJECT.md (updated 2026-08-08)
 ## Current Position
 
 Phase: 03 (validation-fidelity) — EXECUTING
-Plan: 2 of 5
+Plan: 3 of 5
 Status: Ready to execute
 Last activity: 2026-08-14 — Phase 03 execution started
 
-Progress: [████████░░] 79%
+Progress: [████████░░] 84%
 
 ## Performance Metrics
 
@@ -68,6 +68,7 @@ Progress: [████████░░] 79%
 | Phase 01 P08 | 25min | 3 tasks | 12 files |
 | Phase 01 P09 | 15min | 3 tasks | 2 files |
 | Phase 03 P01 | 55min | 3 tasks | 33 files |
+| Phase 03 P02 | 50min | 3 tasks | 22 files |
 
 ## Accumulated Context
 
@@ -108,6 +109,10 @@ Recent decisions affecting current work:
 - [Phase ?]: Phase 03 Plan 01: mixinforproto's Hooks() implements only the residual-CEL half of D-07's hybrid evaluator this plan; the standard-rule half (D-02) is deferred to a later plan in the phase, per the tracer's thinnest-possible-slice mandate
 - [Phase ?]: Phase 03 Plan 01: Open Question 1 resolved empirically — ent's generated defaults() calls a Default()-bearing field's setter before any hook runs on Create, so mutation.Fields() already contains it; D-06's Create-side scope needs no Op() branch
 - [Phase ?]: Phase 03 Plan 01: cel-go's correct import path/version is github.com/google/cel-go v0.28.0 (not cel-expr/cel-go@v0.31.0) — CLAUDE.md, REQUIREMENTS.md VAL-05, and ROADMAP.md SC1 amended accordingly (D-16/D-06/D-02)
+- [Phase ?]: Phase 03 Plan 02: google.protobuf.Value's protojson round trip works against the bare Value descriptor with no containing-message context — RESEARCH Assumption A3 resolved TRUE, closing the phase's second named risk concentration
+- [Phase ?]: Phase 03 Plan 02: an absent/unset ent value for optionalScalar, asJSON, wkt-Value, and wkt-Struct reports as an invalid protoreflect.Value (nil error), never a fabricated proto3 zero or empty message (D-03 phantom-violation class closed at the reverse-conversion layer)
+- [Phase ?]: Phase 03 Plan 02: scalarMap wire-level determinism requires proto.MarshalOptions{Deterministic: true} at marshal time — protobuf-go's generic Map deliberately randomizes Range/marshal iteration order (internal/detrand) regardless of insertion order
+- [Phase ?]: Phase 03 Plan 02: SourceMessage.BoundaryOnly (D-09's second half) records every protovalidate rule mixinforproto cannot enforce at the storage layer with a closed reason set (excluded/overridden/no-ent-field/unbindable), message-scoped so no pre-existing per-field golden fixture is touched
 
 ### Pending Todos
 
@@ -130,6 +135,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-08-14T15:22:38.481Z
-Stopped at: Completed 03-01-PLAN.md
+Last session: 2026-08-14T16:03:59.396Z
+Stopped at: Completed 03-02-PLAN.md
 Resume file: None

@@ -114,7 +114,7 @@ Requirements for the initial release (entconnect through v0.3: MixinForProto + C
 - [x] **PIPE-02**: A `go.work` file makes local development across both modules work, and a `GOWORK=off` CI job proves `mixinforproto` is consumable at its tagged version
 - [x] **PIPE-03**: CI enumerates and tests both modules explicitly rather than relying on `./...`
 - [x] **PIPE-04**: `mixinforproto` releases under `mixinforproto/vX.Y.Z` tags and carries no `replace` directives
-- [ ] **PIPE-05**: A conformance corpus covers every field-mapping rule and every protovalidate constraint class, golden-asserted against derived fields
+- [x] **PIPE-05**: A conformance corpus covers every field-mapping rule and every protovalidate constraint class, golden-asserted against derived fields
 - [x] **PIPE-06**: A differential harness generates random values per corpus message and asserts `protovalidate verdict == ent mutation verdict` for field-scoped rules
 - [ ] **PIPE-07**: A reference Order/Inventory application builds end-to-end through the full pipeline in CI, with connect-go client tests against generated handlers
 - [x] **PIPE-08**: `mixinforproto` ships with documentation covering the proto3 presence/zero-collapse behavior prominently enough that adopters meet it before it surprises them
@@ -215,7 +215,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | VAL-09 | Phase 3 | Pending |
 | VAL-10 | Phase 3 | Pending |
 | VAL-11 | Phase 3 | Pending |
-| PIPE-05 | Phase 3 | Pending |
+| PIPE-05 | Phase 3 | Complete |
 | PIPE-06 | Phase 3 | Complete |
 | FLOW-01 | Phase 4 | Pending |
 | FLOW-02 | Phase 4 | Pending |

@@ -121,7 +121,7 @@ Plans:
   4. CI fails when `mixinforproto`'s and `entconnect`'s resolved protovalidate/cel-go versions diverge
   5. A conformance corpus golden-asserts every field-mapping rule and protovalidate constraint class against derived fields, and a differential harness feeds random values through every corpus message asserting `protovalidate verdict == ent mutation verdict` for field-scoped rules
 
-**Plans**: 1/5 plans executed
+**Plans**: 2/5 plans executed
 Plans:
 **Wave 1**
 
@@ -129,7 +129,7 @@ Plans:
 
 **Wave 2** *(blocked on Wave 1)*
 
-- [ ] 03-02-PLAN.md — The reverse conversion table for every derivation kind, the JSON-to-`dynamicpb` leg as its own risk-isolated task, and D-09's boundary-only rule provenance on `SourceMessage`
+- [x] 03-02-PLAN.md — The reverse conversion table for every derivation kind, the JSON-to-`dynamicpb` leg as its own risk-isolated task, and D-09's boundary-only rule provenance on `SourceMessage`
 
 **Wave 3** *(blocked on Wave 2; two parallel plans, disjoint files)*
 
@@ -181,6 +181,6 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 |-------|----------------|--------|-----------|
 | 1. MixinForProto Core | 9/9 | In Progress|  |
 | 2. CRUD Handlers & Interceptor Chain | 0/5 | Planned | - |
-| 3. Validation Fidelity | 1/5 | In Progress|  |
+| 3. Validation Fidelity | 2/5 | In Progress|  |
 | 4. Flow Binding | 0/TBD | Not started | - |
 | 5. Full Drift Check & Reference App | 0/TBD | Not started | - |
