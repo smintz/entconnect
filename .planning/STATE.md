@@ -4,16 +4,16 @@ milestone: v1.0
 milestone_name: milestone
 current_phase: 03
 current_phase_name: validation-fidelity
-status: executing
-stopped_at: Completed 03-04-PLAN.md
-last_updated: "2026-08-14T17:11:56.079Z"
+status: verifying
+stopped_at: Completed 03-05-PLAN.md (final plan of phase 03-validation-fidelity)
+last_updated: "2026-08-14T18:05:34.261Z"
 last_activity: 2026-08-14
 last_activity_desc: Phase 02 marked complete
 progress:
   total_phases: 3
-  completed_phases: 2
+  completed_phases: 3
   total_plans: 19
-  completed_plans: 18
+  completed_plans: 19
 ---
 
 # Project State
@@ -29,10 +29,10 @@ See: .planning/PROJECT.md (updated 2026-08-08)
 
 Phase: 03 (validation-fidelity) — EXECUTING
 Plan: 5 of 5
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-08-14 — Phase 03 execution started
 
-Progress: [██████████] 95%
+Progress: [██████████] 100%
 
 ## Performance Metrics
 
@@ -71,6 +71,7 @@ Progress: [██████████] 95%
 | Phase 03 P02 | 50min | 3 tasks | 22 files |
 | Phase 03 P03 | 62min | 3 tasks | 22 files |
 | Phase 03-validation-fidelity P04 | 34min | 3 tasks | 48 files |
+| Phase 03 P05 | 51min | 3 tasks | 186 files |
 
 ## Accumulated Context
 
@@ -120,6 +121,9 @@ Recent decisions affecting current work:
 - [Phase ?]: Phase 03 Plan 03: hooks.go's standard-rule evaluator deliberately stays scoped to classScalar/classOptionalScalar fields (not extended to enum/wkt/scalarMap/asJSON despite reverse.go already supporting them) — a documented, tested-absent scope boundary for a later plan to close
 - [Phase ?]: Phase 03 Plan 04: VAL-09's ordering test asserts a relative marker sequence, never an index into ent's Hooks[] slice — Policed/Unpoliced fixture pair exists precisely to cover both privacy-wrapper-present and privacy-wrapper-absent configurations
 - [Phase ?]: Phase 03 Plan 04: check-dep-parity's module set is exactly D-15's five names, resolved independently per module via GOWORK=off go list -m; both pass and fail directions rehearsed in scratch copies, never the real tree
+- [Phase ?]: D-10's schema-load field-reference walk lives in buildHookState (hooks.go), not derive.go — reuses the existing failures/newDerivationError collected pattern
+- [Phase ?]: PIPE-05's constraint-class guard ground truth is scoped to rule categories actually populated in the live corpus (reflectively computed), not protovalidate's full abstract surface
+- [Phase ?]: PIPE-06's differential sweep drives a real ent.Client generically via reflection across 21 corpus messages (36 more covered-with-zero-cases), since internal/difftest cannot reach mixinforproto's unexported hookState.evaluate()
 
 ### Pending Todos
 
@@ -143,6 +147,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-08-14T17:11:56.054Z
-Stopped at: Completed 03-04-PLAN.md
+Last session: 2026-08-14T18:05:34.237Z
+Stopped at: Completed 03-05-PLAN.md (final plan of phase 03-validation-fidelity)
 Resume file: None
