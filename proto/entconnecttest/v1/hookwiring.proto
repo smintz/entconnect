@@ -1,0 +1,63 @@
+// Package entconnecttest.v1 (this file) is 03-04's fixture for D-13's
+// real-client wiring proof and VAL-09's relative hook-ordering assertion.
+// HookWiring carries one field with a residual (buf.validate.field).cel
+// rule and one field with a standard buf.validate.field.string.min_len
+// rule, so a single message exercises both halves of mixinforproto's D-07
+// hybrid storage-layer evaluator (03-01's residual-CEL half, 03-03's
+// standard-rule half) through one real Connect request.
+syntax = "proto3";
+
+package entconnecttest.v1;
+
+// See read.proto's own comment for why this must be set explicitly
+// (rather than relying on buf.gen.yaml's managed-mode override alone):
+// the committed FileDescriptorSet is built via a separate `buf build`
+// invocation that never applies managed-mode overrides, and entc/'s
+// Go-import-path derivation for emitted handler code reads this option
+// directly off the descriptor set.
+option go_package = "github.com/smintz/entconnect/internal/gen/entconnecttestv1";
+
+import "buf/validate/validate.proto";
+
+// HookWiring is reused unchanged by both the Policed and Unpoliced
+// ent.Schema fixtures (internal/entconnecttest/hookwiring/ent/schema) —
+// VAL-09's relative-ordering proof needs the identical message derived
+// twice, once behind a schema declaring a Policy() and once behind a
+// schema that declares none.
+message HookWiring {
+  string id = 1;
+
+  // cel_field carries a residual custom CEL rule (03-01's half of D-07's
+  // hybrid): satisfied only by a value starting with "X".
+  string cel_field = 2 [(buf.validate.field).cel = {
+    id: "entconnecttest.hookwiring.cel_field.starts_with_x"
+    message: "cel_field must start with X"
+    expression: "this.startsWith('X')"
+  }];
+
+  // standard_field carries a standard structural rule (03-03's half of
+  // D-07's hybrid), translated by Tier 1 into a real ent MinLen builder
+  // AND enforced by the storage-layer hook's own standard-rule evaluator
+  // ahead of it (mixinforproto/README.md's "Mixin hook and policy
+  // ordering" section).
+  string standard_field = 3 [(buf.validate.field).string.min_len = 3];
+}
+
+// CreateHookWiringRequest carries the full HookWiring to persist.
+message CreateHookWiringRequest {
+  HookWiring hook_wiring = 1;
+}
+
+// CreateHookWiringResponse carries the persisted HookWiring, including its
+// server-assigned id.
+message CreateHookWiringResponse {
+  HookWiring hook_wiring = 1;
+}
+
+// HookWiringCreateService is D-13's real-client wiring proof's sole RPC,
+// bound on the Policed schema (ent/schema/policed.go) — the only schema in
+// this fixture that needs a real Connect surface; Unpoliced is exercised
+// directly through its generated ent.Client (ordering_test.go).
+service HookWiringCreateService {
+  rpc CreateHookWiring(CreateHookWiringRequest) returns (CreateHookWiringResponse);
+}
