@@ -36,14 +36,14 @@ Requirements for the initial release (entconnect through v0.3: MixinForProto + C
 - [x] **VAL-01**: protovalidate string constraints (`min_len`/`max_len`/`len`/`pattern`/format validators) become native ent builder calls visible to other ecosystem generators
 - [x] **VAL-02**: protovalidate numeric constraints (`gt`/`gte`/`lt`/`lte`) become native `Min`/`Max`/`Range`/`Positive` with correct open/closed-interval adjustment
 - [x] **VAL-03**: protovalidate presence/`required` constraints become `NotEmpty` or non-optional field construction
-- [x] **VAL-04**: Residual field-scoped protovalidate CEL is compiled once at schema load and evaluated at mutation time by a single mixin-declared hook covering all field types
-- [x] **VAL-05**: The mixin hook's evaluated field scope is operation-dependent: on Create it evaluates every derived field (a `Default(zero)`-bearing field the caller left unset still persists as a real value the boundary validates); on Update it evaluates only fields the mutation actually changed. (Amended 2026-08-14, D-06 — see 03-CONTEXT.md: a strict changed-only rule at Create would miss the proto3 zero-collapse case Phase 1 could only document.)
-- [x] **VAL-06**: Schema-layer violations carry the protovalidate constraint ID and message and are consumable as a structured error outside any RPC context
-- [x] **VAL-07**: A caller cannot tell whether a violation was caught at the boundary interceptor or at the storage layer — both produce the identical wire error
-- [x] **VAL-08**: Message-level (cross-field) rules are boundary-only by default; `WithMessageRules(OnCreate)` opts into Create-time schema enforcement
-- [x] **VAL-09**: Mixin hook ordering relative to schema-declared hooks and privacy policies is documented and covered by a test that fails if ent changes it
-- [x] **VAL-10**: The boundary interceptor constructs its validator once per process, never per request
-- [x] **VAL-11**: CI fails when the protovalidate/cel-go versions resolved by `mixinforproto` and by `entconnect` diverge
+- [ ] **VAL-04**: Residual field-scoped protovalidate CEL is compiled once at schema load and evaluated at mutation time by a single mixin-declared hook covering all field types
+- [ ] **VAL-05**: The mixin hook's evaluated field scope is operation-dependent: on Create it evaluates every derived field (a `Default(zero)`-bearing field the caller left unset still persists as a real value the boundary validates); on Update it evaluates only fields the mutation actually changed. (Amended 2026-08-14, D-06 — see 03-CONTEXT.md: a strict changed-only rule at Create would miss the proto3 zero-collapse case Phase 1 could only document.)
+- [ ] **VAL-06**: Schema-layer violations carry the protovalidate constraint ID and message and are consumable as a structured error outside any RPC context
+- [ ] **VAL-07**: A caller cannot tell whether a violation was caught at the boundary interceptor or at the storage layer — both produce the identical wire error
+- [ ] **VAL-08**: Message-level (cross-field) rules are boundary-only by default; `WithMessageRules(OnCreate)` opts into Create-time schema enforcement
+- [ ] **VAL-09**: Mixin hook ordering relative to schema-declared hooks and privacy policies is documented and covered by a test that fails if ent changes it
+- [ ] **VAL-10**: The boundary interceptor constructs its validator once per process, never per request
+- [ ] **VAL-11**: CI fails when the protovalidate/cel-go versions resolved by `mixinforproto` and by `entconnect` diverge
 
 ### CRUD Handler Generation
 
@@ -114,8 +114,8 @@ Requirements for the initial release (entconnect through v0.3: MixinForProto + C
 - [x] **PIPE-02**: A `go.work` file makes local development across both modules work, and a `GOWORK=off` CI job proves `mixinforproto` is consumable at its tagged version
 - [x] **PIPE-03**: CI enumerates and tests both modules explicitly rather than relying on `./...`
 - [x] **PIPE-04**: `mixinforproto` releases under `mixinforproto/vX.Y.Z` tags and carries no `replace` directives
-- [x] **PIPE-05**: A conformance corpus covers every field-mapping rule and every protovalidate constraint class, golden-asserted against derived fields
-- [x] **PIPE-06**: A differential harness generates random values per corpus message and asserts `protovalidate verdict == ent mutation verdict` for field-scoped rules
+- [ ] **PIPE-05**: A conformance corpus covers every field-mapping rule and every protovalidate constraint class, golden-asserted against derived fields
+- [ ] **PIPE-06**: A differential harness generates random values per corpus message and asserts `protovalidate verdict == ent mutation verdict` for field-scoped rules
 - [ ] **PIPE-07**: A reference Order/Inventory application builds end-to-end through the full pipeline in CI, with connect-go client tests against generated handlers
 - [x] **PIPE-08**: `mixinforproto` ships with documentation covering the proto3 presence/zero-collapse behavior prominently enough that adopters meet it before it surprises them
 
@@ -207,16 +207,16 @@ Which phases cover which requirements. Updated during roadmap creation.
 | INT-03 | Phase 2 | Complete |
 | INT-04 | Phase 2 | Complete |
 | INT-05 | Phase 2 | Complete |
-| VAL-04 | Phase 3 | Complete |
-| VAL-05 | Phase 3 | Complete |
-| VAL-06 | Phase 3 | Complete |
-| VAL-07 | Phase 3 | Complete |
-| VAL-08 | Phase 3 | Complete |
-| VAL-09 | Phase 3 | Complete |
-| VAL-10 | Phase 3 | Complete |
-| VAL-11 | Phase 3 | Complete |
-| PIPE-05 | Phase 3 | Complete |
-| PIPE-06 | Phase 3 | Complete |
+| VAL-04 | Phase 3 | Gaps Found |
+| VAL-05 | Phase 3 | Gaps Found |
+| VAL-06 | Phase 3 | Gaps Found |
+| VAL-07 | Phase 3 | Gaps Found |
+| VAL-08 | Phase 3 | Gaps Found |
+| VAL-09 | Phase 3 | Gaps Found |
+| VAL-10 | Phase 3 | Gaps Found |
+| VAL-11 | Phase 3 | Gaps Found |
+| PIPE-05 | Phase 3 | Gaps Found |
+| PIPE-06 | Phase 3 | Gaps Found |
 | FLOW-01 | Phase 4 | Pending |
 | FLOW-02 | Phase 4 | Pending |
 | FLOW-03 | Phase 4 | Pending |
