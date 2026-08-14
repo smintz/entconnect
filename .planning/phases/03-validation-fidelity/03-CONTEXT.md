@@ -68,6 +68,23 @@ Neither is scope creep: both are the minimum needed to satisfy VAL-07 as written
 
   *Considered and rejected:* treating ent-applied defaults as "changed." It would keep one uniform rule, but hooks run **before** the mutator, which is exactly when defaults may not yet be applied — unverified, and D-06 does not depend on it.
 
+  > **Amendment (2026-08-14, post-research).** The "unverified" caveat above has been resolved, and it
+  > resolved the *other* way: `create.tmpl` shows `defaults()` runs and calls each field's setter
+  > **before `withHooks` is invoked at all**, so on Create `mutation.Fields()` already contains every
+  > `Default()`-bearing field the caller left unset.
+  >
+  > **D-06's specification is unchanged** — Create still checks all derived fields, Update still
+  > checks changed-only. What changes is the *mechanism*: that specification may be satisfiable by a
+  > single `mutation.Fields()` call with **no `Op()` branch at all**, rather than two code paths.
+  > Do not build the branch before testing this. Research recommends proving it against a real
+  > generated fixture as the phase's first task, because several later tasks collapse if it holds —
+  > and if it does *not* hold (a `DefaultFunc` edge case is the named risk), D-06's original
+  > two-path design is required after all.
+  >
+  > Note the asymmetry, which is **not** a candidate for the same collapse: Update consults
+  > `UpdateDefault`, not `Default`, and MixinForProto's derived fields only ever carry the latter.
+  > There is no ent-side safety net on Update. See `03-RESEARCH.md` Pitfalls 2 and 4.
+
 - **D-07 (USER DECISION — against Claude's recommendation; cost recorded deliberately):** The hook is a **hybrid**: protovalidate's own evaluator for standard rules, a **local `cel.Env`** built from `buf.build/go/protovalidate/cel`'s `NewLibrary()` + `RequiredEnvOptions(fd)` for residual CEL, compiled once at schema load per VAL-04's literal wording.
 
   Claude recommended instead calling `protovalidate.Validate()` on a synthesized `dynamicpb` message restricted to in-scope fields — one evaluator, one code path, identity by construction, and no direct cel-go dependency for `mixinforproto`. That option was **not chosen**, and it carried its own risk (it depends on protovalidate v1.2 exposing a per-field filter, unverified).
@@ -101,6 +118,26 @@ Neither is scope creep: both are the minimum needed to satisfy VAL-07 as written
 - **D-11:** VAL-09's ordering guarantee is **pin-and-document, take no position**. Research establishes the real order empirically; docs state it; a test asserts it so an ent upgrade that changes it fails CI. Exactly what VAL-09 asks, nothing more.
 
   **Document the consequence honestly:** if validation runs before the privacy policy, an unauthorized caller receives a constraint violation rather than a denial, which leaks which constraints exist. This is a recorded, accepted property — not an oversight — and the docs must say so rather than leaving a reader to discover it. Phase 1 D-27 already documents mixin hooks as running before schema hooks; the privacy position is the part research must establish.
+
+  > **Amendment (2026-08-14, post-research).** Research resolved the open half by tracing ent v0.14.6's
+  > own codegen templates, and the hedged consequence above **does not occur in practice**. The real
+  > order is `defaults()` → `Hooks[0]` (privacy Policy evaluation, when any Policy exists) → mixin
+  > hooks → schema hooks → `sqlSave`/`check()`. Privacy therefore runs *before* the validation hook
+  > whenever a policy is declared, so an unauthorized caller is denied before any constraint is
+  > evaluated — there is no constraint-existence leak to document.
+  >
+  > Two consequences the planner must carry:
+  > 1. The `Hooks[0]` privacy wrapper is installed **only when `NumPolicy > 0`** (`runtime.tmpl`),
+  >    and that count includes policies declared by the *application's* schema, not just the mixin.
+  >    With no policy anywhere, the mixin's validation hook simply *is* `Hooks[0]`.
+  > 2. VAL-09's test must therefore assert a **relative** order — "policy (if any) → mixin hook →
+  >    schema hooks" — across **both** configurations (a schema with a `Policy()` and one without).
+  >    A hard-coded `hooks[0]` assertion would break when an app merely adds or removes a policy,
+  >    turning an app-shaped change into a false regression — the opposite of what VAL-09 wants.
+  >
+  > D-11's decision (pin and document, take no position) is unchanged and still correct. Only the
+  > "document the leak" instruction is withdrawn, because the leak isn't real. See `03-RESEARCH.md`
+  > Pitfall 3 and the hook-ordering trace.
 
 - **D-12:** A **runtime** reverse-conversion failure on real data — an AsJSON blob that will not unmarshal, an enum string absent from the descriptor — **fails closed**: the mutation aborts, and the error is explicitly **not** a protovalidate violation. No constraint ID is synthesized, because no constraint failed. It is a data-integrity fault in the layer between ent and the contract and must read as one.
 
