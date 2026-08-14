@@ -36,6 +36,14 @@ jobs:
       - name: Test both modules
         run: make test
 
+      # D-20/CRUD-06: the golden suite (entc/testdata) and every other test
+      # in both modules run under -count=5 so order-dependence (an
+      # accidental map-iteration dependency, an unsorted key set) surfaces
+      # as a reproducible CI failure rather than a flake nobody can pin
+      # down. This is the exact command make test-determinism runs locally.
+      - name: Run the golden suite with -count=5 (D-20)
+        run: make test-determinism
+
       - name: Verify no committed go.mod declares a local-path substitution
         run: make check-modules
 

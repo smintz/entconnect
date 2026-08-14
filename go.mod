@@ -9,6 +9,7 @@ require (
 	connectrpc.com/otelconnect v0.9.0
 	connectrpc.com/validate v0.6.0
 	entgo.io/ent v0.14.6
+	github.com/sebdah/goldie/v2 v2.8.0
 	github.com/smintz/entconnect/mixinforproto v0.1.0
 	golang.org/x/tools v0.48.0
 	google.golang.org/protobuf v1.36.11
@@ -33,7 +34,9 @@ require (
 	github.com/mattn/go-isatty v0.0.24 // indirect
 	github.com/mitchellh/go-wordwrap v1.0.1 // indirect
 	github.com/ncruces/go-strftime v1.0.0 // indirect
+	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec // indirect
+	github.com/sergi/go-diff v1.3.1 // indirect
 	github.com/zclconf/go-cty v1.14.4 // indirect
 	github.com/zclconf/go-cty-yaml v1.1.0 // indirect
 	go.opentelemetry.io/otel v1.29.0 // indirect

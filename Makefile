@@ -9,7 +9,7 @@
 # where auto-discovery would silently do the wrong thing.
 MODULES := . ./mixinforproto
 
-.PHONY: build vet test test-standalone check-modules check-stubs check-goversion pipeline
+.PHONY: build vet test test-determinism test-standalone check-modules check-stubs check-goversion pipeline
 
 ## build: go build ./... in every module in MODULES, cd'd into each.
 build:
@@ -42,6 +42,23 @@ test:
 			echo "   SKIP: $$m has no Go packages yet"; \
 		else \
 			(cd $$m && go test ./...); \
+		fi; \
+	done
+
+## test-determinism: go test -count=5 ./... in every module in MODULES,
+## cd'd into each (D-20/CRUD-06). Runs the SAME suite as `test`, five
+## times per package with no isolation between runs, so order-dependence
+## (an accidental map-iteration dependency, an unsorted key set) surfaces
+## as a CI failure rather than a flake nobody can reproduce locally. Reuses
+## the exact `go list ./...` skip-guard idiom `test` already uses, so a
+## zero-package module still skips visibly instead of exiting 1.
+test-determinism:
+	@set -e; for m in $(MODULES); do \
+		echo "== test-determinism: $$m =="; \
+		if [ -z "$$(cd $$m && go list ./... 2>/dev/null)" ]; then \
+			echo "   SKIP: $$m has no Go packages yet"; \
+		else \
+			(cd $$m && go test -count=5 ./...); \
 		fi; \
 	done
 
