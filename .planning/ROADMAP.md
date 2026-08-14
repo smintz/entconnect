@@ -134,7 +134,7 @@ Plans:
 **Wave 3** *(blocked on Wave 2; two parallel plans, disjoint files)*
 
 - [x] 03-03-PLAN.md — Hybrid completion: protovalidate's own evaluator via `WithFilter`, the mixed-rule convergence settled by test, D-06's operation-dependent scope, and the schema-load panic for uncompilable CEL
-- [ ] 03-04-PLAN.md — Root-module proofs: real-client wiring, relative hook ordering across policy-bearing and policy-free schemas, once-per-process validator construction, and the VAL-11 dependency-parity gate
+- [x] 03-04-PLAN.md — Root-module proofs: real-client wiring, relative hook ordering across policy-bearing and policy-free schemas, once-per-process validator construction, and the VAL-11 dependency-parity gate
 
 **Wave 4** *(blocked on Wave 3)*
 

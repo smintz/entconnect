@@ -41,9 +41,9 @@ Requirements for the initial release (entconnect through v0.3: MixinForProto + C
 - [x] **VAL-06**: Schema-layer violations carry the protovalidate constraint ID and message and are consumable as a structured error outside any RPC context
 - [x] **VAL-07**: A caller cannot tell whether a violation was caught at the boundary interceptor or at the storage layer — both produce the identical wire error
 - [x] **VAL-08**: Message-level (cross-field) rules are boundary-only by default; `WithMessageRules(OnCreate)` opts into Create-time schema enforcement
-- [ ] **VAL-09**: Mixin hook ordering relative to schema-declared hooks and privacy policies is documented and covered by a test that fails if ent changes it
-- [ ] **VAL-10**: The boundary interceptor constructs its validator once per process, never per request
-- [ ] **VAL-11**: CI fails when the protovalidate/cel-go versions resolved by `mixinforproto` and by `entconnect` diverge
+- [x] **VAL-09**: Mixin hook ordering relative to schema-declared hooks and privacy policies is documented and covered by a test that fails if ent changes it
+- [x] **VAL-10**: The boundary interceptor constructs its validator once per process, never per request
+- [x] **VAL-11**: CI fails when the protovalidate/cel-go versions resolved by `mixinforproto` and by `entconnect` diverge
 
 ### CRUD Handler Generation
 
@@ -212,9 +212,9 @@ Which phases cover which requirements. Updated during roadmap creation.
 | VAL-06 | Phase 3 | Complete |
 | VAL-07 | Phase 3 | Complete |
 | VAL-08 | Phase 3 | Complete |
-| VAL-09 | Phase 3 | Pending |
-| VAL-10 | Phase 3 | Pending |
-| VAL-11 | Phase 3 | Pending |
+| VAL-09 | Phase 3 | Complete |
+| VAL-10 | Phase 3 | Complete |
+| VAL-11 | Phase 3 | Complete |
 | PIPE-05 | Phase 3 | Complete |
 | PIPE-06 | Phase 3 | Complete |
 | FLOW-01 | Phase 4 | Pending |

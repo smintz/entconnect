@@ -5,15 +5,15 @@ milestone_name: milestone
 current_phase: 03
 current_phase_name: validation-fidelity
 status: executing
-stopped_at: Completed 03-03-PLAN.md
-last_updated: "2026-08-14T16:37:53.883Z"
+stopped_at: Completed 03-04-PLAN.md
+last_updated: "2026-08-14T17:11:56.079Z"
 last_activity: 2026-08-14
 last_activity_desc: Phase 02 marked complete
 progress:
   total_phases: 3
   completed_phases: 2
   total_plans: 19
-  completed_plans: 17
+  completed_plans: 18
 ---
 
 # Project State
@@ -28,11 +28,11 @@ See: .planning/PROJECT.md (updated 2026-08-08)
 ## Current Position
 
 Phase: 03 (validation-fidelity) — EXECUTING
-Plan: 4 of 5
+Plan: 5 of 5
 Status: Ready to execute
 Last activity: 2026-08-14 — Phase 03 execution started
 
-Progress: [█████████░] 89%
+Progress: [██████████] 95%
 
 ## Performance Metrics
 
@@ -70,6 +70,7 @@ Progress: [█████████░] 89%
 | Phase 03 P01 | 55min | 3 tasks | 33 files |
 | Phase 03 P02 | 50min | 3 tasks | 22 files |
 | Phase 03 P03 | 62min | 3 tasks | 22 files |
+| Phase 03-validation-fidelity P04 | 34min | 3 tasks | 48 files |
 
 ## Accumulated Context
 
@@ -117,6 +118,8 @@ Recent decisions affecting current work:
 - [Phase ?]: Phase 03 Plan 03: 03-RESEARCH.md Pitfall 1 (D-07/D-08 hybrid-evaluator convergence) resolved as resolution (a) — accept double evaluation of a mixed field's custom CEL rule, deduplicate by (RuleId, FieldPath) at violation.go's newValidationError — not resolution (b) (field-exclusive routing), since (a) needed no new structural-rule code path and (b) would have required a separate byte-identical-to-protovalidate proof this plan did not need
 - [Phase ?]: Phase 03 Plan 03: D-06's operation-dependent scope mechanism collapsed to a single m.Fields() read with no ent.Op() branch, per 03-01's recorded empirical evidence (Create's defaults() runs before any hook); proven correct on Update too via a real ent.Client (Pitfall 4's no-safety-net case)
 - [Phase ?]: Phase 03 Plan 03: hooks.go's standard-rule evaluator deliberately stays scoped to classScalar/classOptionalScalar fields (not extended to enum/wkt/scalarMap/asJSON despite reverse.go already supporting them) — a documented, tested-absent scope boundary for a later plan to close
+- [Phase ?]: Phase 03 Plan 04: VAL-09's ordering test asserts a relative marker sequence, never an index into ent's Hooks[] slice — Policed/Unpoliced fixture pair exists precisely to cover both privacy-wrapper-present and privacy-wrapper-absent configurations
+- [Phase ?]: Phase 03 Plan 04: check-dep-parity's module set is exactly D-15's five names, resolved independently per module via GOWORK=off go list -m; both pass and fail directions rehearsed in scratch copies, never the real tree
 
 ### Pending Todos
 
@@ -128,6 +131,7 @@ None yet.
 - Annotation struct versioning/forward-compatibility strategy (ANNO-04) needs concrete design during Phase 1 planning — no direct precedent.
 - Sensitive-field marking (`field.Sensitive()` inference) is an unresolved open question with security implications, deferred to v2 (MIX2-02) but worth a decision checkpoint by end of Phase 1.
 - mixinforproto.md §4.1's Tier 1 table needs correcting for string length units (code points vs bytes) — deferred to Phase 1->2 transition per Task 1's resolution
+- mixinforproto v0.1.0 (root go.mod's pinned dependency) predates Hooks() — make test-standalone-root fails on the new hookwiring fixture under GOWORK=off; D-19 follow-up needed: push a new mixinforproto tag and bump root go.mod in a separate commit
 
 ## Deferred Items
 
@@ -139,6 +143,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-08-14T16:37:53.858Z
-Stopped at: Completed 03-03-PLAN.md
+Last session: 2026-08-14T17:11:56.054Z
+Stopped at: Completed 03-04-PLAN.md
 Resume file: None
