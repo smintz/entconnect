@@ -106,6 +106,15 @@ jobs:
       - name: Build and test the root module standalone (GOWORK=off)
         run: make test-standalone-root
 
+      # VAL-11/D-15: this job is the correct (and only) host for the
+      # dependency-parity gate — GOWORK=off is what makes root and
+      # mixinforproto resolve D-15's five named modules INDEPENDENTLY;
+      # go.work's workspace unification would otherwise mask a real
+      # version skew between the two go.mod files. See the Makefile
+      # target's own doc comment for the full rationale.
+      - name: Verify D-15 dependency parity between root and mixinforproto (GOWORK=off)
+        run: make check-dep-parity
+
   # stubs: the Pitfall 9 / D-22 staleness gate (scripts/check-stubs.sh).
   # Copies the working tree's proto/ into an empty temp root (never the
   # committed checkout's generated output — a CI job must not mutate the
