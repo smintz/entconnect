@@ -147,20 +147,69 @@ func Generate(g *gen.Graph, e *Extension) error {
 	copy(nodes, g.Nodes)
 	sort.Slice(nodes, func(i, j int) bool { return nodes[i].Name < nodes[j].Name })
 
-	var failures []failure
-	services := map[string]*serviceBuild{}
-	claimed := map[string]string{} // procedure -> "schema.op"
-
+	// The binding-collection pass (D-05/D-07/INT-05): decode every
+	// schema's raw RPC-binding annotations (unresolved — no descriptor
+	// lookup yet) before anything else runs, so the D-05 conflict check
+	// and the INT-05 claims report can both build from exactly the same
+	// declared-bindings snapshot.
+	type nodeBindings struct {
+		typ      *gen.Type
+		bindings Bindings
+	}
+	var boundNodes []nodeBindings
+	bindingsByType := map[string][]Binding{}
 	for _, typ := range nodes {
 		bindings, err := decodeAnnotation[Bindings](typ.Annotations, RPCBindings)
 		if err != nil {
 			// No RPC-binding annotation on this schema at all — not an
 			// error, just an entity this codegen pass has nothing to do
-			// for (D-07's "unclaimed" reporting is a later plan's
-			// concern, not a build failure here).
+			// for.
 			continue
 		}
-		for _, b := range bindings.Bindings {
+		boundNodes = append(boundNodes, nodeBindings{typ: typ, bindings: bindings})
+		bindingsByType[typ.Name] = bindings.Bindings
+	}
+
+	// D-05: a procedure claimed by two schemas, or the same Op claimed
+	// twice on one schema, is a collected, build-fatal conflict — checked
+	// before any resolution or generation runs, entirely over the raw
+	// declared bindings (entc/claims.go's checkConflicts needs no
+	// descriptor resolution at all).
+	if genErr := newGenerateError(checkConflicts(bindingsByType)); genErr != nil {
+		return genErr
+	}
+
+	if err := os.MkdirAll(outputDir, 0o755); err != nil {
+		return fmt.Errorf("entconnect: create output dir %q: %w", outputDir, err)
+	}
+
+	// INT-05: the deterministic sorted claims report, written even when
+	// bindingsByType is empty — "no schema claims anything" is a visible,
+	// diffable state, never an absent file. An "unclaimed" row here is
+	// reporting, not a build failure: Phase 2 reports (D-07); making an
+	// unclaimed RPC a build failure is DRIFT-01, Phase 5 — this call site
+	// must never grow that behavior.
+	claims := BuildClaims(AllProcedures(files), bindingsByType)
+	claimsPath := filepath.Join(outputDir, "claims.txt")
+	claimsFile, err := os.Create(claimsPath)
+	if err != nil {
+		return fmt.Errorf("entconnect: create %q: %w", claimsPath, err)
+	}
+	writeErr := WriteClaimsReport(claimsFile, claims)
+	closeErr := claimsFile.Close()
+	if writeErr != nil {
+		return fmt.Errorf("entconnect: write %q: %w", claimsPath, writeErr)
+	}
+	if closeErr != nil {
+		return fmt.Errorf("entconnect: close %q: %w", claimsPath, closeErr)
+	}
+
+	var failures []failure
+	services := map[string]*serviceBuild{}
+
+	for _, nb := range boundNodes {
+		typ := nb.typ
+		for _, b := range nb.bindings.Bindings {
 			method, err := ResolveMethod(files, b.Procedure, e.descriptorSetPath)
 			if err != nil {
 				failures = append(failures, failure{
@@ -170,19 +219,6 @@ func Generate(g *gen.Graph, e *Extension) error {
 				})
 				continue
 			}
-			if prevClaimant, ok := claimed[b.Procedure]; ok {
-				failures = append(failures, failure{
-					schemaName: typ.Name, op: string(b.Op), sortKey: typ.Name,
-					rule: "duplicate-claim",
-					description: fmt.Sprintf(
-						"procedure %q is claimed by both %s and %s.%s",
-						b.Procedure, prevClaimant, typ.Name, b.Op,
-					),
-					remedy: "remove the duplicate binding — a procedure may be claimed by exactly one schema/op (D-05)",
-				})
-				continue
-			}
-			claimed[b.Procedure] = fmt.Sprintf("%s.%s", typ.Name, b.Op)
 
 			sm, err := decodeAnnotation[mixinforproto.SourceMessage](typ.Annotations, mixinforproto.MixinForProtoMessage)
 			if err != nil {
@@ -228,10 +264,6 @@ func Generate(g *gen.Graph, e *Extension) error {
 
 	if genErr := newGenerateError(failures); genErr != nil {
 		return genErr
-	}
-
-	if err := os.MkdirAll(outputDir, 0o755); err != nil {
-		return fmt.Errorf("entconnect: create output dir %q: %w", outputDir, err)
 	}
 
 	svcNames := make([]string, 0, len(services))
