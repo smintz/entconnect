@@ -121,7 +121,7 @@ Plans:
   4. CI fails when `mixinforproto`'s and `entconnect`'s resolved protovalidate/cel-go versions diverge
   5. A conformance corpus golden-asserts every field-mapping rule and protovalidate constraint class against derived fields, and a differential harness feeds random values through every corpus message asserting `protovalidate verdict == ent mutation verdict` for field-scoped rules
 
-**Plans**: 2/5 plans executed
+**Plans**: 3/5 plans executed
 Plans:
 **Wave 1**
 
@@ -133,7 +133,7 @@ Plans:
 
 **Wave 3** *(blocked on Wave 2; two parallel plans, disjoint files)*
 
-- [ ] 03-03-PLAN.md — Hybrid completion: protovalidate's own evaluator via `WithFilter`, the mixed-rule convergence settled by test, D-06's operation-dependent scope, and the schema-load panic for uncompilable CEL
+- [x] 03-03-PLAN.md — Hybrid completion: protovalidate's own evaluator via `WithFilter`, the mixed-rule convergence settled by test, D-06's operation-dependent scope, and the schema-load panic for uncompilable CEL
 - [ ] 03-04-PLAN.md — Root-module proofs: real-client wiring, relative hook ordering across policy-bearing and policy-free schemas, once-per-process validator construction, and the VAL-11 dependency-parity gate
 
 **Wave 4** *(blocked on Wave 3)*
@@ -181,6 +181,6 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 |-------|----------------|--------|-----------|
 | 1. MixinForProto Core | 9/9 | In Progress|  |
 | 2. CRUD Handlers & Interceptor Chain | 0/5 | Planned | - |
-| 3. Validation Fidelity | 2/5 | In Progress|  |
+| 3. Validation Fidelity | 3/5 | In Progress|  |
 | 4. Flow Binding | 0/TBD | Not started | - |
 | 5. Full Drift Check & Reference App | 0/TBD | Not started | - |

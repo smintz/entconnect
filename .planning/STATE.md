@@ -5,15 +5,15 @@ milestone_name: milestone
 current_phase: 03
 current_phase_name: validation-fidelity
 status: executing
-stopped_at: Completed 03-02-PLAN.md
-last_updated: "2026-08-14T16:03:59.420Z"
+stopped_at: Completed 03-03-PLAN.md
+last_updated: "2026-08-14T16:37:53.883Z"
 last_activity: 2026-08-14
 last_activity_desc: Phase 02 marked complete
 progress:
   total_phases: 3
   completed_phases: 2
   total_plans: 19
-  completed_plans: 16
+  completed_plans: 17
 ---
 
 # Project State
@@ -28,11 +28,11 @@ See: .planning/PROJECT.md (updated 2026-08-08)
 ## Current Position
 
 Phase: 03 (validation-fidelity) — EXECUTING
-Plan: 3 of 5
+Plan: 4 of 5
 Status: Ready to execute
 Last activity: 2026-08-14 — Phase 03 execution started
 
-Progress: [████████░░] 84%
+Progress: [█████████░] 89%
 
 ## Performance Metrics
 
@@ -69,6 +69,7 @@ Progress: [████████░░] 84%
 | Phase 01 P09 | 15min | 3 tasks | 2 files |
 | Phase 03 P01 | 55min | 3 tasks | 33 files |
 | Phase 03 P02 | 50min | 3 tasks | 22 files |
+| Phase 03 P03 | 62min | 3 tasks | 22 files |
 
 ## Accumulated Context
 
@@ -113,6 +114,9 @@ Recent decisions affecting current work:
 - [Phase ?]: Phase 03 Plan 02: an absent/unset ent value for optionalScalar, asJSON, wkt-Value, and wkt-Struct reports as an invalid protoreflect.Value (nil error), never a fabricated proto3 zero or empty message (D-03 phantom-violation class closed at the reverse-conversion layer)
 - [Phase ?]: Phase 03 Plan 02: scalarMap wire-level determinism requires proto.MarshalOptions{Deterministic: true} at marshal time — protobuf-go's generic Map deliberately randomizes Range/marshal iteration order (internal/detrand) regardless of insertion order
 - [Phase ?]: Phase 03 Plan 02: SourceMessage.BoundaryOnly (D-09's second half) records every protovalidate rule mixinforproto cannot enforce at the storage layer with a closed reason set (excluded/overridden/no-ent-field/unbindable), message-scoped so no pre-existing per-field golden fixture is touched
+- [Phase ?]: Phase 03 Plan 03: 03-RESEARCH.md Pitfall 1 (D-07/D-08 hybrid-evaluator convergence) resolved as resolution (a) — accept double evaluation of a mixed field's custom CEL rule, deduplicate by (RuleId, FieldPath) at violation.go's newValidationError — not resolution (b) (field-exclusive routing), since (a) needed no new structural-rule code path and (b) would have required a separate byte-identical-to-protovalidate proof this plan did not need
+- [Phase ?]: Phase 03 Plan 03: D-06's operation-dependent scope mechanism collapsed to a single m.Fields() read with no ent.Op() branch, per 03-01's recorded empirical evidence (Create's defaults() runs before any hook); proven correct on Update too via a real ent.Client (Pitfall 4's no-safety-net case)
+- [Phase ?]: Phase 03 Plan 03: hooks.go's standard-rule evaluator deliberately stays scoped to classScalar/classOptionalScalar fields (not extended to enum/wkt/scalarMap/asJSON despite reverse.go already supporting them) — a documented, tested-absent scope boundary for a later plan to close
 
 ### Pending Todos
 
@@ -135,6 +139,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-08-14T16:03:59.396Z
-Stopped at: Completed 03-02-PLAN.md
+Last session: 2026-08-14T16:37:53.858Z
+Stopped at: Completed 03-03-PLAN.md
 Resume file: None
