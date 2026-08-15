@@ -869,3 +869,120 @@ func TestHooksGo_ExcludedOverriddenCheckPrecedesResolveFieldRules(t *testing.T) 
 		t.Fatalf("want the first isExcluded( occurrence (offset %d) before the first ResolveFieldRules( occurrence (offset %d)", excludedIdx, resolveIdx)
 	}
 }
+
+// ============================================================================
+// 03-08-PLAN.md, Task 3, Guard B: the FieldRules declaration-surface
+// exhaustiveness guard — the field-level counterpart to Guard A
+// (messagerules_test.go's TestMessageRulesDeclarationSurfaceIsFullyHandled),
+// applying the same "reflectively enumerate the descriptor, partition
+// into named written sets" shape to buf.validate.FieldRules. THREE
+// dispositions here, not two — collapsing them would hide WHICH one a
+// member has, and that collapse is exactly how CR-02 (ignore) and CR-03
+// (Exclude/Override reaching ResolveFieldRules) each went unnoticed for a
+// while:
+//   - locally compiled: buildHookState compiles a cel.Program for it
+//     directly (hooks.go's residual-CEL half, D-07/D-08) — today just
+//     `cel`.
+//   - consulted modifier: buildHookState/evaluate READS it to change
+//     behavior, but compiles no program for it — today just `ignore`
+//     (03-06-PLAN.md's CR-02 gap closure, fieldEvaluator.ignore).
+//   - delegated wholesale: buildHookState never inspects it at all;
+//     hs.validator.Validate (the precompiled standard-rule
+//     protovalidate.Validator) is what enforces it, scoped by the
+//     standardFields Filter in evaluate() (D-02/D-03/D-08).
+// ============================================================================
+
+// fieldRulesLocallyCompiled names buf.validate.FieldRules members
+// buildHookState compiles a cel.Program for directly.
+var fieldRulesLocallyCompiled = map[string]bool{
+	"cel": true,
+}
+
+// fieldRulesConsultedModifier names buf.validate.FieldRules members
+// buildHookState/evaluate reads to change behavior without compiling a
+// program for it.
+var fieldRulesConsultedModifier = map[string]bool{
+	"ignore": true,
+}
+
+// fieldRulesDelegatedWholesaleNamed names the NON-oneof
+// buf.validate.FieldRules members delegated wholesale to protovalidate's
+// own evaluator. The `type` oneof's members (float/int32/string/.../
+// timestamp) are enumerated REFLECTIVELY in the test body below, not
+// listed here by hand, so a new SCALAR RULE TYPE protovalidate adds needs
+// no change to this file at all — only a new NON-oneof member (CR-01's
+// own class: a whole-message or whole-field-rules-level addition, not a
+// new type-of-scalar) requires touching this guard.
+//
+// cel_expression's disposition here is a WRITTEN DECISION, not an
+// accident this guard merely happens to agree with: buildHookState adds
+// a fieldEvaluator entry whenever protovalidate.ResolveFieldRules returns
+// non-nil (hooks.go), so a field carrying ONLY cel_expression is still in
+// the standard half's Filter scope and protovalidate evaluates it there
+// — correctly. That is exactly why the field-level cel_expression carrier
+// is NOT the field-level analogue of CR-01 (03-08-PLAN.md's own flagged
+// assumption 2) — but until this guard existed, that was correct by
+// CONSEQUENCE of ResolveFieldRules' nil-vs-non-nil check, not by a
+// decision anyone had written down.
+var fieldRulesDelegatedWholesaleNamed = map[string]bool{
+	"required":       true,
+	"cel_expression": true,
+}
+
+func TestFieldRulesDeclarationSurfaceIsFullyHandled(t *testing.T) {
+	desc := (&validate.FieldRules{}).ProtoReflect().Descriptor()
+
+	delegated := map[string]bool{}
+	for name := range fieldRulesDelegatedWholesaleNamed {
+		delegated[name] = true
+	}
+	// Enumerate the `type` oneof's members via the descriptor's own
+	// Oneofs() — never by hand — so a new protovalidate scalar rule type
+	// needs no change here. validate.proto is proto2 (no synthetic
+	// presence-tracking oneofs for `required`/`ignore` to filter out), but
+	// the name check below is kept anyway as a defensive, self-documenting
+	// guard against exactly that shape if it were ever introduced.
+	oneofs := desc.Oneofs()
+	for i := 0; i < oneofs.Len(); i++ {
+		od := oneofs.Get(i)
+		if string(od.Name()) != "type" {
+			continue
+		}
+		ofs := od.Fields()
+		for j := 0; j < ofs.Len(); j++ {
+			delegated[string(ofs.Get(j).Name())] = true
+		}
+	}
+
+	fields := desc.Fields()
+	var unaccounted []string
+	var doubleCounted []string
+	for i := 0; i < fields.Len(); i++ {
+		name := string(fields.Get(i).Name())
+		count := 0
+		if fieldRulesLocallyCompiled[name] {
+			count++
+		}
+		if fieldRulesConsultedModifier[name] {
+			count++
+		}
+		if delegated[name] {
+			count++
+		}
+		switch {
+		case count == 0:
+			unaccounted = append(unaccounted, name)
+		case count > 1:
+			doubleCounted = append(doubleCounted, name)
+		}
+	}
+
+	if len(doubleCounted) > 0 {
+		sort.Strings(doubleCounted)
+		t.Fatalf("buf.validate.FieldRules member(s) %v appear in more than one disposition set — a member must belong to exactly one of locally-compiled/consulted-modifier/delegated-wholesale", doubleCounted)
+	}
+	if len(unaccounted) > 0 {
+		sort.Strings(unaccounted)
+		t.Fatalf("buf.validate.FieldRules declares member(s) %v not accounted for in any disposition (locally compiled, consulted modifier, delegated wholesale) — handle it in hooks.go's buildHookState/evaluate, or record its disposition in one of this test's three named sets. Never delete this assertion.", unaccounted)
+	}
+}

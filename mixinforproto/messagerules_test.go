@@ -1,6 +1,7 @@
 package mixinforproto
 
 import (
+	"sort"
 	"strings"
 	"testing"
 
@@ -454,5 +455,65 @@ func TestBuildHookState_MessageRuleCelExpressionNoFieldRefIsLegalNoOp(t *testing
 	}
 	if len(refs) != 0 {
 		t.Fatalf("want zero refs (no this.<field> select), got %v", refNames(refs))
+	}
+}
+
+// ============================================================================
+// 03-08-PLAN.md, Task 3, Guard A: the MessageRules declaration-surface
+// exhaustiveness guard. CR-01's root cause was structural, not a one-off
+// oversight: adding a MessageRules carrier required no change anywhere in
+// this package, so nobody noticed cel_expression/oneof were unhandled
+// until 03-VERIFICATION.md's audit found it. This guard makes the NEXT
+// omitted carrier a NAMED TEST FAILURE instead of a silent divergence:
+// every member buf.validate.MessageRules DECLARES (reflectively
+// enumerated from its own descriptor, not a hand-typed list — so a member
+// nothing in the corpus populates is still caught) must appear in exactly
+// one of the two written sets below, each with — for the exempted set —
+// a one-line design reason (constraintClassExceptions' own register
+// shape, corpus_test.go:611).
+// ============================================================================
+
+// messageRulesHandledCarriers names every buf.validate.MessageRules
+// member checkMessageRuleReferences (messagerules.go) walks today.
+var messageRulesHandledCarriers = map[string]bool{
+	"cel":            true,
+	"cel_expression": true,
+	"oneof":          true,
+}
+
+// messageRulesExemptedMembers names buf.validate.MessageRules members
+// deliberately NOT walked by checkMessageRuleReferences, each with its
+// design reason. Empty today: Task 1 closed CR-01 by handling every
+// declared, non-reserved member. A future protovalidate release adding a
+// member here must be added to ONE of messageRulesHandledCarriers/
+// messageRulesExemptedMembers, or TestMessageRulesDeclarationSurfaceIsFullyHandled
+// below fails naming it — the fix is to handle the carrier or record an
+// exemption with a reason, never to delete this assertion.
+var messageRulesExemptedMembers = map[string]string{}
+
+func TestMessageRulesDeclarationSurfaceIsFullyHandled(t *testing.T) {
+	fields := (&validate.MessageRules{}).ProtoReflect().Descriptor().Fields()
+
+	var unaccounted []string
+	var doubleCounted []string
+	for i := 0; i < fields.Len(); i++ {
+		name := string(fields.Get(i).Name())
+		_, handled := messageRulesHandledCarriers[name]
+		_, exempted := messageRulesExemptedMembers[name]
+		switch {
+		case handled && exempted:
+			doubleCounted = append(doubleCounted, name)
+		case !handled && !exempted:
+			unaccounted = append(unaccounted, name)
+		}
+	}
+
+	if len(doubleCounted) > 0 {
+		sort.Strings(doubleCounted)
+		t.Fatalf("buf.validate.MessageRules member(s) %v are listed as BOTH handled and exempted — a member must belong to exactly one set", doubleCounted)
+	}
+	if len(unaccounted) > 0 {
+		sort.Strings(unaccounted)
+		t.Fatalf("buf.validate.MessageRules declares member(s) %v that checkMessageRuleReferences neither handles nor exempts — handle the carrier in messagerules.go's messageRuleReferences, or record an exemption in messageRulesExemptedMembers with a design reason. Never delete this assertion.", unaccounted)
 	}
 }
