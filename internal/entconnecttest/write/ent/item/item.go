@@ -46,7 +46,7 @@ func ValidColumn(column string) bool {
 //
 //	import _ "github.com/smintz/entconnect/internal/entconnecttest/write/ent/runtime"
 var (
-	Hooks  [1]ent.Hook
+	Hooks  [2]ent.Hook
 	Policy ent.Policy
 	// DefaultSku holds the default value on creation for the "sku" field.
 	DefaultSku string

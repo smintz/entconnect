@@ -26,6 +26,9 @@ func init() {
 			return next.Mutate(ctx, m)
 		})
 	}
+	orderMixinHooks0 := orderMixin[0].Hooks()
+
+	order.Hooks[1] = orderMixinHooks0[0]
 	orderMixinFields0 := orderMixin[0].Fields()
 	_ = orderMixinFields0
 	orderFields := schema.Order{}.Fields()
