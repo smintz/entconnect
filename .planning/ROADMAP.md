@@ -121,7 +121,7 @@ Plans:
   4. CI fails when `mixinforproto`'s and `entconnect`'s resolved protovalidate/cel-go versions diverge
   5. A conformance corpus golden-asserts every field-mapping rule and protovalidate constraint class against derived fields, and a differential harness feeds random values through every corpus message asserting `protovalidate verdict == ent mutation verdict` for field-scoped rules
 
-**Plans**: 8/8 plans executed
+**Plans**: 10 plans (8 executed, 2 planned)
 Plans:
 **Wave 1**
 
@@ -148,6 +148,14 @@ Plans:
 **Gap Closure Wave 2** *(blocked on Gap Closure Wave 1)*
 
 - [x] 03-08-PLAN.md — Gap CR-01 and warning WR-04: `cel_expression` and `oneof` message-rule carriers enumerated by D-10's schema-load gate, `WithMessageRules` honoring its trigger, and two declaration-surface exhaustiveness guards that make the next omitted carrier a named test failure
+
+**Gap Closure Wave 3** *(closes `03-VERIFICATION.md`'s one remaining gap — `buf.validate.oneof`/`OneofRules`, the THIRD rule-carrier extension, distinct from the `MessageRules.oneof` carrier 03-08 closed; blocked on Gap Closure Wave 2)*
+
+- [ ] 03-09-PLAN.md — The `OneofRules` gap: `protovalidate.ResolveOneofRules` wired into `derive.go`, the constraint recorded as named boundary-only provenance that survives entc's schema-load boundary, a corpus fixture declaring `(buf.validate.oneof)`, a third declaration-surface guard, and a real-`ent.Client` proof that the boundary/storage divergence is exactly the recorded one
+
+**Gap Closure Wave 4** *(blocked on Gap Closure Wave 3; owns every documentation file so its file set stays disjoint)*
+
+- [ ] 03-10-PLAN.md — Warnings WR-01 and WR-02: `reverseEnum` stops naming the rejected value (with a class-complete sentinel-absence sweep), the README documents the `Exclude`/`Override`/`WithMessageRules` API that actually ships, both design surfaces state the `OneofRules` scope boundary, and `REQUIREMENTS.md`'s VAL-09/10/11 rows stop contradicting two verification passes
 
 ### Phase 4: Flow Binding
 
