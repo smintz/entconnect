@@ -262,11 +262,12 @@ func TestMixedField_SiblingsUnaffected(t *testing.T) {
 // TestNewValidationError_SingleBuilderSite is a lightweight structural
 // pin for the acceptance criterion "violation.go is the only file
 // constructing a *protovalidate.ValidationError{" — see hooks.go's own
-// single call site (the D-07 consequence 3 constructor) and Makefile's
-// grep-based check for the authoritative, whole-repo version of this
-// assertion; this test only pins that newValidationError itself returns
-// a well-formed, non-nil value for a non-empty input, so the constructor
-// contract this package relies on cannot silently regress.
+// single call site (the D-07 consequence 3 constructor) and the
+// authoritative, whole-repo version of this assertion: run
+// `make check-single-validationerror-site` (scripts/pipeline.sh step 6/6,
+// CI's `modules` job). This test only pins that newValidationError itself
+// returns a well-formed, non-nil value for a non-empty input, so the
+// constructor contract this package relies on cannot silently regress.
 func TestNewValidationError_SingleBuilderSite(t *testing.T) {
 	hs := mustMixedHookState(t)
 	v := &validate.Violation{

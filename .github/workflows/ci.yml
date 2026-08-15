@@ -62,6 +62,16 @@ jobs:
       - name: Verify mixinforproto/go.mod's go directive pin
         run: make check-goversion
 
+      # WR-07 gap closure (03-07): a whole-repo, source-text invariant with
+      # no module resolution at all -- unlike check-dep-parity, this gate
+      # has no GOWORK=off requirement, so the `modules` job (which already
+      # runs make build/vet/test) is the natural host. Deliberately NOT
+      # added to the `standalone` job below, which exists specifically for
+      # the GOWORK=off proof; adding it there would imply a
+      # workspace-resolution dependency this gate does not have.
+      - name: Verify VAL-07's single ValidationError construction site
+        run: make check-single-validationerror-site
+
       - name: Install buf (pinned)
         run: go install github.com/bufbuild/buf/cmd/buf@v1.72.0
 

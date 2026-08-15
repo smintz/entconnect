@@ -17,6 +17,11 @@ set -euo pipefail
 #      single-corpus name would be misleading.
 #   4. go generate ./...   (per module, from MODULES)
 #   5. atlas migrate diff
+#   6. make check-single-validationerror-site (WR-07 gap closure, 03-07):
+#      the whole-repo, source-text invariant that VAL-07's single
+#      *protovalidate.ValidationError construction site never grows a
+#      second one — appended after the original five steps, never
+#      inserted among them, since their order is fixed (see above).
 #
 # SERIAL-ONLY. This script is not safe to run concurrently against the same
 # working tree: steps 2 and 3 write generated output to fixed paths
@@ -53,10 +58,10 @@ require_buf() {
 }
 
 # --- Step 1: buf lint --------------------------------------------------------
-log "step 1/5: buf lint"
+log "step 1/6: buf lint"
 require_buf
 (cd "$PROTO_DIR" && buf lint)
-log "step 1/5: OK"
+log "step 1/6: OK"
 
 # --- Step 2: scripts/generate-stubs.sh -----------------------------------
 # The scoping rationale (why --path mixinforprototest is required, and the
@@ -67,19 +72,19 @@ log "step 1/5: OK"
 # check-stubs.sh's staleness gate can never carry two independent,
 # driftable spellings of the same command again (VERIFICATION.md gap 4 /
 # REVIEW.md CR-04).
-log "step 2/5: scripts/generate-stubs.sh"
+log "step 2/6: scripts/generate-stubs.sh"
 require_buf
 "$REPO_ROOT/scripts/generate-stubs.sh" "$REPO_ROOT"
-log "step 2/5: OK"
+log "step 2/6: OK"
 
 # --- Step 3: descriptor-set build (a SEPARATE invocation, never a plugin) ----
-log "step 3/5: buf build -o ${DESCRIPTOR_OUT} --as-file-descriptor-set --exclude-source-info"
+log "step 3/6: buf build -o ${DESCRIPTOR_OUT} --as-file-descriptor-set --exclude-source-info"
 require_buf
 buf build "$PROTO_DIR" -o "$DESCRIPTOR_OUT" --as-file-descriptor-set --exclude-source-info
-log "step 3/5: OK (${DESCRIPTOR_OUT})"
+log "step 3/6: OK (${DESCRIPTOR_OUT})"
 
 # --- Step 4: go generate ./... per module ------------------------------------
-log "step 4/5: go generate ./... (per module)"
+log "step 4/6: go generate ./... (per module)"
 step4_ran=false
 for m in $MODULES; do
   if grep -rl --include='*.go' -e '^//go:generate' "$m" >/dev/null 2>&1; then
@@ -89,12 +94,12 @@ for m in $MODULES; do
   fi
 done
 if [ "$step4_ran" = false ]; then
-  log "step 4/5: SKIP — no //go:generate directives exist in any module yet."
+  log "step 4/6: SKIP — no //go:generate directives exist in any module yet."
 fi
-log "step 4/5: OK"
+log "step 4/6: OK"
 
 # --- Step 5: atlas migrate diff ----------------------------------------------
-log "step 5/5: atlas migrate diff"
+log "step 5/6: atlas migrate diff"
 # Phase 1/2 ship no real application ent schema to migrate — every
 # ent.Schema in the repo so far is a schema-load/tracer-test fixture
 # (mixinforproto/internal/boundarytest, internal/entconnecttest/*), never
@@ -112,7 +117,7 @@ schema_dirs=$(find . -type d -name '.claude' -prune -o \
   -not -path './mixinforproto/internal/*' \
   -not -path './internal/entconnecttest/*' -print 2>/dev/null || true)
 if [ -z "$schema_dirs" ]; then
-  log "step 5/5: SKIP — no application ent/schema package exists yet. A later phase (once a real ent schema is generated for the reference app) is the first phase with anything for atlas to diff."
+  log "step 5/6: SKIP — no application ent/schema package exists yet. A later phase (once a real ent schema is generated for the reference app) is the first phase with anything for atlas to diff."
 else
   if ! command -v atlas >/dev/null 2>&1; then
     echo "[pipeline] ERROR: atlas is required for this step but is not on PATH." >&2
@@ -120,7 +125,19 @@ else
     exit 1
   fi
   atlas migrate diff --env local
-  log "step 5/5: OK"
+  log "step 5/6: OK"
 fi
+
+# --- Step 6: check-single-validationerror-site (WR-07 gap closure, 03-07) --
+# The whole-repo, source-text gate that VAL-07's single
+# *protovalidate.ValidationError construction site (mixinforproto/
+# violation.go) never grows a second one. Appended after the original five
+# steps rather than inserted among them, since their order is fixed (see
+# header). Delegates to the Makefile target so `make
+# check-single-validationerror-site` and this pipeline step can never carry
+# two independent, driftable spellings of the same check.
+log "step 6/6: make check-single-validationerror-site"
+(cd "$REPO_ROOT" && make check-single-validationerror-site)
+log "step 6/6: OK"
 
 log "pipeline complete."
