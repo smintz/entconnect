@@ -26,6 +26,10 @@ type Tx struct {
 	Int32Comparators *Int32ComparatorsClient
 	// Int32Overflow is the client for interacting with the Int32Overflow builders.
 	Int32Overflow *Int32OverflowClient
+	// MessageRuleCelExpression is the client for interacting with the MessageRuleCelExpression builders.
+	MessageRuleCelExpression *MessageRuleCelExpressionClient
+	// MessageRuleOneof is the client for interacting with the MessageRuleOneof builders.
+	MessageRuleOneof *MessageRuleOneofClient
 	// MessageRules is the client for interacting with the MessageRules builders.
 	MessageRules *MessageRulesClient
 	// MixedFieldRules is the client for interacting with the MixedFieldRules builders.
@@ -200,6 +204,8 @@ func (tx *Tx) init() {
 	tx.Int32Adjacent = NewInt32AdjacentClient(tx.config)
 	tx.Int32Comparators = NewInt32ComparatorsClient(tx.config)
 	tx.Int32Overflow = NewInt32OverflowClient(tx.config)
+	tx.MessageRuleCelExpression = NewMessageRuleCelExpressionClient(tx.config)
+	tx.MessageRuleOneof = NewMessageRuleOneofClient(tx.config)
 	tx.MessageRules = NewMessageRulesClient(tx.config)
 	tx.MixedFieldRules = NewMixedFieldRulesClient(tx.config)
 	tx.OverriddenMixedFieldRules = NewOverriddenMixedFieldRulesClient(tx.config)

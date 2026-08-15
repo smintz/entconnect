@@ -28,3 +28,44 @@ func (MessageRules) Mixin() []ent.Mixin {
 		),
 	}
 }
+
+// MessageRuleCelExpression declares MixinForProto against the generated
+// MessageRuleCelExpressionOk message type (proto/mixinforprototest/v1/
+// messagerules.proto) with WithMessageRules(mixinforproto.OnCreate) set —
+// 03-08-PLAN.md Task 2's real-ent.Client fixture for CR-01's
+// cel_expression carrier gap closure: a real Create violating
+// "this.lo <= this.hi" (declared via the simplified cel_expression
+// carrier, not `cel`) is rejected through ent's actual withHooks
+// pipeline (PIPE-06), not just against a hand-built ent.Mutation double.
+type MessageRuleCelExpression struct {
+	ent.Schema
+}
+
+// Mixin returns the derived mixin — the only thing this schema declares.
+func (MessageRuleCelExpression) Mixin() []ent.Mixin {
+	return []ent.Mixin{
+		mixinforproto.MixinForProto[*mixinforprototestv1.MessageRuleCelExpressionOk](
+			mixinforproto.WithMessageRules(mixinforproto.OnCreate),
+		),
+	}
+}
+
+// MessageRuleOneof declares MixinForProto against the generated
+// MessageRuleOneofOk message type (proto/mixinforprototest/v1/
+// messagerules.proto) with WithMessageRules(mixinforproto.OnCreate) set —
+// 03-08-PLAN.md Task 2's real-ent.Client fixture for CR-01's oneof
+// carrier gap closure: a real Create violating the oneof rule (declared
+// via the `oneof` carrier, no CEL involved at all) is rejected through
+// ent's actual withHooks pipeline (PIPE-06).
+type MessageRuleOneof struct {
+	ent.Schema
+}
+
+// Mixin returns the derived mixin — the only thing this schema declares.
+func (MessageRuleOneof) Mixin() []ent.Mixin {
+	return []ent.Mixin{
+		mixinforproto.MixinForProto[*mixinforprototestv1.MessageRuleOneofOk](
+			mixinforproto.WithMessageRules(mixinforproto.OnCreate),
+		),
+	}
+}

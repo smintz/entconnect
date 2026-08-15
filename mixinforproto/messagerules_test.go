@@ -381,6 +381,57 @@ func TestMessageRuleReferences_OneofUnknownFieldNameIsCollectedFailure(t *testin
 	}
 }
 
+// ============================================================================
+// 03-08-PLAN.md, Task 2: WR-04 gap closure — WithMessageRules honors its
+// trigger instead of discarding it.
+// ============================================================================
+
+// TestWithMessageRules_OnCreateStillWorks is the regression guard: passing
+// the one declared trigger value behaves exactly as before this gap
+// closure.
+func TestWithMessageRules_OnCreateStillWorks(t *testing.T) {
+	md := descriptorOf[*mixinforprototestv1.MessageRuleOk]()
+	hs := mustBuildHookState(t, md, WithMessageRules(OnCreate))
+	if !hs.messageRulesOnCreate {
+		t.Fatal("want hs.messageRulesOnCreate=true for WithMessageRules(OnCreate)")
+	}
+}
+
+// TestWithMessageRules_UndeclaredTriggerFailsSchemaLoad is WR-04's core
+// proof: an undeclared MessageRuleTrigger value fails schema load, naming
+// WithMessageRules and the offending numeric value, rather than silently
+// behaving as OnCreate. Exercised against MessageRuleNone (no message-
+// level rules at all) specifically to prove the check fires independently
+// of whether the message has any rules to enumerate — the trigger itself
+// is invalid regardless of what it would have gated.
+func TestWithMessageRules_UndeclaredTriggerFailsSchemaLoad(t *testing.T) {
+	md := descriptorOf[*mixinforprototestv1.MessageRuleNone]()
+	_, err := buildHookState(md, WithMessageRules(MessageRuleTrigger(7)))
+	if err == nil {
+		t.Fatal("want an error: MessageRuleTrigger(7) is not a declared trigger value")
+	}
+	for _, want := range []string{"WithMessageRules", "7"} {
+		if !strings.Contains(err.Error(), want) {
+			t.Fatalf("error %q missing %q", err.Error(), want)
+		}
+	}
+}
+
+// TestWithMessageRules_UndeclaredTriggerFailsEvenWithRealRules proves the
+// same failure against a message that DOES declare message-level rules
+// (MessageRuleOk), so the undeclared-trigger check is proven to run
+// BEFORE any rule-reference walk, not merely on the no-rule fast path.
+func TestWithMessageRules_UndeclaredTriggerFailsEvenWithRealRules(t *testing.T) {
+	md := descriptorOf[*mixinforprototestv1.MessageRuleOk]()
+	_, err := buildHookState(md, WithMessageRules(MessageRuleTrigger(99)))
+	if err == nil {
+		t.Fatal("want an error: MessageRuleTrigger(99) is not a declared trigger value")
+	}
+	if !strings.Contains(err.Error(), "99") {
+		t.Fatalf("error %q missing the offending trigger value", err.Error())
+	}
+}
+
 // --- VAL-08/empty edge probe: a cel_expression rule that compiles but
 // makes no this.<field> select at all is a legal no-op — schema load
 // succeeds under WithMessageRules(OnCreate) and seeds no extraFields,

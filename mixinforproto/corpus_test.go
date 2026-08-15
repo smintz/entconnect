@@ -622,6 +622,26 @@ func fieldRuleClasses(fd protoreflect.FieldDescriptor) ([]string, error) {
 // reason it is exempt — never a silent omission.
 var constraintClassExceptions = map[string]string{
 	"enum": "enum.defined_only is satisfied by field.Enum's own construction and needs no residual/translated record of its own — D-14, mapEnum's doc comment (fieldmap.go)",
+	// 03-08-PLAN.md Task 2: a message-level `oneof` rule (buf.validate.
+	// MessageRules field 4) is structurally invisible to THIS guard's
+	// witness half (Part B, recordConstraintWitness below), which walks
+	// only derive.go's own output (SourceField.TranslatedIDs/ResidualIDs/
+	// LengthUnitDivergentIDs and SourceMessage.BoundaryOnly) — and
+	// derive.go, by design, never consults message-level rules at all
+	// (messagerules.go's own doc comment: "never from derive.go:
+	// Fields()/Annotations() need no knowledge of message-level rules").
+	// checkMessageRuleReferences lives in hooks.go instead, and its own
+	// coverage is real and machine-checked — messagerules_test.go's
+	// TestBuildHookState_MessageRuleOneofRefsSeedExtraFields/
+	// TestBuildHookState_MessageRuleOneofExcludedRefFailsSchemaLoad and
+	// corpusCoverage's MessageRuleOneofOk/MessageRuleOneofExcludedRef
+	// entries — just not through the SourceField/SourceMessage provenance
+	// channel this specific guard inspects. Adding a fixture or an
+	// Exclude(...) path (this guard's own stated remedy) cannot close
+	// this gap: no code path in derive.go writes ANY provenance for a
+	// message-level oneof rule, regardless of which fields the corpus
+	// fixture excludes.
+	"oneof": "message-level oneof rules are witnessed by messagerules_test.go/corpusCoverage directly, not by SourceField/SourceMessage provenance — derive.go never consults message-level rules by design (messagerules.go's own doc comment); see this map's own comment for the full reasoning",
 }
 
 // recordConstraintWitness folds d's derived provenance into witnessed,
@@ -683,15 +703,28 @@ func TestCorpusExercisesEveryProtovalidateConstraintClass(t *testing.T) {
 			}
 		}
 		// Message-level rules aren't a FieldRules category; scanned
-		// separately via ResolveMessageRules so a message-level cel rule
-		// also counts toward the "cel" ground truth — field-level and
-		// message-level custom CEL share the same provenance vocabulary.
+		// separately via ResolveMessageRules so a message-level cel OR
+		// cel_expression rule also counts toward the "cel" ground truth
+		// — field-level and message-level custom CEL share the same
+		// provenance vocabulary (fieldRuleClasses folds field-level `cel`
+		// and `cel_expression` into "cel" the identical way, above). A
+		// message-level `oneof` rule is a structurally different
+		// carrier — no CEL involved at all — so it witnesses its OWN
+		// named class ("oneof") rather than being folded into "cel" or
+		// silently invisible (03-08-PLAN.md Task 2).
 		mr, merr := protovalidate.ResolveMessageRules(md)
 		if merr != nil {
 			t.Fatalf("ResolveMessageRules(%s): %v", md.FullName(), merr)
 		}
-		if mr != nil && len(mr.GetCel()) > 0 {
-			groundTruth["cel"] = true
+		if mr != nil {
+			if len(mr.GetCel()) > 0 || len(mr.GetCelExpression()) > 0 {
+				groundTruth["cel"] = true
+			}
+			if len(mr.GetOneof()) > 0 {
+				if _, excepted := constraintClassExceptions["oneof"]; !excepted {
+					groundTruth["oneof"] = true
+				}
+			}
 		}
 	}
 	if len(groundTruth) == 0 {

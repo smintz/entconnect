@@ -101,7 +101,28 @@ const (
 // rule that compiles but makes no this.<field> select at all (VAL-08/
 // empty) is equally a legal no-op: it contributes zero entries to refs
 // and zero failures.
+//
+// This is also WR-04's gap-closure enforcement point (03-08-PLAN.md):
+// buildHookState calls this function whenever o.messageRulesEnabled()
+// reports WithMessageRules was called AT ALL, with any trigger value —
+// so the very first thing this function does is check that value. An
+// undeclared trigger fails schema load immediately, before
+// ResolveMessageRules is even called: a message with no rules at all
+// still must not silently accept a bogus trigger, since accepting it
+// here is indistinguishable from a future OnUpdateWithFetch-shaped
+// trigger appearing to enforce something it does not.
 func checkMessageRuleReferences(msgName string, md protoreflect.MessageDescriptor, o *options) (refs []protoreflect.FieldDescriptor, failures []failure) {
+	if trigger := o.messageRulesTriggerValue(); trigger != OnCreate {
+		return nil, []failure{{
+			message:     msgName,
+			field:       "",
+			fieldIndex:  fieldIndexMessageScoped,
+			rule:        "WithMessageRules",
+			description: fmt.Sprintf("was passed trigger value %d, which is not a declared MessageRuleTrigger", int(trigger)),
+			remedy:      fmt.Sprintf("pass mixinforproto.OnCreate to WithMessageRules — %d (OnCreate) is the only declared value", int(OnCreate)),
+		}}
+	}
+
 	msgRules, err := protovalidate.ResolveMessageRules(md)
 	if err != nil {
 		return nil, []failure{{

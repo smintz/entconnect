@@ -8,7 +8,11 @@ import (
 
 	"buf.build/go/protovalidate"
 
+	"github.com/smintz/entconnect/mixinforproto/internal/difftest/ent/messagerulecelexpression"
 	"github.com/smintz/entconnect/mixinforproto/internal/difftest/ent/messagerules"
+	"github.com/smintz/entconnect/mixinforproto/internal/difftest/ent/messageruleoneof"
+
+	mixinforprototestv1 "github.com/smintz/entconnect/mixinforproto/internal/gen/mixinforprototestv1"
 )
 
 // This file is Plan 03-05's real-client proof for VAL-08/D-10's
@@ -145,4 +149,136 @@ func TestMessageRules_DeterministicAndConcurrent(t *testing.T) {
 			}
 		}
 	})
+}
+
+// ============================================================================
+// 03-08-PLAN.md Task 2: CR-01 gap closure — the cel_expression and oneof
+// MessageRules carriers now flow through the same real ent.Client
+// withHooks pipeline (PIPE-06) MessageRuleOk's `cel`-carrier tests above
+// already prove for the `cel` carrier. Every case compares violation
+// IDENTITY (RuleId, FieldPath) via violationIdentities/sameSet — never a
+// bare count — matching this file's and ignore_test.go's own discipline.
+// ============================================================================
+
+// TestMessageRuleCelExpression_CreateRejectsViolatingEntity is the
+// cel_expression analogue of TestMessageRules_CreateRejectsViolatingEntity
+// above: a real Create violating "this.lo <= this.hi" — declared via the
+// SIMPLIFIED cel_expression carrier, not `cel` — is rejected. Per this
+// plan's own flagged assumption, the expected RuleId is read from
+// protovalidate.Validate's OWN output rather than hard-coded: protovalidate
+// owns the identifier it assigns a cel_expression rule with no explicit
+// id (expressionsToRules, buf.build/go/protovalidate@v1.2.0/builder.go,
+// verified this session — the RuleId is the raw expression string itself,
+// which differs from celRuleResidual's schema-load-time fingerprint; see
+// this plan's SUMMARY for the recorded divergence).
+func TestMessageRuleCelExpression_CreateRejectsViolatingEntity(t *testing.T) {
+	client := newTestClient(t)
+
+	entity := &mixinforprototestv1.MessageRuleCelExpressionOk{Lo: 5, Hi: 1}
+	wantErr := protovalidate.Validate(entity)
+	wantIDs, ok := violationIdentities(wantErr)
+	if !ok {
+		t.Fatalf("want a *protovalidate.ValidationError from the boundary, got %T: %v", wantErr, wantErr)
+	}
+	if len(wantIDs) != 1 {
+		t.Fatalf("want exactly 1 boundary violation, got %v", wantIDs)
+	}
+
+	_, err := client.MessageRuleCelExpression.Create().SetLo(5).SetHi(1).Save(context.Background())
+	storageIDs, ok := violationIdentities(err)
+	if !ok {
+		t.Fatalf("want a *protovalidate.ValidationError, got %T: %v", err, err)
+	}
+	if !sameSet(storageIDs, wantIDs) {
+		t.Fatalf("storage/boundary identity mismatch: storage=%v boundary=%v", storageIDs, wantIDs)
+	}
+}
+
+// TestMessageRuleCelExpression_CreateAcceptsSatisfyingEntity is the
+// accept-side counterpart: lo <= hi satisfies the rule.
+func TestMessageRuleCelExpression_CreateAcceptsSatisfyingEntity(t *testing.T) {
+	client := newTestClient(t)
+
+	if _, err := client.MessageRuleCelExpression.Create().SetLo(1).SetHi(5).Save(context.Background()); err != nil {
+		t.Fatalf("want a nil error for lo=1 <= hi=5 — got: %v", err)
+	}
+}
+
+// TestMessageRuleCelExpression_UpdateNotSubjectToMessageRuleEnforcement is
+// the cel_expression analogue of the `cel`-carrier Create-only proof
+// above: WithMessageRules(OnCreate) never enforces this carrier on
+// Update either.
+func TestMessageRuleCelExpression_UpdateNotSubjectToMessageRuleEnforcement(t *testing.T) {
+	client := newTestClient(t)
+	ctx := context.Background()
+
+	got, err := client.MessageRuleCelExpression.Create().SetLo(1).SetHi(5).Save(ctx)
+	if err != nil {
+		t.Fatalf("create: %v", err)
+	}
+
+	if _, err := client.MessageRuleCelExpression.Update().Where(messagerulecelexpression.IDEQ(got.ID)).SetLo(9).Save(ctx); err != nil {
+		t.Fatalf("want a nil error: message-level rules are Create-only under WithMessageRules(OnCreate) — got: %v", err)
+	}
+}
+
+// TestMessageRuleOneof_CreateRejectsViolatingEntity is the oneof
+// analogue: MessageRuleOneofOk's rule requires exactly one of lo/hi to
+// be set (`required: true`); setting BOTH to non-zero values violates it.
+// protovalidate's own fixed "message.oneof" RuleId (verified against
+// buf.build/go/protovalidate@v1.2.0/message_oneof.go this session) is
+// asserted directly here — unlike cel_expression, this identifier is a
+// fixed constant, not contract-author-supplied, so there is no
+// hard-coding-vs-read-from-protovalidate distinction to make.
+func TestMessageRuleOneof_CreateRejectsViolatingEntity(t *testing.T) {
+	client := newTestClient(t)
+
+	entity := &mixinforprototestv1.MessageRuleOneofOk{Lo: 5, Hi: 3}
+	wantErr := protovalidate.Validate(entity)
+	wantIDs, ok := violationIdentities(wantErr)
+	if !ok {
+		t.Fatalf("want a *protovalidate.ValidationError from the boundary, got %T: %v", wantErr, wantErr)
+	}
+	if !wantIDs["message.oneof\x00"] {
+		t.Fatalf("want boundary violation identity \"message.oneof\" with no field path, got %v", wantIDs)
+	}
+
+	_, err := client.MessageRuleOneof.Create().SetLo(5).SetHi(3).Save(context.Background())
+	storageIDs, ok := violationIdentities(err)
+	if !ok {
+		t.Fatalf("want a *protovalidate.ValidationError, got %T: %v", err, err)
+	}
+	if !sameSet(storageIDs, wantIDs) {
+		t.Fatalf("storage/boundary identity mismatch: storage=%v boundary=%v", storageIDs, wantIDs)
+	}
+}
+
+// TestMessageRuleOneof_CreateAcceptsSatisfyingEntity is the accept-side
+// counterpart: exactly one of lo/hi set (hi left at its proto3 zero)
+// satisfies the rule.
+func TestMessageRuleOneof_CreateAcceptsSatisfyingEntity(t *testing.T) {
+	client := newTestClient(t)
+
+	if _, err := client.MessageRuleOneof.Create().SetLo(5).Save(context.Background()); err != nil {
+		t.Fatalf("want a nil error: exactly one of lo/hi is set — got: %v", err)
+	}
+}
+
+// TestMessageRuleOneof_UpdateNotSubjectToMessageRuleEnforcement is the
+// oneof analogue of the Create-only proof above.
+func TestMessageRuleOneof_UpdateNotSubjectToMessageRuleEnforcement(t *testing.T) {
+	client := newTestClient(t)
+	ctx := context.Background()
+
+	got, err := client.MessageRuleOneof.Create().SetLo(5).Save(ctx)
+	if err != nil {
+		t.Fatalf("create: %v", err)
+	}
+
+	// Setting hi=3 alone (lo stays 5, persisted-elsewhere) would violate
+	// the oneof rule (both non-zero) if it were (wrongly) evaluated on
+	// this Update — it must not be.
+	if _, err := client.MessageRuleOneof.Update().Where(messageruleoneof.IDEQ(got.ID)).SetHi(3).Save(ctx); err != nil {
+		t.Fatalf("want a nil error: message-level rules are Create-only under WithMessageRules(OnCreate) — got: %v", err)
+	}
 }

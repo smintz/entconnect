@@ -10,6 +10,8 @@ import (
 	"github.com/smintz/entconnect/mixinforproto/internal/difftest/ent/int32adjacent"
 	"github.com/smintz/entconnect/mixinforproto/internal/difftest/ent/int32comparators"
 	"github.com/smintz/entconnect/mixinforproto/internal/difftest/ent/int32overflow"
+	"github.com/smintz/entconnect/mixinforproto/internal/difftest/ent/messagerulecelexpression"
+	"github.com/smintz/entconnect/mixinforproto/internal/difftest/ent/messageruleoneof"
 	"github.com/smintz/entconnect/mixinforproto/internal/difftest/ent/messagerules"
 	"github.com/smintz/entconnect/mixinforproto/internal/difftest/ent/mixedfieldrules"
 	"github.com/smintz/entconnect/mixinforproto/internal/difftest/ent/overriddenmixedfieldrules"
@@ -184,6 +186,36 @@ func init() {
 	int32overflowDescLtMinField := int32overflowMixinFields0[1].Descriptor()
 	// int32overflow.DefaultLtMinField holds the default value on creation for the lt_min_field field.
 	int32overflow.DefaultLtMinField = int32overflowDescLtMinField.Default.(int32)
+	messagerulecelexpressionMixin := schema.MessageRuleCelExpression{}.Mixin()
+	messagerulecelexpressionMixinHooks0 := messagerulecelexpressionMixin[0].Hooks()
+	messagerulecelexpression.Hooks[0] = messagerulecelexpressionMixinHooks0[0]
+	messagerulecelexpressionMixinFields0 := messagerulecelexpressionMixin[0].Fields()
+	_ = messagerulecelexpressionMixinFields0
+	messagerulecelexpressionFields := schema.MessageRuleCelExpression{}.Fields()
+	_ = messagerulecelexpressionFields
+	// messagerulecelexpressionDescLo is the schema descriptor for lo field.
+	messagerulecelexpressionDescLo := messagerulecelexpressionMixinFields0[0].Descriptor()
+	// messagerulecelexpression.DefaultLo holds the default value on creation for the lo field.
+	messagerulecelexpression.DefaultLo = messagerulecelexpressionDescLo.Default.(int32)
+	// messagerulecelexpressionDescHi is the schema descriptor for hi field.
+	messagerulecelexpressionDescHi := messagerulecelexpressionMixinFields0[1].Descriptor()
+	// messagerulecelexpression.DefaultHi holds the default value on creation for the hi field.
+	messagerulecelexpression.DefaultHi = messagerulecelexpressionDescHi.Default.(int32)
+	messageruleoneofMixin := schema.MessageRuleOneof{}.Mixin()
+	messageruleoneofMixinHooks0 := messageruleoneofMixin[0].Hooks()
+	messageruleoneof.Hooks[0] = messageruleoneofMixinHooks0[0]
+	messageruleoneofMixinFields0 := messageruleoneofMixin[0].Fields()
+	_ = messageruleoneofMixinFields0
+	messageruleoneofFields := schema.MessageRuleOneof{}.Fields()
+	_ = messageruleoneofFields
+	// messageruleoneofDescLo is the schema descriptor for lo field.
+	messageruleoneofDescLo := messageruleoneofMixinFields0[0].Descriptor()
+	// messageruleoneof.DefaultLo holds the default value on creation for the lo field.
+	messageruleoneof.DefaultLo = messageruleoneofDescLo.Default.(int32)
+	// messageruleoneofDescHi is the schema descriptor for hi field.
+	messageruleoneofDescHi := messageruleoneofMixinFields0[1].Descriptor()
+	// messageruleoneof.DefaultHi holds the default value on creation for the hi field.
+	messageruleoneof.DefaultHi = messageruleoneofDescHi.Default.(int32)
 	messagerulesMixin := schema.MessageRules{}.Mixin()
 	messagerulesMixinHooks0 := messagerulesMixin[0].Hooks()
 	messagerules.Hooks[0] = messagerulesMixinHooks0[0]

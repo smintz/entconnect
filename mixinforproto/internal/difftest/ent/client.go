@@ -21,6 +21,8 @@ import (
 	"github.com/smintz/entconnect/mixinforproto/internal/difftest/ent/int32adjacent"
 	"github.com/smintz/entconnect/mixinforproto/internal/difftest/ent/int32comparators"
 	"github.com/smintz/entconnect/mixinforproto/internal/difftest/ent/int32overflow"
+	"github.com/smintz/entconnect/mixinforproto/internal/difftest/ent/messagerulecelexpression"
+	"github.com/smintz/entconnect/mixinforproto/internal/difftest/ent/messageruleoneof"
 	"github.com/smintz/entconnect/mixinforproto/internal/difftest/ent/messagerules"
 	"github.com/smintz/entconnect/mixinforproto/internal/difftest/ent/mixedfieldrules"
 	"github.com/smintz/entconnect/mixinforproto/internal/difftest/ent/overriddenmixedfieldrules"
@@ -60,6 +62,10 @@ type Client struct {
 	Int32Comparators *Int32ComparatorsClient
 	// Int32Overflow is the client for interacting with the Int32Overflow builders.
 	Int32Overflow *Int32OverflowClient
+	// MessageRuleCelExpression is the client for interacting with the MessageRuleCelExpression builders.
+	MessageRuleCelExpression *MessageRuleCelExpressionClient
+	// MessageRuleOneof is the client for interacting with the MessageRuleOneof builders.
+	MessageRuleOneof *MessageRuleOneofClient
 	// MessageRules is the client for interacting with the MessageRules builders.
 	MessageRules *MessageRulesClient
 	// MixedFieldRules is the client for interacting with the MixedFieldRules builders.
@@ -114,6 +120,8 @@ func (c *Client) init() {
 	c.Int32Adjacent = NewInt32AdjacentClient(c.config)
 	c.Int32Comparators = NewInt32ComparatorsClient(c.config)
 	c.Int32Overflow = NewInt32OverflowClient(c.config)
+	c.MessageRuleCelExpression = NewMessageRuleCelExpressionClient(c.config)
+	c.MessageRuleOneof = NewMessageRuleOneofClient(c.config)
 	c.MessageRules = NewMessageRulesClient(c.config)
 	c.MixedFieldRules = NewMixedFieldRulesClient(c.config)
 	c.OverriddenMixedFieldRules = NewOverriddenMixedFieldRulesClient(c.config)
@@ -231,6 +239,8 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 		Int32Adjacent:             NewInt32AdjacentClient(cfg),
 		Int32Comparators:          NewInt32ComparatorsClient(cfg),
 		Int32Overflow:             NewInt32OverflowClient(cfg),
+		MessageRuleCelExpression:  NewMessageRuleCelExpressionClient(cfg),
+		MessageRuleOneof:          NewMessageRuleOneofClient(cfg),
 		MessageRules:              NewMessageRulesClient(cfg),
 		MixedFieldRules:           NewMixedFieldRulesClient(cfg),
 		OverriddenMixedFieldRules: NewOverriddenMixedFieldRulesClient(cfg),
@@ -275,6 +285,8 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 		Int32Adjacent:             NewInt32AdjacentClient(cfg),
 		Int32Comparators:          NewInt32ComparatorsClient(cfg),
 		Int32Overflow:             NewInt32OverflowClient(cfg),
+		MessageRuleCelExpression:  NewMessageRuleCelExpressionClient(cfg),
+		MessageRuleOneof:          NewMessageRuleOneofClient(cfg),
 		MessageRules:              NewMessageRulesClient(cfg),
 		MixedFieldRules:           NewMixedFieldRulesClient(cfg),
 		OverriddenMixedFieldRules: NewOverriddenMixedFieldRulesClient(cfg),
@@ -324,8 +336,9 @@ func (c *Client) Use(hooks ...Hook) {
 	for _, n := range []interface{ Use(...Hook) }{
 		c.DoubleComparators, c.FloatComparators, c.IgnoreAlwaysWithCel,
 		c.IgnoreIfZeroWithCel, c.Int32Adjacent, c.Int32Comparators, c.Int32Overflow,
-		c.MessageRules, c.MixedFieldRules, c.OverriddenMixedFieldRules,
-		c.RequiredOptionalBytes, c.RequiredOptionalNonString, c.RequiredOptionalString,
+		c.MessageRuleCelExpression, c.MessageRuleOneof, c.MessageRules,
+		c.MixedFieldRules, c.OverriddenMixedFieldRules, c.RequiredOptionalBytes,
+		c.RequiredOptionalNonString, c.RequiredOptionalString,
 		c.RequiredPlainNonString, c.RequiredString, c.ResidualCel, c.StringByteBounds,
 		c.StringCodePointBounds, c.StringFormatEmail, c.StringFormatHostname,
 		c.StringFormatIp, c.StringFormatUri, c.StringFormatUuid,
@@ -341,8 +354,9 @@ func (c *Client) Intercept(interceptors ...Interceptor) {
 	for _, n := range []interface{ Intercept(...Interceptor) }{
 		c.DoubleComparators, c.FloatComparators, c.IgnoreAlwaysWithCel,
 		c.IgnoreIfZeroWithCel, c.Int32Adjacent, c.Int32Comparators, c.Int32Overflow,
-		c.MessageRules, c.MixedFieldRules, c.OverriddenMixedFieldRules,
-		c.RequiredOptionalBytes, c.RequiredOptionalNonString, c.RequiredOptionalString,
+		c.MessageRuleCelExpression, c.MessageRuleOneof, c.MessageRules,
+		c.MixedFieldRules, c.OverriddenMixedFieldRules, c.RequiredOptionalBytes,
+		c.RequiredOptionalNonString, c.RequiredOptionalString,
 		c.RequiredPlainNonString, c.RequiredString, c.ResidualCel, c.StringByteBounds,
 		c.StringCodePointBounds, c.StringFormatEmail, c.StringFormatHostname,
 		c.StringFormatIp, c.StringFormatUri, c.StringFormatUuid,
@@ -369,6 +383,10 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.Int32Comparators.mutate(ctx, m)
 	case *Int32OverflowMutation:
 		return c.Int32Overflow.mutate(ctx, m)
+	case *MessageRuleCelExpressionMutation:
+		return c.MessageRuleCelExpression.mutate(ctx, m)
+	case *MessageRuleOneofMutation:
+		return c.MessageRuleOneof.mutate(ctx, m)
 	case *MessageRulesMutation:
 		return c.MessageRules.mutate(ctx, m)
 	case *MixedFieldRulesMutation:
@@ -1345,6 +1363,274 @@ func (c *Int32OverflowClient) mutate(ctx context.Context, m *Int32OverflowMutati
 		return (&Int32OverflowDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
 	default:
 		return nil, fmt.Errorf("ent: unknown Int32Overflow mutation op: %q", m.Op())
+	}
+}
+
+// MessageRuleCelExpressionClient is a client for the MessageRuleCelExpression schema.
+type MessageRuleCelExpressionClient struct {
+	config
+}
+
+// NewMessageRuleCelExpressionClient returns a client for the MessageRuleCelExpression from the given config.
+func NewMessageRuleCelExpressionClient(c config) *MessageRuleCelExpressionClient {
+	return &MessageRuleCelExpressionClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `messagerulecelexpression.Hooks(f(g(h())))`.
+func (c *MessageRuleCelExpressionClient) Use(hooks ...Hook) {
+	c.hooks.MessageRuleCelExpression = append(c.hooks.MessageRuleCelExpression, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `messagerulecelexpression.Intercept(f(g(h())))`.
+func (c *MessageRuleCelExpressionClient) Intercept(interceptors ...Interceptor) {
+	c.inters.MessageRuleCelExpression = append(c.inters.MessageRuleCelExpression, interceptors...)
+}
+
+// Create returns a builder for creating a MessageRuleCelExpression entity.
+func (c *MessageRuleCelExpressionClient) Create() *MessageRuleCelExpressionCreate {
+	mutation := newMessageRuleCelExpressionMutation(c.config, OpCreate)
+	return &MessageRuleCelExpressionCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of MessageRuleCelExpression entities.
+func (c *MessageRuleCelExpressionClient) CreateBulk(builders ...*MessageRuleCelExpressionCreate) *MessageRuleCelExpressionCreateBulk {
+	return &MessageRuleCelExpressionCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *MessageRuleCelExpressionClient) MapCreateBulk(slice any, setFunc func(*MessageRuleCelExpressionCreate, int)) *MessageRuleCelExpressionCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &MessageRuleCelExpressionCreateBulk{err: fmt.Errorf("calling to MessageRuleCelExpressionClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*MessageRuleCelExpressionCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &MessageRuleCelExpressionCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for MessageRuleCelExpression.
+func (c *MessageRuleCelExpressionClient) Update() *MessageRuleCelExpressionUpdate {
+	mutation := newMessageRuleCelExpressionMutation(c.config, OpUpdate)
+	return &MessageRuleCelExpressionUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *MessageRuleCelExpressionClient) UpdateOne(_m *MessageRuleCelExpression) *MessageRuleCelExpressionUpdateOne {
+	mutation := newMessageRuleCelExpressionMutation(c.config, OpUpdateOne, withMessageRuleCelExpression(_m))
+	return &MessageRuleCelExpressionUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *MessageRuleCelExpressionClient) UpdateOneID(id int) *MessageRuleCelExpressionUpdateOne {
+	mutation := newMessageRuleCelExpressionMutation(c.config, OpUpdateOne, withMessageRuleCelExpressionID(id))
+	return &MessageRuleCelExpressionUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for MessageRuleCelExpression.
+func (c *MessageRuleCelExpressionClient) Delete() *MessageRuleCelExpressionDelete {
+	mutation := newMessageRuleCelExpressionMutation(c.config, OpDelete)
+	return &MessageRuleCelExpressionDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *MessageRuleCelExpressionClient) DeleteOne(_m *MessageRuleCelExpression) *MessageRuleCelExpressionDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *MessageRuleCelExpressionClient) DeleteOneID(id int) *MessageRuleCelExpressionDeleteOne {
+	builder := c.Delete().Where(messagerulecelexpression.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &MessageRuleCelExpressionDeleteOne{builder}
+}
+
+// Query returns a query builder for MessageRuleCelExpression.
+func (c *MessageRuleCelExpressionClient) Query() *MessageRuleCelExpressionQuery {
+	return &MessageRuleCelExpressionQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeMessageRuleCelExpression},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a MessageRuleCelExpression entity by its id.
+func (c *MessageRuleCelExpressionClient) Get(ctx context.Context, id int) (*MessageRuleCelExpression, error) {
+	return c.Query().Where(messagerulecelexpression.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *MessageRuleCelExpressionClient) GetX(ctx context.Context, id int) *MessageRuleCelExpression {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *MessageRuleCelExpressionClient) Hooks() []Hook {
+	hooks := c.hooks.MessageRuleCelExpression
+	return append(hooks[:len(hooks):len(hooks)], messagerulecelexpression.Hooks[:]...)
+}
+
+// Interceptors returns the client interceptors.
+func (c *MessageRuleCelExpressionClient) Interceptors() []Interceptor {
+	return c.inters.MessageRuleCelExpression
+}
+
+func (c *MessageRuleCelExpressionClient) mutate(ctx context.Context, m *MessageRuleCelExpressionMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&MessageRuleCelExpressionCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&MessageRuleCelExpressionUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&MessageRuleCelExpressionUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&MessageRuleCelExpressionDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown MessageRuleCelExpression mutation op: %q", m.Op())
+	}
+}
+
+// MessageRuleOneofClient is a client for the MessageRuleOneof schema.
+type MessageRuleOneofClient struct {
+	config
+}
+
+// NewMessageRuleOneofClient returns a client for the MessageRuleOneof from the given config.
+func NewMessageRuleOneofClient(c config) *MessageRuleOneofClient {
+	return &MessageRuleOneofClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `messageruleoneof.Hooks(f(g(h())))`.
+func (c *MessageRuleOneofClient) Use(hooks ...Hook) {
+	c.hooks.MessageRuleOneof = append(c.hooks.MessageRuleOneof, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `messageruleoneof.Intercept(f(g(h())))`.
+func (c *MessageRuleOneofClient) Intercept(interceptors ...Interceptor) {
+	c.inters.MessageRuleOneof = append(c.inters.MessageRuleOneof, interceptors...)
+}
+
+// Create returns a builder for creating a MessageRuleOneof entity.
+func (c *MessageRuleOneofClient) Create() *MessageRuleOneofCreate {
+	mutation := newMessageRuleOneofMutation(c.config, OpCreate)
+	return &MessageRuleOneofCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of MessageRuleOneof entities.
+func (c *MessageRuleOneofClient) CreateBulk(builders ...*MessageRuleOneofCreate) *MessageRuleOneofCreateBulk {
+	return &MessageRuleOneofCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *MessageRuleOneofClient) MapCreateBulk(slice any, setFunc func(*MessageRuleOneofCreate, int)) *MessageRuleOneofCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &MessageRuleOneofCreateBulk{err: fmt.Errorf("calling to MessageRuleOneofClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*MessageRuleOneofCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &MessageRuleOneofCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for MessageRuleOneof.
+func (c *MessageRuleOneofClient) Update() *MessageRuleOneofUpdate {
+	mutation := newMessageRuleOneofMutation(c.config, OpUpdate)
+	return &MessageRuleOneofUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *MessageRuleOneofClient) UpdateOne(_m *MessageRuleOneof) *MessageRuleOneofUpdateOne {
+	mutation := newMessageRuleOneofMutation(c.config, OpUpdateOne, withMessageRuleOneof(_m))
+	return &MessageRuleOneofUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *MessageRuleOneofClient) UpdateOneID(id int) *MessageRuleOneofUpdateOne {
+	mutation := newMessageRuleOneofMutation(c.config, OpUpdateOne, withMessageRuleOneofID(id))
+	return &MessageRuleOneofUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for MessageRuleOneof.
+func (c *MessageRuleOneofClient) Delete() *MessageRuleOneofDelete {
+	mutation := newMessageRuleOneofMutation(c.config, OpDelete)
+	return &MessageRuleOneofDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *MessageRuleOneofClient) DeleteOne(_m *MessageRuleOneof) *MessageRuleOneofDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *MessageRuleOneofClient) DeleteOneID(id int) *MessageRuleOneofDeleteOne {
+	builder := c.Delete().Where(messageruleoneof.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &MessageRuleOneofDeleteOne{builder}
+}
+
+// Query returns a query builder for MessageRuleOneof.
+func (c *MessageRuleOneofClient) Query() *MessageRuleOneofQuery {
+	return &MessageRuleOneofQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeMessageRuleOneof},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a MessageRuleOneof entity by its id.
+func (c *MessageRuleOneofClient) Get(ctx context.Context, id int) (*MessageRuleOneof, error) {
+	return c.Query().Where(messageruleoneof.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *MessageRuleOneofClient) GetX(ctx context.Context, id int) *MessageRuleOneof {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *MessageRuleOneofClient) Hooks() []Hook {
+	hooks := c.hooks.MessageRuleOneof
+	return append(hooks[:len(hooks):len(hooks)], messageruleoneof.Hooks[:]...)
+}
+
+// Interceptors returns the client interceptors.
+func (c *MessageRuleOneofClient) Interceptors() []Interceptor {
+	return c.inters.MessageRuleOneof
+}
+
+func (c *MessageRuleOneofClient) mutate(ctx context.Context, m *MessageRuleOneofMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&MessageRuleOneofCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&MessageRuleOneofUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&MessageRuleOneofUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&MessageRuleOneofDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown MessageRuleOneof mutation op: %q", m.Op())
 	}
 }
 
@@ -3764,20 +4050,22 @@ func (c *StringPatternClient) mutate(ctx context.Context, m *StringPatternMutati
 type (
 	hooks struct {
 		DoubleComparators, FloatComparators, IgnoreAlwaysWithCel, IgnoreIfZeroWithCel,
-		Int32Adjacent, Int32Comparators, Int32Overflow, MessageRules, MixedFieldRules,
-		OverriddenMixedFieldRules, RequiredOptionalBytes, RequiredOptionalNonString,
-		RequiredOptionalString, RequiredPlainNonString, RequiredString, ResidualCel,
-		StringByteBounds, StringCodePointBounds, StringFormatEmail,
-		StringFormatHostname, StringFormatIp, StringFormatUri, StringFormatUuid,
-		StringFormatWithSibling, StringPattern []ent.Hook
+		Int32Adjacent, Int32Comparators, Int32Overflow, MessageRuleCelExpression,
+		MessageRuleOneof, MessageRules, MixedFieldRules, OverriddenMixedFieldRules,
+		RequiredOptionalBytes, RequiredOptionalNonString, RequiredOptionalString,
+		RequiredPlainNonString, RequiredString, ResidualCel, StringByteBounds,
+		StringCodePointBounds, StringFormatEmail, StringFormatHostname, StringFormatIp,
+		StringFormatUri, StringFormatUuid, StringFormatWithSibling,
+		StringPattern []ent.Hook
 	}
 	inters struct {
 		DoubleComparators, FloatComparators, IgnoreAlwaysWithCel, IgnoreIfZeroWithCel,
-		Int32Adjacent, Int32Comparators, Int32Overflow, MessageRules, MixedFieldRules,
-		OverriddenMixedFieldRules, RequiredOptionalBytes, RequiredOptionalNonString,
-		RequiredOptionalString, RequiredPlainNonString, RequiredString, ResidualCel,
-		StringByteBounds, StringCodePointBounds, StringFormatEmail,
-		StringFormatHostname, StringFormatIp, StringFormatUri, StringFormatUuid,
-		StringFormatWithSibling, StringPattern []ent.Interceptor
+		Int32Adjacent, Int32Comparators, Int32Overflow, MessageRuleCelExpression,
+		MessageRuleOneof, MessageRules, MixedFieldRules, OverriddenMixedFieldRules,
+		RequiredOptionalBytes, RequiredOptionalNonString, RequiredOptionalString,
+		RequiredPlainNonString, RequiredString, ResidualCel, StringByteBounds,
+		StringCodePointBounds, StringFormatEmail, StringFormatHostname, StringFormatIp,
+		StringFormatUri, StringFormatUuid, StringFormatWithSibling,
+		StringPattern []ent.Interceptor
 	}
 )

@@ -17,6 +17,8 @@ import (
 	"github.com/smintz/entconnect/mixinforproto/internal/difftest/ent/int32adjacent"
 	"github.com/smintz/entconnect/mixinforproto/internal/difftest/ent/int32comparators"
 	"github.com/smintz/entconnect/mixinforproto/internal/difftest/ent/int32overflow"
+	"github.com/smintz/entconnect/mixinforproto/internal/difftest/ent/messagerulecelexpression"
+	"github.com/smintz/entconnect/mixinforproto/internal/difftest/ent/messageruleoneof"
 	"github.com/smintz/entconnect/mixinforproto/internal/difftest/ent/messagerules"
 	"github.com/smintz/entconnect/mixinforproto/internal/difftest/ent/mixedfieldrules"
 	"github.com/smintz/entconnect/mixinforproto/internal/difftest/ent/overriddenmixedfieldrules"
@@ -54,6 +56,8 @@ const (
 	TypeInt32Adjacent             = "Int32Adjacent"
 	TypeInt32Comparators          = "Int32Comparators"
 	TypeInt32Overflow             = "Int32Overflow"
+	TypeMessageRuleCelExpression  = "MessageRuleCelExpression"
+	TypeMessageRuleOneof          = "MessageRuleOneof"
 	TypeMessageRules              = "MessageRules"
 	TypeMixedFieldRules           = "MixedFieldRules"
 	TypeOverriddenMixedFieldRules = "OverriddenMixedFieldRules"
@@ -3635,6 +3639,904 @@ func (m *Int32OverflowMutation) ClearEdge(name string) error {
 // It returns an error if the edge is not defined in the schema.
 func (m *Int32OverflowMutation) ResetEdge(name string) error {
 	return fmt.Errorf("unknown Int32Overflow edge %s", name)
+}
+
+// MessageRuleCelExpressionMutation represents an operation that mutates the MessageRuleCelExpression nodes in the graph.
+type MessageRuleCelExpressionMutation struct {
+	config
+	op            Op
+	typ           string
+	id            *int
+	lo            *int32
+	addlo         *int32
+	hi            *int32
+	addhi         *int32
+	clearedFields map[string]struct{}
+	done          bool
+	oldValue      func(context.Context) (*MessageRuleCelExpression, error)
+	predicates    []predicate.MessageRuleCelExpression
+}
+
+var _ ent.Mutation = (*MessageRuleCelExpressionMutation)(nil)
+
+// messagerulecelexpressionOption allows management of the mutation configuration using functional options.
+type messagerulecelexpressionOption func(*MessageRuleCelExpressionMutation)
+
+// newMessageRuleCelExpressionMutation creates new mutation for the MessageRuleCelExpression entity.
+func newMessageRuleCelExpressionMutation(c config, op Op, opts ...messagerulecelexpressionOption) *MessageRuleCelExpressionMutation {
+	m := &MessageRuleCelExpressionMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeMessageRuleCelExpression,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withMessageRuleCelExpressionID sets the ID field of the mutation.
+func withMessageRuleCelExpressionID(id int) messagerulecelexpressionOption {
+	return func(m *MessageRuleCelExpressionMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *MessageRuleCelExpression
+		)
+		m.oldValue = func(ctx context.Context) (*MessageRuleCelExpression, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().MessageRuleCelExpression.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withMessageRuleCelExpression sets the old MessageRuleCelExpression of the mutation.
+func withMessageRuleCelExpression(node *MessageRuleCelExpression) messagerulecelexpressionOption {
+	return func(m *MessageRuleCelExpressionMutation) {
+		m.oldValue = func(context.Context) (*MessageRuleCelExpression, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m MessageRuleCelExpressionMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m MessageRuleCelExpressionMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *MessageRuleCelExpressionMutation) ID() (id int, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *MessageRuleCelExpressionMutation) IDs(ctx context.Context) ([]int, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []int{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().MessageRuleCelExpression.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetLo sets the "lo" field.
+func (m *MessageRuleCelExpressionMutation) SetLo(i int32) {
+	m.lo = &i
+	m.addlo = nil
+}
+
+// Lo returns the value of the "lo" field in the mutation.
+func (m *MessageRuleCelExpressionMutation) Lo() (r int32, exists bool) {
+	v := m.lo
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldLo returns the old "lo" field's value of the MessageRuleCelExpression entity.
+// If the MessageRuleCelExpression object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *MessageRuleCelExpressionMutation) OldLo(ctx context.Context) (v int32, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldLo is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldLo requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldLo: %w", err)
+	}
+	return oldValue.Lo, nil
+}
+
+// AddLo adds i to the "lo" field.
+func (m *MessageRuleCelExpressionMutation) AddLo(i int32) {
+	if m.addlo != nil {
+		*m.addlo += i
+	} else {
+		m.addlo = &i
+	}
+}
+
+// AddedLo returns the value that was added to the "lo" field in this mutation.
+func (m *MessageRuleCelExpressionMutation) AddedLo() (r int32, exists bool) {
+	v := m.addlo
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetLo resets all changes to the "lo" field.
+func (m *MessageRuleCelExpressionMutation) ResetLo() {
+	m.lo = nil
+	m.addlo = nil
+}
+
+// SetHi sets the "hi" field.
+func (m *MessageRuleCelExpressionMutation) SetHi(i int32) {
+	m.hi = &i
+	m.addhi = nil
+}
+
+// Hi returns the value of the "hi" field in the mutation.
+func (m *MessageRuleCelExpressionMutation) Hi() (r int32, exists bool) {
+	v := m.hi
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldHi returns the old "hi" field's value of the MessageRuleCelExpression entity.
+// If the MessageRuleCelExpression object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *MessageRuleCelExpressionMutation) OldHi(ctx context.Context) (v int32, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldHi is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldHi requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldHi: %w", err)
+	}
+	return oldValue.Hi, nil
+}
+
+// AddHi adds i to the "hi" field.
+func (m *MessageRuleCelExpressionMutation) AddHi(i int32) {
+	if m.addhi != nil {
+		*m.addhi += i
+	} else {
+		m.addhi = &i
+	}
+}
+
+// AddedHi returns the value that was added to the "hi" field in this mutation.
+func (m *MessageRuleCelExpressionMutation) AddedHi() (r int32, exists bool) {
+	v := m.addhi
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetHi resets all changes to the "hi" field.
+func (m *MessageRuleCelExpressionMutation) ResetHi() {
+	m.hi = nil
+	m.addhi = nil
+}
+
+// Where appends a list predicates to the MessageRuleCelExpressionMutation builder.
+func (m *MessageRuleCelExpressionMutation) Where(ps ...predicate.MessageRuleCelExpression) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the MessageRuleCelExpressionMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *MessageRuleCelExpressionMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.MessageRuleCelExpression, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *MessageRuleCelExpressionMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *MessageRuleCelExpressionMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (MessageRuleCelExpression).
+func (m *MessageRuleCelExpressionMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *MessageRuleCelExpressionMutation) Fields() []string {
+	fields := make([]string, 0, 2)
+	if m.lo != nil {
+		fields = append(fields, messagerulecelexpression.FieldLo)
+	}
+	if m.hi != nil {
+		fields = append(fields, messagerulecelexpression.FieldHi)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *MessageRuleCelExpressionMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case messagerulecelexpression.FieldLo:
+		return m.Lo()
+	case messagerulecelexpression.FieldHi:
+		return m.Hi()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *MessageRuleCelExpressionMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case messagerulecelexpression.FieldLo:
+		return m.OldLo(ctx)
+	case messagerulecelexpression.FieldHi:
+		return m.OldHi(ctx)
+	}
+	return nil, fmt.Errorf("unknown MessageRuleCelExpression field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *MessageRuleCelExpressionMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case messagerulecelexpression.FieldLo:
+		v, ok := value.(int32)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetLo(v)
+		return nil
+	case messagerulecelexpression.FieldHi:
+		v, ok := value.(int32)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetHi(v)
+		return nil
+	}
+	return fmt.Errorf("unknown MessageRuleCelExpression field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *MessageRuleCelExpressionMutation) AddedFields() []string {
+	var fields []string
+	if m.addlo != nil {
+		fields = append(fields, messagerulecelexpression.FieldLo)
+	}
+	if m.addhi != nil {
+		fields = append(fields, messagerulecelexpression.FieldHi)
+	}
+	return fields
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *MessageRuleCelExpressionMutation) AddedField(name string) (ent.Value, bool) {
+	switch name {
+	case messagerulecelexpression.FieldLo:
+		return m.AddedLo()
+	case messagerulecelexpression.FieldHi:
+		return m.AddedHi()
+	}
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *MessageRuleCelExpressionMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	case messagerulecelexpression.FieldLo:
+		v, ok := value.(int32)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddLo(v)
+		return nil
+	case messagerulecelexpression.FieldHi:
+		v, ok := value.(int32)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddHi(v)
+		return nil
+	}
+	return fmt.Errorf("unknown MessageRuleCelExpression numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *MessageRuleCelExpressionMutation) ClearedFields() []string {
+	return nil
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *MessageRuleCelExpressionMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *MessageRuleCelExpressionMutation) ClearField(name string) error {
+	return fmt.Errorf("unknown MessageRuleCelExpression nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *MessageRuleCelExpressionMutation) ResetField(name string) error {
+	switch name {
+	case messagerulecelexpression.FieldLo:
+		m.ResetLo()
+		return nil
+	case messagerulecelexpression.FieldHi:
+		m.ResetHi()
+		return nil
+	}
+	return fmt.Errorf("unknown MessageRuleCelExpression field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *MessageRuleCelExpressionMutation) AddedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *MessageRuleCelExpressionMutation) AddedIDs(name string) []ent.Value {
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *MessageRuleCelExpressionMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *MessageRuleCelExpressionMutation) RemovedIDs(name string) []ent.Value {
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *MessageRuleCelExpressionMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *MessageRuleCelExpressionMutation) EdgeCleared(name string) bool {
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *MessageRuleCelExpressionMutation) ClearEdge(name string) error {
+	return fmt.Errorf("unknown MessageRuleCelExpression unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *MessageRuleCelExpressionMutation) ResetEdge(name string) error {
+	return fmt.Errorf("unknown MessageRuleCelExpression edge %s", name)
+}
+
+// MessageRuleOneofMutation represents an operation that mutates the MessageRuleOneof nodes in the graph.
+type MessageRuleOneofMutation struct {
+	config
+	op            Op
+	typ           string
+	id            *int
+	lo            *int32
+	addlo         *int32
+	hi            *int32
+	addhi         *int32
+	clearedFields map[string]struct{}
+	done          bool
+	oldValue      func(context.Context) (*MessageRuleOneof, error)
+	predicates    []predicate.MessageRuleOneof
+}
+
+var _ ent.Mutation = (*MessageRuleOneofMutation)(nil)
+
+// messageruleoneofOption allows management of the mutation configuration using functional options.
+type messageruleoneofOption func(*MessageRuleOneofMutation)
+
+// newMessageRuleOneofMutation creates new mutation for the MessageRuleOneof entity.
+func newMessageRuleOneofMutation(c config, op Op, opts ...messageruleoneofOption) *MessageRuleOneofMutation {
+	m := &MessageRuleOneofMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeMessageRuleOneof,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withMessageRuleOneofID sets the ID field of the mutation.
+func withMessageRuleOneofID(id int) messageruleoneofOption {
+	return func(m *MessageRuleOneofMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *MessageRuleOneof
+		)
+		m.oldValue = func(ctx context.Context) (*MessageRuleOneof, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().MessageRuleOneof.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withMessageRuleOneof sets the old MessageRuleOneof of the mutation.
+func withMessageRuleOneof(node *MessageRuleOneof) messageruleoneofOption {
+	return func(m *MessageRuleOneofMutation) {
+		m.oldValue = func(context.Context) (*MessageRuleOneof, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m MessageRuleOneofMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m MessageRuleOneofMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *MessageRuleOneofMutation) ID() (id int, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *MessageRuleOneofMutation) IDs(ctx context.Context) ([]int, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []int{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().MessageRuleOneof.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetLo sets the "lo" field.
+func (m *MessageRuleOneofMutation) SetLo(i int32) {
+	m.lo = &i
+	m.addlo = nil
+}
+
+// Lo returns the value of the "lo" field in the mutation.
+func (m *MessageRuleOneofMutation) Lo() (r int32, exists bool) {
+	v := m.lo
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldLo returns the old "lo" field's value of the MessageRuleOneof entity.
+// If the MessageRuleOneof object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *MessageRuleOneofMutation) OldLo(ctx context.Context) (v int32, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldLo is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldLo requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldLo: %w", err)
+	}
+	return oldValue.Lo, nil
+}
+
+// AddLo adds i to the "lo" field.
+func (m *MessageRuleOneofMutation) AddLo(i int32) {
+	if m.addlo != nil {
+		*m.addlo += i
+	} else {
+		m.addlo = &i
+	}
+}
+
+// AddedLo returns the value that was added to the "lo" field in this mutation.
+func (m *MessageRuleOneofMutation) AddedLo() (r int32, exists bool) {
+	v := m.addlo
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetLo resets all changes to the "lo" field.
+func (m *MessageRuleOneofMutation) ResetLo() {
+	m.lo = nil
+	m.addlo = nil
+}
+
+// SetHi sets the "hi" field.
+func (m *MessageRuleOneofMutation) SetHi(i int32) {
+	m.hi = &i
+	m.addhi = nil
+}
+
+// Hi returns the value of the "hi" field in the mutation.
+func (m *MessageRuleOneofMutation) Hi() (r int32, exists bool) {
+	v := m.hi
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldHi returns the old "hi" field's value of the MessageRuleOneof entity.
+// If the MessageRuleOneof object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *MessageRuleOneofMutation) OldHi(ctx context.Context) (v int32, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldHi is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldHi requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldHi: %w", err)
+	}
+	return oldValue.Hi, nil
+}
+
+// AddHi adds i to the "hi" field.
+func (m *MessageRuleOneofMutation) AddHi(i int32) {
+	if m.addhi != nil {
+		*m.addhi += i
+	} else {
+		m.addhi = &i
+	}
+}
+
+// AddedHi returns the value that was added to the "hi" field in this mutation.
+func (m *MessageRuleOneofMutation) AddedHi() (r int32, exists bool) {
+	v := m.addhi
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetHi resets all changes to the "hi" field.
+func (m *MessageRuleOneofMutation) ResetHi() {
+	m.hi = nil
+	m.addhi = nil
+}
+
+// Where appends a list predicates to the MessageRuleOneofMutation builder.
+func (m *MessageRuleOneofMutation) Where(ps ...predicate.MessageRuleOneof) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the MessageRuleOneofMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *MessageRuleOneofMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.MessageRuleOneof, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *MessageRuleOneofMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *MessageRuleOneofMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (MessageRuleOneof).
+func (m *MessageRuleOneofMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *MessageRuleOneofMutation) Fields() []string {
+	fields := make([]string, 0, 2)
+	if m.lo != nil {
+		fields = append(fields, messageruleoneof.FieldLo)
+	}
+	if m.hi != nil {
+		fields = append(fields, messageruleoneof.FieldHi)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *MessageRuleOneofMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case messageruleoneof.FieldLo:
+		return m.Lo()
+	case messageruleoneof.FieldHi:
+		return m.Hi()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *MessageRuleOneofMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case messageruleoneof.FieldLo:
+		return m.OldLo(ctx)
+	case messageruleoneof.FieldHi:
+		return m.OldHi(ctx)
+	}
+	return nil, fmt.Errorf("unknown MessageRuleOneof field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *MessageRuleOneofMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case messageruleoneof.FieldLo:
+		v, ok := value.(int32)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetLo(v)
+		return nil
+	case messageruleoneof.FieldHi:
+		v, ok := value.(int32)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetHi(v)
+		return nil
+	}
+	return fmt.Errorf("unknown MessageRuleOneof field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *MessageRuleOneofMutation) AddedFields() []string {
+	var fields []string
+	if m.addlo != nil {
+		fields = append(fields, messageruleoneof.FieldLo)
+	}
+	if m.addhi != nil {
+		fields = append(fields, messageruleoneof.FieldHi)
+	}
+	return fields
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *MessageRuleOneofMutation) AddedField(name string) (ent.Value, bool) {
+	switch name {
+	case messageruleoneof.FieldLo:
+		return m.AddedLo()
+	case messageruleoneof.FieldHi:
+		return m.AddedHi()
+	}
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *MessageRuleOneofMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	case messageruleoneof.FieldLo:
+		v, ok := value.(int32)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddLo(v)
+		return nil
+	case messageruleoneof.FieldHi:
+		v, ok := value.(int32)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddHi(v)
+		return nil
+	}
+	return fmt.Errorf("unknown MessageRuleOneof numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *MessageRuleOneofMutation) ClearedFields() []string {
+	return nil
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *MessageRuleOneofMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *MessageRuleOneofMutation) ClearField(name string) error {
+	return fmt.Errorf("unknown MessageRuleOneof nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *MessageRuleOneofMutation) ResetField(name string) error {
+	switch name {
+	case messageruleoneof.FieldLo:
+		m.ResetLo()
+		return nil
+	case messageruleoneof.FieldHi:
+		m.ResetHi()
+		return nil
+	}
+	return fmt.Errorf("unknown MessageRuleOneof field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *MessageRuleOneofMutation) AddedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *MessageRuleOneofMutation) AddedIDs(name string) []ent.Value {
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *MessageRuleOneofMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *MessageRuleOneofMutation) RemovedIDs(name string) []ent.Value {
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *MessageRuleOneofMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *MessageRuleOneofMutation) EdgeCleared(name string) bool {
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *MessageRuleOneofMutation) ClearEdge(name string) error {
+	return fmt.Errorf("unknown MessageRuleOneof unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *MessageRuleOneofMutation) ResetEdge(name string) error {
+	return fmt.Errorf("unknown MessageRuleOneof edge %s", name)
 }
 
 // MessageRulesMutation represents an operation that mutates the MessageRules nodes in the graph.

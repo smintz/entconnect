@@ -27,17 +27,28 @@ type Option func(*options)
 // named field to its supplied replacement — the map key's presence
 // (not the value) records that Override was called at all, so a nil
 // replacement is distinguishable from "never overridden" rather than
-// silently treated as "not overridden" (MIX-08 empty edge). messageRules
-// records whether WithMessageRules(OnCreate) was passed — the trigger
+// silently treated as "not overridden" (MIX-08 empty edge).
+//
+// messageRulesSet/messageRulesTrigger record WithMessageRules the same
+// presence-vs-value way overridden does: messageRulesSet is true the
+// moment WithMessageRules(trigger) is called AT ALL, regardless of
+// whether trigger is a value this package declares, and
+// messageRulesTrigger holds exactly the value the caller passed — never
+// silently collapsed to OnCreate. WR-04 gap closure (03-08-PLAN.md): the
+// PRIOR wording here (a bare bool, with a comment claiming "the trigger
 // argument's own value is never stored, since MessageRuleTrigger
-// (messagerules.go) declares exactly one legal value today; storing a
-// bare bool here is not a shortcut around that, it is what "exactly one
-// value" already means.
+// declares exactly one legal value today") was the defect, not a
+// simplification of it — an undeclared trigger silently behaved as
+// OnCreate instead of failing schema load. The trigger's own validity is
+// checked in messagerules.go's checkMessageRuleReferences, the moment
+// messageRulesEnabled() reports true — see that function's own doc
+// comment.
 type options struct {
-	excluded     map[string]bool
-	overridden   map[string]ent.Field
-	asJSON       map[string]bool
-	messageRules bool
+	excluded            map[string]bool
+	overridden          map[string]ent.Field
+	asJSON              map[string]bool
+	messageRulesSet     bool
+	messageRulesTrigger MessageRuleTrigger
 }
 
 // applyOptions builds the effective options struct for one derive[M]
@@ -87,10 +98,27 @@ func (o *options) isAsJSON(name string) bool {
 	return o.asJSON[name]
 }
 
-// messageRulesEnabled reports whether WithMessageRules(OnCreate) was
-// passed to this derivation's options.
+// messageRulesEnabled reports whether WithMessageRules was passed to
+// this derivation's options AT ALL, with any trigger value — valid or
+// not. It deliberately does NOT report whether the trigger was OnCreate
+// specifically: an undeclared trigger must still reach
+// checkMessageRuleReferences (messagerules.go) to fail schema load
+// loudly (WR-04), rather than messageRulesEnabled() silently reporting
+// "not opted in" and skipping that check entirely — that would be the
+// exact bug this gap closure fixes, just moved one function over.
 func (o *options) messageRulesEnabled() bool {
-	return o.messageRules
+	return o.messageRulesSet
+}
+
+// messageRulesTriggerValue returns the exact MessageRuleTrigger value
+// passed to WithMessageRules, or OnCreate's zero value if
+// WithMessageRules was never called — messageRulesEnabled() is the
+// presence check (mirroring isOverridden/overriddenField's own
+// presence-vs-value split above); a caller that cares whether
+// WithMessageRules was called at all must check messageRulesEnabled()
+// first, exactly as buildHookState already does.
+func (o *options) messageRulesTriggerValue() MessageRuleTrigger {
+	return o.messageRulesTrigger
 }
 
 // Exclude marks proto field names as not materialized into derived ent
@@ -144,10 +172,21 @@ func AsJSON(name string) Option {
 // declares no message-level rules at all is a legal no-op — schema load
 // succeeds and no evaluation is added.
 //
+// trigger's value IS stored and IS checked (WR-04 gap closure,
+// 03-08-PLAN.md): passing any value other than OnCreate — an undeclared
+// MessageRuleTrigger — fails schema load naming WithMessageRules and the
+// offending numeric value (messagerules.go's checkMessageRuleReferences).
+// Before this gap closure, trigger's value was discarded entirely and
+// every call silently behaved as OnCreate; that let a hypothetical future
+// caller believe a message's rules were enforced under some other trigger
+// (e.g. an Update-side one) when nothing was actually enforced there at
+// all — a declared-but-inert option is worse than a loud failure.
+//
 // Opting in is a deliberate act, and it carries a deliberate schema-load
-// cost: every message-level rule's this.<field> selects are statically
-// enumerated at schema load, and a reference to a field this package
-// cannot reconstruct — excluded via Exclude, replaced via Override, or
+// cost: every message-level rule's this.<field> selects (or, for a
+// `oneof` rule, its literal named fields) are statically enumerated at
+// schema load, and a reference to a field this package cannot
+// reconstruct — excluded via Exclude, replaced via Override, or
 // underivable — fails schema load naming the message, the rule id, and
 // the field (D-10; see messagerules.go's checkMessageRuleReferences).
 // This is deliberately stricter than the plain field-level case: a
@@ -156,7 +195,8 @@ func AsJSON(name string) Option {
 // which is worse than refusing to load at all.
 func WithMessageRules(trigger MessageRuleTrigger) Option {
 	return func(o *options) {
-		o.messageRules = true
+		o.messageRulesSet = true
+		o.messageRulesTrigger = trigger
 	}
 }
 

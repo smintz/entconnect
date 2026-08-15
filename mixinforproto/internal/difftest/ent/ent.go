@@ -19,6 +19,8 @@ import (
 	"github.com/smintz/entconnect/mixinforproto/internal/difftest/ent/int32adjacent"
 	"github.com/smintz/entconnect/mixinforproto/internal/difftest/ent/int32comparators"
 	"github.com/smintz/entconnect/mixinforproto/internal/difftest/ent/int32overflow"
+	"github.com/smintz/entconnect/mixinforproto/internal/difftest/ent/messagerulecelexpression"
+	"github.com/smintz/entconnect/mixinforproto/internal/difftest/ent/messageruleoneof"
 	"github.com/smintz/entconnect/mixinforproto/internal/difftest/ent/messagerules"
 	"github.com/smintz/entconnect/mixinforproto/internal/difftest/ent/mixedfieldrules"
 	"github.com/smintz/entconnect/mixinforproto/internal/difftest/ent/overriddenmixedfieldrules"
@@ -104,6 +106,8 @@ func checkColumn(t, c string) error {
 			int32adjacent.Table:             int32adjacent.ValidColumn,
 			int32comparators.Table:          int32comparators.ValidColumn,
 			int32overflow.Table:             int32overflow.ValidColumn,
+			messagerulecelexpression.Table:  messagerulecelexpression.ValidColumn,
+			messageruleoneof.Table:          messageruleoneof.ValidColumn,
 			messagerules.Table:              messagerules.ValidColumn,
 			mixedfieldrules.Table:           mixedfieldrules.ValidColumn,
 			overriddenmixedfieldrules.Table: overriddenmixedfieldrules.ValidColumn,

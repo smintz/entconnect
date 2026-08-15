@@ -98,6 +98,30 @@ var (
 		Columns:    Int32overflowsColumns,
 		PrimaryKey: []*schema.Column{Int32overflowsColumns[0]},
 	}
+	// MessageRuleCelExpressionsColumns holds the columns for the "message_rule_cel_expressions" table.
+	MessageRuleCelExpressionsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "lo", Type: field.TypeInt32, Default: 0},
+		{Name: "hi", Type: field.TypeInt32, Default: 0},
+	}
+	// MessageRuleCelExpressionsTable holds the schema information for the "message_rule_cel_expressions" table.
+	MessageRuleCelExpressionsTable = &schema.Table{
+		Name:       "message_rule_cel_expressions",
+		Columns:    MessageRuleCelExpressionsColumns,
+		PrimaryKey: []*schema.Column{MessageRuleCelExpressionsColumns[0]},
+	}
+	// MessageRuleOneofsColumns holds the columns for the "message_rule_oneofs" table.
+	MessageRuleOneofsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "lo", Type: field.TypeInt32, Default: 0},
+		{Name: "hi", Type: field.TypeInt32, Default: 0},
+	}
+	// MessageRuleOneofsTable holds the schema information for the "message_rule_oneofs" table.
+	MessageRuleOneofsTable = &schema.Table{
+		Name:       "message_rule_oneofs",
+		Columns:    MessageRuleOneofsColumns,
+		PrimaryKey: []*schema.Column{MessageRuleOneofsColumns[0]},
+	}
 	// MessageRulesColumns holds the columns for the "message_rules" table.
 	MessageRulesColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt, Increment: true},
@@ -315,6 +339,8 @@ var (
 		Int32adjacentsTable,
 		Int32comparatorsTable,
 		Int32overflowsTable,
+		MessageRuleCelExpressionsTable,
+		MessageRuleOneofsTable,
 		MessageRulesTable,
 		MixedFieldRulesTable,
 		OverriddenMixedFieldRulesTable,

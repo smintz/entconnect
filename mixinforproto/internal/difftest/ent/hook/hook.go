@@ -93,6 +93,30 @@ func (f Int32OverflowFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Valu
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.Int32OverflowMutation", m)
 }
 
+// The MessageRuleCelExpressionFunc type is an adapter to allow the use of ordinary
+// function as MessageRuleCelExpression mutator.
+type MessageRuleCelExpressionFunc func(context.Context, *ent.MessageRuleCelExpressionMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f MessageRuleCelExpressionFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.MessageRuleCelExpressionMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.MessageRuleCelExpressionMutation", m)
+}
+
+// The MessageRuleOneofFunc type is an adapter to allow the use of ordinary
+// function as MessageRuleOneof mutator.
+type MessageRuleOneofFunc func(context.Context, *ent.MessageRuleOneofMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f MessageRuleOneofFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.MessageRuleOneofMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.MessageRuleOneofMutation", m)
+}
+
 // The MessageRulesFunc type is an adapter to allow the use of ordinary
 // function as MessageRules mutator.
 type MessageRulesFunc func(context.Context, *ent.MessageRulesMutation) (ent.Value, error)

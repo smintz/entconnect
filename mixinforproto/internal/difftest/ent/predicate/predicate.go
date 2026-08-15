@@ -27,6 +27,12 @@ type Int32Comparators func(*sql.Selector)
 // Int32Overflow is the predicate function for int32overflow builders.
 type Int32Overflow func(*sql.Selector)
 
+// MessageRuleCelExpression is the predicate function for messagerulecelexpression builders.
+type MessageRuleCelExpression func(*sql.Selector)
+
+// MessageRuleOneof is the predicate function for messageruleoneof builders.
+type MessageRuleOneof func(*sql.Selector)
+
 // MessageRules is the predicate function for messagerules builders.
 type MessageRules func(*sql.Selector)
 
