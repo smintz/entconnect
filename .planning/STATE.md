@@ -5,15 +5,15 @@ milestone_name: milestone
 current_phase: 03
 current_phase_name: validation-fidelity
 status: executing
-stopped_at: Completed 03-07-PLAN.md
-last_updated: "2026-08-15T11:29:46.149Z"
+stopped_at: Completed 03-06-PLAN.md
+last_updated: "2026-08-15T12:07:59.158Z"
 last_activity: 2026-08-15
 last_activity_desc: Phase 03 execution started
 progress:
   total_phases: 3
   completed_phases: 2
   total_plans: 22
-  completed_plans: 20
+  completed_plans: 21
 ---
 
 # Project State
@@ -28,11 +28,11 @@ See: .planning/PROJECT.md (updated 2026-08-08)
 ## Current Position
 
 Phase: 03 (validation-fidelity) — EXECUTING
-Plan: 2 of 8
+Plan: 3 of 8
 Status: Ready to execute
 Last activity: 2026-08-15 — Phase 03 execution started
 
-Progress: [█████████░] 91%
+Progress: [██████████] 95%
 
 ## Performance Metrics
 
@@ -73,6 +73,7 @@ Progress: [█████████░] 91%
 | Phase 03-validation-fidelity P04 | 34min | 3 tasks | 48 files |
 | Phase 03 P05 | 51min | 3 tasks | 186 files |
 | Phase 03-validation-fidelity P07 | 7min | 2 tasks | 4 files |
+| Phase 03 P06 | 36min | 3 tasks | 42 files |
 
 ## Accumulated Context
 
@@ -127,6 +128,9 @@ Recent decisions affecting current work:
 - [Phase ?]: PIPE-06's differential sweep drives a real ent.Client generically via reflection across 21 corpus messages (36 more covered-with-zero-cases), since internal/difftest cannot reach mixinforproto's unexported hookState.evaluate()
 - [Phase ?]: Phase 03 Plan 07: check-single-validationerror-site walks the whole repo from root (not per-MODULES) since VAL-07's invariant is whole-repo by definition; wired into CI's modules job rather than standalone since it has no GOWORK=off dependency
 - [Phase ?]: Phase 03 Plan 07: scripts/pipeline.sh step-count labels (1/5..5/5) updated to 1/6..6/6 to keep header documentation matching the new 6-step total; the five original steps kept their fixed order and numbers
+- [Phase ?]: Phase 03 Plan 06: IGNORE_ALWAYS is a compile-time skip in buildHookState (no CEL programs compiled, evaluators entry kept for Filter scope + message-rule reverse-conversion); IGNORE_IF_ZERO_VALUE is a mutation-time skip via isZeroForKind against the real reverse-converted value, since it is value-dependent
+- [Phase ?]: Phase 03 Plan 06: Exclude/Override skip placed in buildHookState BEFORE protovalidate.ResolveFieldRules, not after -- placement itself (pinned by a structural source-text test) is what stops a type-changing Override from reaching reverseValue and producing a D-12 CodeInternal fault
+- [Phase ?]: Phase 03 Plan 06: proto/buf.yaml gained a narrowly path-scoped lint ignore_only for the PROTOVALIDATE check on ignore.proto, since buf's built-in lint flags ignore=IGNORE_ALWAYS plus a sibling rule as dead weight -- exactly the shape CR-02's fixture needs to prove the local cel.Env also honors ignore
 
 ### Pending Todos
 
@@ -150,6 +154,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-08-15T11:29:46.127Z
-Stopped at: Completed 03-07-PLAN.md
+Last session: 2026-08-15T12:07:59.136Z
+Stopped at: Completed 03-06-PLAN.md
 Resume file: None

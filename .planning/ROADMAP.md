@@ -121,7 +121,7 @@ Plans:
   4. CI fails when `mixinforproto`'s and `entconnect`'s resolved protovalidate/cel-go versions diverge
   5. A conformance corpus golden-asserts every field-mapping rule and protovalidate constraint class against derived fields, and a differential harness feeds random values through every corpus message asserting `protovalidate verdict == ent mutation verdict` for field-scoped rules
 
-**Plans**: 6/8 plans executed
+**Plans**: 7/8 plans executed
 Plans:
 **Wave 1**
 
@@ -142,7 +142,7 @@ Plans:
 
 **Gap Closure Wave 1** *(closes `03-VERIFICATION.md` gaps CR-01/CR-02/CR-03/WR-07 + WR-04; runs after the five original plans; two parallel plans, disjoint files)*
 
-- [ ] 03-06-PLAN.md — Gaps CR-02 and CR-03: the hook honors `(buf.validate.field).ignore` and the `Exclude`/`Override` option set, with an `ignore` corpus fixture the differential sweep drives through a real ent client
+- [x] 03-06-PLAN.md — Gaps CR-02 and CR-03: the hook honors `(buf.validate.field).ignore` and the `Exclude`/`Override` option set, with an `ignore` corpus fixture the differential sweep drives through a real ent client
 - [x] 03-07-PLAN.md — Gap WR-07: the `check-single-validationerror-site` invariant gate, wired into `make`, `scripts/pipeline.sh` and CI the way `check-dep-parity` is, and the test comment that named a nonexistent target corrected
 
 **Gap Closure Wave 2** *(blocked on Gap Closure Wave 1)*
@@ -190,6 +190,6 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 |-------|----------------|--------|-----------|
 | 1. MixinForProto Core | 9/9 | In Progress|  |
 | 2. CRUD Handlers & Interceptor Chain | 0/5 | Planned | - |
-| 3. Validation Fidelity | 6/8 | In Progress|  |
+| 3. Validation Fidelity | 7/8 | In Progress|  |
 | 4. Flow Binding | 0/TBD | Not started | - |
 | 5. Full Drift Check & Reference App | 0/TBD | Not started | - |
