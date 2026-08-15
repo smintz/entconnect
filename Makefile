@@ -9,7 +9,7 @@
 # where auto-discovery would silently do the wrong thing.
 MODULES := . ./mixinforproto
 
-.PHONY: build vet test test-determinism test-standalone check-modules check-stubs check-goversion check-dep-parity pipeline
+.PHONY: build vet test test-determinism test-standalone check-modules check-stubs check-goversion check-dep-parity check-single-validationerror-site pipeline
 
 ## build: go build ./... in every module in MODULES, cd'd into each.
 build:
@@ -178,6 +178,66 @@ check-dep-parity:
 			echo "OK: $$mod: $$v_root (both modules agree)"; \
 		fi; \
 	done; \
+	exit $$fail
+
+## check-single-validationerror-site: fail if any production (non-test) .go
+## file OTHER than mixinforproto/violation.go constructs a
+## *protovalidate.ValidationError{ (VAL-07, WR-07). D-01 makes this exact Go
+## type mixinforproto's published, adopter-facing error surface, and D-07
+## consequence 3 requires error construction to be single-pathed even
+## though evaluation is not (protovalidate's own evaluator for the
+## standard-rule half, hooks.go's local cel.Env for the residual
+## custom-CEL half). A second construction site is precisely how the two
+## evaluation paths stop agreeing without anyone noticing -- the
+## CR-01/CR-02/CR-03 bug class this gate exists to keep shut.
+##
+## Two filters, neither optional:
+##   - _test.go files are excluded entirely. Without this the gate is red
+##     on day one: runtime/errormap_test.go legitimately constructs a
+##     ValidationError twice to exercise runtime.MapError, and forbidding
+##     that would forbid testing the error-mapping path at all.
+##   - `//`-prefixed comment LINES are stripped before the literal is
+##     searched for. Without this the gate is self-invalidating:
+##     mixinforproto/violation_test.go's own doc comment mentions the
+##     literal in prose, and any future production-file doc comment naming
+##     the type would turn a documentation improvement into a red build.
+##
+## Generated trees are excluded by path, so a future generator emitting the
+## type cannot make this gate mysteriously red without a human decision:
+##   - ./internal/gen/ and ./mixinforproto/internal/gen/ (buf-generated stubs)
+##   - any directory literally named `ent` anywhere in the tree (entc's own
+##     generated-output convention, e.g. internal/entconnecttest/*/ent)
+##
+## Walks the whole repo from the root, not per-module (MODULES) -- the
+## invariant is whole-repo by definition, not module-scoped.
+check-single-validationerror-site:
+	@fail=0; \
+	found=""; \
+	files=$$(find . -name '*.go' \
+		! -name '*_test.go' \
+		! -path './internal/gen/*' \
+		! -path './mixinforproto/internal/gen/*' \
+		! -path '*/ent/*' \
+		! -path './.git/*' \
+		| sort); \
+	for f in $$files; do \
+		matches=$$(grep -n 'protovalidate\.ValidationError{' "$$f" 2>/dev/null | grep -vE ':[[:space:]]*//' || true); \
+		if [ -n "$$matches" ]; then \
+			echo "$$matches" | sed "s|^|SITE: $$f:|"; \
+			found="$$found $$f"; \
+		fi; \
+	done; \
+	numfiles=$$(echo $$found | wc -w); \
+	if [ "$$numfiles" != "1" ] || [ "$$found" != " ./mixinforproto/violation.go" ]; then \
+		echo "FAIL: protovalidate.ValidationError{ must be constructed at exactly one production site, ./mixinforproto/violation.go -- found $$numfiles site(s):$$found"; \
+		echo "      D-01 makes *protovalidate.ValidationError mixinforproto's published, adopter-facing error type,"; \
+		echo "      and D-07 consequence 3 requires error construction to be single-pathed even though evaluation is"; \
+		echo "      not -- a second construction site is how the two evaluation paths stop agreeing silently."; \
+		echo "      Route through mixinforproto/violation.go's newValidationError instead."; \
+		fail=1; \
+	else \
+		echo "OK: protovalidate.ValidationError{ constructed at exactly one production site: ./mixinforproto/violation.go"; \
+	fi; \
 	exit $$fail
 
 ## pipeline: run the canonical five-step pipeline script (PIPE-01, D-20).
