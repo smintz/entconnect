@@ -5,15 +5,15 @@ milestone_name: milestone
 current_phase: 03
 current_phase_name: validation-fidelity
 status: executing
-stopped_at: Completed 03-06-PLAN.md
-last_updated: "2026-08-15T12:07:59.158Z"
+stopped_at: Completed 03-08-PLAN.md
+last_updated: "2026-08-15T12:41:20.026Z"
 last_activity: 2026-08-15
 last_activity_desc: Phase 03 execution started
 progress:
   total_phases: 3
-  completed_phases: 2
+  completed_phases: 3
   total_plans: 22
-  completed_plans: 21
+  completed_plans: 22
 ---
 
 # Project State
@@ -28,11 +28,11 @@ See: .planning/PROJECT.md (updated 2026-08-08)
 ## Current Position
 
 Phase: 03 (validation-fidelity) — EXECUTING
-Plan: 3 of 8
+Plan: 4 of 8
 Status: Ready to execute
 Last activity: 2026-08-15 — Phase 03 execution started
 
-Progress: [██████████] 95%
+Progress: [██████████] 100%
 
 ## Performance Metrics
 
@@ -74,6 +74,7 @@ Progress: [██████████] 95%
 | Phase 03 P05 | 51min | 3 tasks | 186 files |
 | Phase 03-validation-fidelity P07 | 7min | 2 tasks | 4 files |
 | Phase 03 P06 | 36min | 3 tasks | 42 files |
+| Phase 03 P08 | 32min | 3 tasks | 34 files |
 
 ## Accumulated Context
 
@@ -131,6 +132,9 @@ Recent decisions affecting current work:
 - [Phase ?]: Phase 03 Plan 06: IGNORE_ALWAYS is a compile-time skip in buildHookState (no CEL programs compiled, evaluators entry kept for Filter scope + message-rule reverse-conversion); IGNORE_IF_ZERO_VALUE is a mutation-time skip via isZeroForKind against the real reverse-converted value, since it is value-dependent
 - [Phase ?]: Phase 03 Plan 06: Exclude/Override skip placed in buildHookState BEFORE protovalidate.ResolveFieldRules, not after -- placement itself (pinned by a structural source-text test) is what stops a type-changing Override from reaching reverseValue and producing a D-12 CodeInternal fault
 - [Phase ?]: Phase 03 Plan 06: proto/buf.yaml gained a narrowly path-scoped lint ignore_only for the PROTOVALIDATE check on ignore.proto, since buf's built-in lint flags ignore=IGNORE_ALWAYS plus a sibling rule as dead weight -- exactly the shape CR-02's fixture needs to prove the local cel.Env also honors ignore
+- [Phase ?]: 03-08: checkMessageRuleReferences now walks all three MessageRules carriers (cel/cel_expression/oneof) via one messageRuleReferences normalization helper, closing CR-01's phantom-verdict gap for the two previously-unread carriers
+- [Phase ?]: 03-08: WithMessageRules(trigger) stores and validates its trigger value (messageRulesSet/messageRulesTrigger) instead of discarding it; an undeclared trigger fails schema load naming the value (WR-04)
+- [Phase ?]: 03-08: a message-level oneof rule's constraint class is excepted from corpus_test.go's Part A ground truth (constraintClassExceptions) rather than chased with a Part B witness fixture, since derive.go never consults message-level rules at all by design
 
 ### Pending Todos
 
@@ -154,6 +158,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-08-15T12:07:59.136Z
-Stopped at: Completed 03-06-PLAN.md
+Last session: 2026-08-15T12:41:20.004Z
+Stopped at: Completed 03-08-PLAN.md
 Resume file: None

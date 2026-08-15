@@ -121,7 +121,7 @@ Plans:
   4. CI fails when `mixinforproto`'s and `entconnect`'s resolved protovalidate/cel-go versions diverge
   5. A conformance corpus golden-asserts every field-mapping rule and protovalidate constraint class against derived fields, and a differential harness feeds random values through every corpus message asserting `protovalidate verdict == ent mutation verdict` for field-scoped rules
 
-**Plans**: 7/8 plans executed
+**Plans**: 8/8 plans executed
 Plans:
 **Wave 1**
 
@@ -147,7 +147,7 @@ Plans:
 
 **Gap Closure Wave 2** *(blocked on Gap Closure Wave 1)*
 
-- [ ] 03-08-PLAN.md — Gap CR-01 and warning WR-04: `cel_expression` and `oneof` message-rule carriers enumerated by D-10's schema-load gate, `WithMessageRules` honoring its trigger, and two declaration-surface exhaustiveness guards that make the next omitted carrier a named test failure
+- [x] 03-08-PLAN.md — Gap CR-01 and warning WR-04: `cel_expression` and `oneof` message-rule carriers enumerated by D-10's schema-load gate, `WithMessageRules` honoring its trigger, and two declaration-surface exhaustiveness guards that make the next omitted carrier a named test failure
 
 ### Phase 4: Flow Binding
 
@@ -190,6 +190,6 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 |-------|----------------|--------|-----------|
 | 1. MixinForProto Core | 9/9 | In Progress|  |
 | 2. CRUD Handlers & Interceptor Chain | 0/5 | Planned | - |
-| 3. Validation Fidelity | 7/8 | In Progress|  |
+| 3. Validation Fidelity | 8/8 | In Progress|  |
 | 4. Flow Binding | 0/TBD | Not started | - |
 | 5. Full Drift Check & Reference App | 0/TBD | Not started | - |
