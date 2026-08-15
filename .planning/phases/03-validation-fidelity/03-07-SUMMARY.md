@@ -173,3 +173,7 @@ None - plan executed exactly as written. No Go production code and no `go.mod` w
 ---
 *Phase: 03-validation-fidelity*
 *Completed: 2026-08-15*
+
+## Self-Check: PASSED
+
+All files (Makefile, scripts/pipeline.sh, .github/workflows/ci.yml, mixinforproto/violation_test.go, this SUMMARY.md) confirmed present. All commits (39bb1eb, 972bd1d, 04bb2a5) confirmed in git log.
