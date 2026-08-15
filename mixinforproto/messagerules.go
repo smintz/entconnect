@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"sort"
 
+	validate "buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
 	"buf.build/go/protovalidate"
 	pvcel "buf.build/go/protovalidate/cel"
 	"github.com/google/cel-go/cel"
@@ -32,14 +33,17 @@ import (
 // derivationError machinery already does for every other schema-load
 // failure in this package.
 //
-// checkMessageRuleReferences implements D-10's walk. It is called from
-// buildHookState (hooks.go) — the only place this package evaluates
-// message-level rules at all — never from derive.go: Fields()/
-// Annotations() need no knowledge of message-level rules (they never
-// contribute an ent field), so the check belongs exactly where the
-// consuming code lives, matching hooks.go's own existing failures/
-// newDerivationError collected-failure pattern rather than adding a
-// second, ad hoc panic mechanism.
+// checkMessageRuleReferences implements D-10's walk, across all THREE
+// declared MessageRules carriers — `cel`, `cel_expression`, and `oneof`
+// (03-08-PLAN.md, CR-01 gap closure: the latter two were never read
+// before this plan, so a rule declared through either bypassed D-10's
+// gate entirely). It is called from buildHookState (hooks.go) — the only
+// place this package evaluates message-level rules at all — never from
+// derive.go: Fields()/Annotations() need no knowledge of message-level
+// rules (they never contribute an ent field), so the check belongs
+// exactly where the consuming code lives, matching hooks.go's own
+// existing failures/newDerivationError collected-failure pattern rather
+// than adding a second, ad hoc panic mechanism.
 
 // MessageRuleTrigger names when WithMessageRules enforces a message's
 // message-level (cross-field) protovalidate rules at the storage layer.
@@ -59,28 +63,44 @@ const (
 )
 
 // checkMessageRuleReferences resolves md's message-level rules
-// (protovalidate.ResolveMessageRules) and, for every custom
-// (buf.validate.message).cel rule, compiles it once and statically
-// enumerates every top-level this.<field> select it makes (see
-// fieldSelectsOnThis's doc comment for the resolved Open Question 3
-// mechanism). Every referenced field this package cannot reconstruct at
-// mutation time — excluded via Exclude, replaced via Override, or
-// underivable — is collected into failures, naming the message, the
-// rule id, and the field, in the same failure/newDerivationError shape
-// every other schema-load failure in this package uses. When failures is
-// empty, refs is the complete, deduplicated, deterministically ordered
-// set of every field descriptor md's message-level rules reference — the
-// set buildHookState must guarantee gets reverse-converted into the
-// reconstructed dynamicpb message regardless of whether any of those
-// fields also carries a field-level rule of its own (D-03's
+// (protovalidate.ResolveMessageRules) across all THREE MessageRules
+// carriers protovalidate declares — `cel` (field 3), `oneof` (field 4),
+// and `cel_expression` (field 5) — and, for every carrier, determines
+// which real message fields it references. For the two CEL-bearing
+// carriers (`cel`/`cel_expression`) this means compiling the expression
+// once and statically enumerating every top-level this.<field> select it
+// makes (see fieldSelectsOnThis's doc comment for the resolved Open
+// Question 3 mechanism); for `oneof` it means reading each
+// MessageOneofRule's `fields` list directly — no CEL compilation at all.
+// messageRuleReferences (below) is the one normalization step every
+// carrier converges through, so this function's own downstream loop
+// (messageRuleFieldUnavailable + refs/failures accumulation) runs
+// identically regardless of which carrier produced a given reference —
+// CR-01's root cause was exactly the absence of that convergence: the
+// `cel` loop was the only place this reasoning lived, so adding a carrier
+// required no change anywhere and therefore happened to nobody.
+//
+// Every referenced field this package cannot reconstruct at mutation
+// time — excluded via Exclude, replaced via Override, or underivable —
+// is collected into failures, naming the message, the rule id, and the
+// field, in the same failure/newDerivationError shape every other
+// schema-load failure in this package uses. When failures is empty, refs
+// is the complete, deduplicated, deterministically ordered set of every
+// field descriptor md's message-level rules reference across every
+// carrier — the set buildHookState must guarantee gets reverse-converted
+// into the reconstructed dynamicpb message regardless of whether any of
+// those fields also carries a field-level rule of its own (D-03's
 // phantom-violation protection extended to message scope: a field a
 // message rule reads but which carries no rule of its OWN would
 // otherwise never be reverse-converted at all, leaving it at its proto3
 // zero even though real mutation data exists for it).
 //
-// md with no message-level rules at all (Test 7's MessageRuleNone) is a
-// legal no-op: both return values are nil, and buildHookState adds no
-// evaluation work for it.
+// md with no message-level rules at all, on any carrier (Test 7's
+// MessageRuleNone), is a legal no-op: both return values are nil, and
+// buildHookState adds no evaluation work for it. A cel/cel_expression
+// rule that compiles but makes no this.<field> select at all (VAL-08/
+// empty) is equally a legal no-op: it contributes zero entries to refs
+// and zero failures.
 func checkMessageRuleReferences(msgName string, md protoreflect.MessageDescriptor, o *options) (refs []protoreflect.FieldDescriptor, failures []failure) {
 	msgRules, err := protovalidate.ResolveMessageRules(md)
 	if err != nil {
@@ -93,7 +113,7 @@ func checkMessageRuleReferences(msgName string, md protoreflect.MessageDescripto
 			remedy:      "this is a protovalidate/descriptor-resolution failure, not a contract error",
 		}}
 	}
-	if msgRules == nil || len(msgRules.GetCel()) == 0 {
+	if msgRules == nil || (len(msgRules.GetCel()) == 0 && len(msgRules.GetCelExpression()) == 0 && len(msgRules.GetOneof()) == 0) {
 		return nil, nil
 	}
 
@@ -109,33 +129,26 @@ func checkMessageRuleReferences(msgName string, md protoreflect.MessageDescripto
 		}}
 	}
 
+	normalized, normFailures := messageRuleReferences(md, msgRules, env)
+
 	seenRef := map[string]bool{}
 	seenFailure := map[string]bool{}
-	var out []failure
+	out := append([]failure{}, normFailures...)
 
-	for _, r := range msgRules.GetCel() {
-		ast, iss := env.Compile(r.GetExpression())
-		if iss.Err() != nil {
-			out = append(out, failure{
-				message:     msgName,
-				field:       "",
-				fieldIndex:  fieldIndexMessageScoped,
-				rule:        "WithMessageRules",
-				description: fmt.Sprintf("compiling message rule %q (%q): %v", r.GetId(), r.GetExpression(), iss.Err()),
-				remedy:      "fix the CEL expression in the contract's (buf.validate.message).cel rule",
-			})
-			continue
-		}
-
-		for _, name := range fieldSelectsOnThis(ast) {
+	for _, r := range normalized {
+		for _, name := range r.fieldNames {
 			// Byte-exact lookup against protoreflect.Name — never the
 			// JSON name, never case-insensitively — mirroring
-			// validateOptionNames' matching discipline (derive.go). A
-			// successfully compiled expression against a message-typed
-			// "this" env can only select a real declared field: CEL's
-			// own type checker rejects a select naming a field the
-			// message descriptor does not declare, so this lookup
-			// failing here is defensive, not a reachable path.
+			// validateOptionNames' matching discipline (derive.go). For
+			// the cel/cel_expression carriers, a successfully compiled
+			// expression against a message-typed "this" env can only
+			// select a real declared field (CEL's own type checker
+			// rejects any other select), so this lookup failing here is
+			// defensive, not a reachable path for those two carriers.
+			// For `oneof`, messageRuleReferences already validated every
+			// name resolves to a real field before including it here —
+			// see that function's own doc comment for why that carrier
+			// needs its own existence check.
 			fd := md.Fields().ByName(protoreflect.Name(name))
 			if fd == nil {
 				continue
@@ -143,7 +156,7 @@ func checkMessageRuleReferences(msgName string, md protoreflect.MessageDescripto
 
 			reason, unavailable := messageRuleFieldUnavailable(msgName, fd, o)
 			if unavailable {
-				key := r.GetId() + "\x00" + name
+				key := r.carrier + "\x00" + r.ruleID + "\x00" + name
 				if !seenFailure[key] {
 					seenFailure[key] = true
 					out = append(out, failure{
@@ -151,7 +164,7 @@ func checkMessageRuleReferences(msgName string, md protoreflect.MessageDescripto
 						field:       name,
 						fieldIndex:  int(fd.Index()),
 						rule:        "WithMessageRules",
-						description: fmt.Sprintf("message rule %q references field %q, which %s", r.GetId(), name, reason),
+						description: fmt.Sprintf("message rule %q references field %q, which %s", r.ruleID, name, reason),
 						remedy:      fmt.Sprintf("stop excluding/overriding %q, or do not opt into WithMessageRules(OnCreate) for this message", name),
 					})
 				}
@@ -168,6 +181,117 @@ func checkMessageRuleReferences(msgName string, md protoreflect.MessageDescripto
 	sort.Slice(refs, func(i, j int) bool { return refs[i].Index() < refs[j].Index() })
 
 	return refs, out
+}
+
+// messageRuleRef is one carrier's resolved field-reference set,
+// normalized so checkMessageRuleReferences' downstream loop (above) runs
+// identically no matter which MessageRules carrier produced it — the
+// single convergence point this gap-closure set exists to create.
+type messageRuleRef struct {
+	// carrier names which MessageRules member produced this reference —
+	// "cel", "cel_expression", or "oneof" — never collapsed into one
+	// shared label (PIPE-05/adjacency: the declaration-surface guard,
+	// messagerules_test.go, must be able to name each carrier
+	// separately, and this is the value it names).
+	carrier string
+	// ruleID identifies the specific rule within its carrier for
+	// dedup/diagnostic purposes: r.GetId() for `cel`; celRuleResidual's
+	// expression-fingerprint fallback for `cel_expression` (which has no
+	// `id` field at all); protovalidate's own fixed "message.oneof"
+	// RuleId (buf.build/go/protovalidate@v1.2.0/message_oneof.go,
+	// verified this session) for `oneof`, which likewise has no `id`.
+	ruleID string
+	// fieldNames is every real message field this one rule references —
+	// this.<field> selects for the CEL carriers, or the literal `fields`
+	// list for `oneof`.
+	fieldNames []string
+}
+
+// messageRuleReferences normalizes md's message-level rules across all
+// three MessageRules carriers into one deterministic slice of
+// messageRuleRef, in declaration order (msgRules.GetCel(), then
+// GetCelExpression(), then GetOneof() — each itself a plain repeated
+// field, never a map, so this order is already deterministic with no
+// sorting needed here; checkMessageRuleReferences' caller sorts the
+// FINAL refs by field descriptor index regardless, per D-24).
+//
+// Compile/existence failures specific to a carrier are collected and
+// returned here, since they have nothing to do with field AVAILABILITY
+// (Exclude/Override/underivable, which checkMessageRuleReferences' own
+// downstream loop checks uniformly via messageRuleFieldUnavailable for
+// every carrier alike):
+//   - cel/cel_expression: an uncompilable CEL expression is a collected
+//     failure, matching the `cel` carrier's pre-existing behavior exactly
+//     (same messageRuleCELEnv env, same failure shape).
+//   - oneof: unlike the CEL carriers — where CEL's own type checker
+//     guarantees a compiled expression can only select a real declared
+//     field, so an unresolved name is defensively unreachable — `oneof`
+//     names fields as a PLAIN STRING LIST with no compiler in between.
+//     protovalidate itself validates this list separately (builder.go's
+//     processMessageOneofRules), but this package cannot assume that
+//     validation ran; a name that resolves to no field on md is therefore
+//     a REACHABLE case here and becomes a collected failure naming the
+//     rule and the offending name, never a silent skip.
+func messageRuleReferences(md protoreflect.MessageDescriptor, msgRules *validate.MessageRules, env *cel.Env) (refs []messageRuleRef, failures []failure) {
+	msgName := string(md.FullName())
+
+	for _, r := range msgRules.GetCel() {
+		ast, iss := env.Compile(r.GetExpression())
+		if iss.Err() != nil {
+			failures = append(failures, failure{
+				message:     msgName,
+				field:       "",
+				fieldIndex:  fieldIndexMessageScoped,
+				rule:        "WithMessageRules",
+				description: fmt.Sprintf("compiling message rule %q (%q): %v", r.GetId(), r.GetExpression(), iss.Err()),
+				remedy:      "fix the CEL expression in the contract's (buf.validate.message).cel rule",
+			})
+			continue
+		}
+		refs = append(refs, messageRuleRef{carrier: "cel", ruleID: r.GetId(), fieldNames: fieldSelectsOnThis(ast)})
+	}
+
+	for _, expr := range msgRules.GetCelExpression() {
+		id, _ := celRuleResidual("", expr)
+		ast, iss := env.Compile(expr)
+		if iss.Err() != nil {
+			failures = append(failures, failure{
+				message:     msgName,
+				field:       "",
+				fieldIndex:  fieldIndexMessageScoped,
+				rule:        "WithMessageRules",
+				description: fmt.Sprintf("compiling message rule %q (%q): %v", id, expr, iss.Err()),
+				remedy:      "fix the CEL expression in the contract's (buf.validate.message).cel_expression rule",
+			})
+			continue
+		}
+		refs = append(refs, messageRuleRef{carrier: "cel_expression", ruleID: id, fieldNames: fieldSelectsOnThis(ast)})
+	}
+
+	for _, rule := range msgRules.GetOneof() {
+		const oneofRuleID = "message.oneof" // protovalidate's own fixed RuleId — see messageRuleRef.ruleID's doc comment.
+		var names []string
+		for _, name := range rule.GetFields() {
+			fd := md.Fields().ByName(protoreflect.Name(name))
+			if fd == nil {
+				failures = append(failures, failure{
+					message:     msgName,
+					field:       name,
+					fieldIndex:  fieldIndexUnnamed,
+					rule:        "WithMessageRules",
+					description: fmt.Sprintf("message rule %q names field %q, which the message descriptor does not declare", oneofRuleID, name),
+					remedy:      "fix the field name in the contract's (buf.validate.message).oneof rule",
+				})
+				continue
+			}
+			names = append(names, name)
+		}
+		if len(names) > 0 {
+			refs = append(refs, messageRuleRef{carrier: "oneof", ruleID: oneofRuleID, fieldNames: names})
+		}
+	}
+
+	return refs, failures
 }
 
 // messageRuleFieldUnavailable reports whether fd — a field a message-

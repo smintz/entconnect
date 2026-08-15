@@ -5,7 +5,10 @@ import (
 	"testing"
 
 	"entgo.io/ent"
+	"entgo.io/ent/schema/field"
 	"google.golang.org/protobuf/reflect/protoreflect"
+
+	validate "buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
 
 	mixinforprototestv1 "github.com/smintz/entconnect/mixinforproto/internal/gen/mixinforprototestv1"
 )
@@ -216,5 +219,189 @@ func TestBuildHookState_MessageRuleOkDeterministicAcrossCalls(t *testing.T) {
 		if hs1.evaluators[i].fd.Name() != hs2.evaluators[i].fd.Name() {
 			t.Fatalf("evaluator[%d] field changed across calls: %q vs %q", i, hs1.evaluators[i].fd.Name(), hs2.evaluators[i].fd.Name())
 		}
+	}
+}
+
+// ============================================================================
+// 03-08-PLAN.md, Task 1: CR-01 gap closure — the cel_expression and oneof
+// MessageRules carriers, previously never read by
+// checkMessageRuleReferences.
+// ============================================================================
+
+// --- cel_expression carrier: excluded/overridden reference fails schema
+// load, naming message/rule/field, exactly like the pre-existing `cel`
+// carrier's own MessageRuleExcludedRef fixture. ---
+
+func TestBuildHookState_MessageRuleCelExpressionExcludedRefFailsSchemaLoad(t *testing.T) {
+	md := descriptorOf[*mixinforprototestv1.MessageRuleCelExpressionExcludedRef]()
+	_, err := buildHookState(md, WithMessageRules(OnCreate), Exclude("hi"))
+	if err == nil {
+		t.Fatal("want an error: the cel_expression message rule references excluded field \"hi\"")
+	}
+	const want = `mixinforproto: mixinforprototest.v1.MessageRuleCelExpressionExcludedRef.hi: message rule "cel.this.lo <= this.hi" references field "hi", which is excluded via Exclude(...) — stop excluding/overriding "hi", or do not opt into WithMessageRules(OnCreate) for this message`
+	firstLine := strings.SplitN(err.Error(), "\n", 2)[0]
+	if firstLine != want {
+		t.Fatalf("first line mismatch:\n got:  %s\n want: %s", firstLine, want)
+	}
+}
+
+func TestBuildHookState_MessageRuleCelExpressionOverriddenRefFailsSchemaLoad(t *testing.T) {
+	md := descriptorOf[*mixinforprototestv1.MessageRuleCelExpressionExcludedRef]()
+	_, err := buildHookState(md, WithMessageRules(OnCreate), Override("hi", field.Int32("hi")))
+	if err == nil {
+		t.Fatal("want an error: the cel_expression message rule references overridden field \"hi\"")
+	}
+	if !strings.Contains(err.Error(), `field "hi", which is replaced via Override(...)`) {
+		t.Fatalf("error %q missing the Override-specific reason", err.Error())
+	}
+}
+
+// --- oneof carrier: excluded/overridden reference fails schema load,
+// naming message/rule/field, using protovalidate's own fixed
+// "message.oneof" RuleId as the rule identifier (this carrier has no `id`
+// field of its own — see messageRuleRef.ruleID's doc comment). ---
+
+func TestBuildHookState_MessageRuleOneofExcludedRefFailsSchemaLoad(t *testing.T) {
+	md := descriptorOf[*mixinforprototestv1.MessageRuleOneofExcludedRef]()
+	_, err := buildHookState(md, WithMessageRules(OnCreate), Exclude("hi"))
+	if err == nil {
+		t.Fatal("want an error: the oneof message rule references excluded field \"hi\"")
+	}
+	const want = `mixinforproto: mixinforprototest.v1.MessageRuleOneofExcludedRef.hi: message rule "message.oneof" references field "hi", which is excluded via Exclude(...) — stop excluding/overriding "hi", or do not opt into WithMessageRules(OnCreate) for this message`
+	firstLine := strings.SplitN(err.Error(), "\n", 2)[0]
+	if firstLine != want {
+		t.Fatalf("first line mismatch:\n got:  %s\n want: %s", firstLine, want)
+	}
+}
+
+func TestBuildHookState_MessageRuleOneofOverriddenRefFailsSchemaLoad(t *testing.T) {
+	md := descriptorOf[*mixinforprototestv1.MessageRuleOneofExcludedRef]()
+	_, err := buildHookState(md, WithMessageRules(OnCreate), Override("hi", field.Int32("hi")))
+	if err == nil {
+		t.Fatal("want an error: the oneof message rule references overridden field \"hi\"")
+	}
+	if !strings.Contains(err.Error(), `field "hi", which is replaced via Override(...)`) {
+		t.Fatalf("error %q missing the Override-specific reason", err.Error())
+	}
+}
+
+// --- Both alternate carriers' happy paths seed refs (and therefore
+// buildHookState's extraFields), sorted by field descriptor index, just
+// like the `cel` carrier already does. ---
+
+func TestBuildHookState_MessageRuleCelExpressionRefsSeedExtraFields(t *testing.T) {
+	md := descriptorOf[*mixinforprototestv1.MessageRuleCelExpressionOk]()
+	o := applyOptions([]Option{WithMessageRules(OnCreate)})
+	refs, failures := checkMessageRuleReferences(string(md.FullName()), md, o)
+	if len(failures) != 0 {
+		t.Fatalf("want zero failures, got %v", failures)
+	}
+	if len(refs) != 2 || string(refs[0].Name()) != "lo" || string(refs[1].Name()) != "hi" {
+		t.Fatalf("want refs == [lo, hi] (sorted by descriptor index), got %v", refNames(refs))
+	}
+}
+
+func TestBuildHookState_MessageRuleOneofRefsSeedExtraFields(t *testing.T) {
+	md := descriptorOf[*mixinforprototestv1.MessageRuleOneofOk]()
+	o := applyOptions([]Option{WithMessageRules(OnCreate)})
+	refs, failures := checkMessageRuleReferences(string(md.FullName()), md, o)
+	if len(failures) != 0 {
+		t.Fatalf("want zero failures, got %v", failures)
+	}
+	if len(refs) != 2 || string(refs[0].Name()) != "lo" || string(refs[1].Name()) != "hi" {
+		t.Fatalf("want refs == [lo, hi] (sorted by descriptor index), got %v", refNames(refs))
+	}
+}
+
+// --- Offenders from TWO DIFFERENT carriers on the SAME message are
+// reported in one buildHookState call (one derivationError), sorted
+// deterministically — proving messageRuleReferences' normalization
+// really is one convergence point, not two carriers each doing their own
+// thing. Rerun via `go test -count=5` (Task 1's own <verify>) to catch
+// any map-iteration-order dependency. ---
+
+func TestBuildHookState_MessageRuleMultiCarrierExcludedRefFailsInOnePass(t *testing.T) {
+	md := descriptorOf[*mixinforprototestv1.MessageRuleMultiCarrierExcludedRef]()
+	_, err := buildHookState(md, WithMessageRules(OnCreate), Exclude("hi"))
+	if err == nil {
+		t.Fatal("want an error: both the cel_expression and oneof rules reference excluded field \"hi\"")
+	}
+	msg := err.Error()
+	for _, want := range []string{
+		"2 failures",
+		`"cel.this.lo <= this.hi" references field "hi"`,
+		`"message.oneof" references field "hi"`,
+	} {
+		if !strings.Contains(msg, want) {
+			t.Fatalf("error %q missing %q", msg, want)
+		}
+	}
+	// D-24: sorted by field descriptor index (both failures name "hi",
+	// tied), then by rule ("WithMessageRules", tied), then by
+	// description — "cel." sorts before "message." lexically.
+	if strings.Index(msg, "cel.this.lo <= this.hi") > strings.Index(msg, "message.oneof") {
+		t.Fatalf("want the cel_expression failure reported before the oneof failure (D-24 description-order tiebreak), got: %s", msg)
+	}
+}
+
+// --- oneof-specific: a name in the rule's `fields` list that resolves to
+// no real field is a collected failure, never a silent skip — unlike the
+// CEL carriers, `oneof` has no compiler guaranteeing every name is real.
+// Exercised directly against messageRuleReferences (the normalization
+// helper), which needs no proto fixture of its own: it accepts an
+// explicit, hand-built *validate.MessageRules rather than resolving one
+// from md's own declared options. ---
+
+func TestMessageRuleReferences_OneofUnknownFieldNameIsCollectedFailure(t *testing.T) {
+	md := descriptorOf[*mixinforprototestv1.MessageRuleOk]() // has "lo"/"hi", no message-level rules of its own
+	env, err := messageRuleCELEnv(md)
+	if err != nil {
+		t.Fatalf("messageRuleCELEnv: %v", err)
+	}
+	msgRules := &validate.MessageRules{
+		Oneof: []*validate.MessageOneofRule{
+			{Fields: []string{"lo", "does_not_exist"}},
+		},
+	}
+	refs, failures := messageRuleReferences(md, msgRules, env)
+	if len(failures) != 1 {
+		t.Fatalf("want exactly 1 failure (the unresolvable name), got %d: %v", len(failures), failures)
+	}
+	if failures[0].field != "does_not_exist" {
+		t.Fatalf("want the failure to name field %q, got %q", "does_not_exist", failures[0].field)
+	}
+	if !strings.Contains(failures[0].description, "message.oneof") || !strings.Contains(failures[0].description, "does not declare") {
+		t.Fatalf("failure description %q missing expected content", failures[0].description)
+	}
+	// The resolvable name ("lo") still surfaces as a real reference —
+	// one bad name in a rule's fields list doesn't silently drop the
+	// good ones.
+	if len(refs) != 1 || refs[0].carrier != "oneof" || len(refs[0].fieldNames) != 1 || refs[0].fieldNames[0] != "lo" {
+		t.Fatalf("want one oneof ref naming only \"lo\", got %+v", refs)
+	}
+}
+
+// --- VAL-08/empty edge probe: a cel_expression rule that compiles but
+// makes no this.<field> select at all is a legal no-op — schema load
+// succeeds under WithMessageRules(OnCreate) and seeds no extraFields,
+// exactly like MessageRuleNone (Test 7). ---
+
+func TestBuildHookState_MessageRuleCelExpressionNoFieldRefIsLegalNoOp(t *testing.T) {
+	md := descriptorOf[*mixinforprototestv1.MessageRuleCelExpressionNoFieldRef]()
+	hs := mustBuildHookState(t, md, WithMessageRules(OnCreate))
+	if len(hs.evaluators) != 0 {
+		t.Fatalf("want zero evaluators (the rule references no field, and \"lo\" itself carries no rule of its own), got %d", len(hs.evaluators))
+	}
+	if !hs.messageRulesOnCreate {
+		t.Fatal("want hs.messageRulesOnCreate=true even for this no-field-ref rule — the OPTION was passed, only its field-reference effect is empty")
+	}
+
+	o := applyOptions([]Option{WithMessageRules(OnCreate)})
+	refs, failures := checkMessageRuleReferences(string(md.FullName()), md, o)
+	if len(failures) != 0 {
+		t.Fatalf("want zero failures, got %v", failures)
+	}
+	if len(refs) != 0 {
+		t.Fatalf("want zero refs (no this.<field> select), got %v", refNames(refs))
 	}
 }

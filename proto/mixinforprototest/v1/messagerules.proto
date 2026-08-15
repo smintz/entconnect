@@ -104,3 +104,89 @@ message MessageRuleLookalike {
   int32 lo = 1;
   int32 hi = 2;
 }
+
+// --- Plan 03-08 (CR-01 gap closure): the cel_expression and oneof
+// MessageRules carriers, previously never read by
+// checkMessageRuleReferences (D-10's schema-load reference gate). Each
+// fixture below mirrors an existing cel-carrier fixture's shape so the
+// gap-closure tests can compare like-for-like.
+
+// MessageRuleCelExpressionOk carries one message-level rule declared via
+// the simplified `cel_expression` carrier (buf.validate.MessageRules
+// field 5) — CR-01's other unread carrier alongside `oneof` below. Both
+// fields derive cleanly with no options, matching MessageRuleOk's own
+// shape for the `cel` carrier.
+message MessageRuleCelExpressionOk {
+  option (buf.validate.message).cel_expression = "this.lo <= this.hi";
+
+  int32 lo = 1;
+  int32 hi = 2;
+}
+
+// MessageRuleCelExpressionExcludedRef carries the identical
+// cel_expression rule as MessageRuleCelExpressionOk; its own test
+// Excludes (or Overrides) "hi" — CR-01's core cel_expression counter-
+// example fixture, the cel_expression analogue of MessageRuleExcludedRef.
+message MessageRuleCelExpressionExcludedRef {
+  option (buf.validate.message).cel_expression = "this.lo <= this.hi";
+
+  int32 lo = 1;
+  int32 hi = 2;
+}
+
+// MessageRuleOneofOk carries one message-level rule declared via the
+// `oneof` carrier (buf.validate.MessageRules field 4) — CR-01's other
+// unread carrier. Its rule names both fields directly (no CEL involved at
+// all), requiring exactly one of them to be set; both fields derive
+// cleanly with no options.
+message MessageRuleOneofOk {
+  option (buf.validate.message).oneof = {
+    fields: ["lo", "hi"]
+    required: true
+  };
+
+  int32 lo = 1;
+  int32 hi = 2;
+}
+
+// MessageRuleOneofExcludedRef carries the identical oneof rule as
+// MessageRuleOneofOk; its own test Excludes (or Overrides) "hi" — CR-01's
+// core oneof counterexample fixture.
+message MessageRuleOneofExcludedRef {
+  option (buf.validate.message).oneof = {
+    fields: ["lo", "hi"]
+    required: true
+  };
+
+  int32 lo = 1;
+  int32 hi = 2;
+}
+
+// MessageRuleMultiCarrierExcludedRef declares an offending reference to
+// the SAME excluded field ("hi") via TWO different carriers at once — a
+// cel_expression rule and a oneof rule — so a single WithMessageRules
+// schema load can prove D-10's gate reports offenders from more than one
+// carrier in ONE pass (Task 1's acceptance criteria: "offenders across
+// two different carriers on one message are reported in one pass"). No
+// fixture among the four single-carrier ones above can exercise this by
+// itself, since each carries exactly one carrier.
+message MessageRuleMultiCarrierExcludedRef {
+  option (buf.validate.message).cel_expression = "this.lo <= this.hi";
+  option (buf.validate.message).oneof = {
+    fields: ["lo", "hi"]
+  };
+
+  int32 lo = 1;
+  int32 hi = 2;
+}
+
+// MessageRuleCelExpressionNoFieldRef carries a cel_expression rule that
+// makes no this.<field> select at all — VAL-08/empty's legal-no-op edge
+// probe: schema load must succeed under WithMessageRules(OnCreate) and
+// seed no extraFields, exactly like a message with no message-level rules
+// at all (MessageRuleNone).
+message MessageRuleCelExpressionNoFieldRef {
+  option (buf.validate.message).cel_expression = "1 == 1";
+
+  int32 lo = 1;
+}

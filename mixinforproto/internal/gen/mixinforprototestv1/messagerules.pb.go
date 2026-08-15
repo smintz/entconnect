@@ -416,6 +416,340 @@ func (x *MessageRuleLookalike) GetHi() int32 {
 	return 0
 }
 
+// MessageRuleCelExpressionOk carries one message-level rule declared via
+// the simplified `cel_expression` carrier (buf.validate.MessageRules
+// field 5) — CR-01's other unread carrier alongside `oneof` below. Both
+// fields derive cleanly with no options, matching MessageRuleOk's own
+// shape for the `cel` carrier.
+type MessageRuleCelExpressionOk struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Lo            int32                  `protobuf:"varint,1,opt,name=lo,proto3" json:"lo,omitempty"`
+	Hi            int32                  `protobuf:"varint,2,opt,name=hi,proto3" json:"hi,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *MessageRuleCelExpressionOk) Reset() {
+	*x = MessageRuleCelExpressionOk{}
+	mi := &file_mixinforprototest_v1_messagerules_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *MessageRuleCelExpressionOk) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*MessageRuleCelExpressionOk) ProtoMessage() {}
+
+func (x *MessageRuleCelExpressionOk) ProtoReflect() protoreflect.Message {
+	mi := &file_mixinforprototest_v1_messagerules_proto_msgTypes[7]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use MessageRuleCelExpressionOk.ProtoReflect.Descriptor instead.
+func (*MessageRuleCelExpressionOk) Descriptor() ([]byte, []int) {
+	return file_mixinforprototest_v1_messagerules_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *MessageRuleCelExpressionOk) GetLo() int32 {
+	if x != nil {
+		return x.Lo
+	}
+	return 0
+}
+
+func (x *MessageRuleCelExpressionOk) GetHi() int32 {
+	if x != nil {
+		return x.Hi
+	}
+	return 0
+}
+
+// MessageRuleCelExpressionExcludedRef carries the identical
+// cel_expression rule as MessageRuleCelExpressionOk; its own test
+// Excludes (or Overrides) "hi" — CR-01's core cel_expression counter-
+// example fixture, the cel_expression analogue of MessageRuleExcludedRef.
+type MessageRuleCelExpressionExcludedRef struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Lo            int32                  `protobuf:"varint,1,opt,name=lo,proto3" json:"lo,omitempty"`
+	Hi            int32                  `protobuf:"varint,2,opt,name=hi,proto3" json:"hi,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *MessageRuleCelExpressionExcludedRef) Reset() {
+	*x = MessageRuleCelExpressionExcludedRef{}
+	mi := &file_mixinforprototest_v1_messagerules_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *MessageRuleCelExpressionExcludedRef) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*MessageRuleCelExpressionExcludedRef) ProtoMessage() {}
+
+func (x *MessageRuleCelExpressionExcludedRef) ProtoReflect() protoreflect.Message {
+	mi := &file_mixinforprototest_v1_messagerules_proto_msgTypes[8]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use MessageRuleCelExpressionExcludedRef.ProtoReflect.Descriptor instead.
+func (*MessageRuleCelExpressionExcludedRef) Descriptor() ([]byte, []int) {
+	return file_mixinforprototest_v1_messagerules_proto_rawDescGZIP(), []int{8}
+}
+
+func (x *MessageRuleCelExpressionExcludedRef) GetLo() int32 {
+	if x != nil {
+		return x.Lo
+	}
+	return 0
+}
+
+func (x *MessageRuleCelExpressionExcludedRef) GetHi() int32 {
+	if x != nil {
+		return x.Hi
+	}
+	return 0
+}
+
+// MessageRuleOneofOk carries one message-level rule declared via the
+// `oneof` carrier (buf.validate.MessageRules field 4) — CR-01's other
+// unread carrier. Its rule names both fields directly (no CEL involved at
+// all), requiring exactly one of them to be set; both fields derive
+// cleanly with no options.
+type MessageRuleOneofOk struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Lo            int32                  `protobuf:"varint,1,opt,name=lo,proto3" json:"lo,omitempty"`
+	Hi            int32                  `protobuf:"varint,2,opt,name=hi,proto3" json:"hi,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *MessageRuleOneofOk) Reset() {
+	*x = MessageRuleOneofOk{}
+	mi := &file_mixinforprototest_v1_messagerules_proto_msgTypes[9]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *MessageRuleOneofOk) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*MessageRuleOneofOk) ProtoMessage() {}
+
+func (x *MessageRuleOneofOk) ProtoReflect() protoreflect.Message {
+	mi := &file_mixinforprototest_v1_messagerules_proto_msgTypes[9]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use MessageRuleOneofOk.ProtoReflect.Descriptor instead.
+func (*MessageRuleOneofOk) Descriptor() ([]byte, []int) {
+	return file_mixinforprototest_v1_messagerules_proto_rawDescGZIP(), []int{9}
+}
+
+func (x *MessageRuleOneofOk) GetLo() int32 {
+	if x != nil {
+		return x.Lo
+	}
+	return 0
+}
+
+func (x *MessageRuleOneofOk) GetHi() int32 {
+	if x != nil {
+		return x.Hi
+	}
+	return 0
+}
+
+// MessageRuleOneofExcludedRef carries the identical oneof rule as
+// MessageRuleOneofOk; its own test Excludes (or Overrides) "hi" — CR-01's
+// core oneof counterexample fixture.
+type MessageRuleOneofExcludedRef struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Lo            int32                  `protobuf:"varint,1,opt,name=lo,proto3" json:"lo,omitempty"`
+	Hi            int32                  `protobuf:"varint,2,opt,name=hi,proto3" json:"hi,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *MessageRuleOneofExcludedRef) Reset() {
+	*x = MessageRuleOneofExcludedRef{}
+	mi := &file_mixinforprototest_v1_messagerules_proto_msgTypes[10]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *MessageRuleOneofExcludedRef) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*MessageRuleOneofExcludedRef) ProtoMessage() {}
+
+func (x *MessageRuleOneofExcludedRef) ProtoReflect() protoreflect.Message {
+	mi := &file_mixinforprototest_v1_messagerules_proto_msgTypes[10]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use MessageRuleOneofExcludedRef.ProtoReflect.Descriptor instead.
+func (*MessageRuleOneofExcludedRef) Descriptor() ([]byte, []int) {
+	return file_mixinforprototest_v1_messagerules_proto_rawDescGZIP(), []int{10}
+}
+
+func (x *MessageRuleOneofExcludedRef) GetLo() int32 {
+	if x != nil {
+		return x.Lo
+	}
+	return 0
+}
+
+func (x *MessageRuleOneofExcludedRef) GetHi() int32 {
+	if x != nil {
+		return x.Hi
+	}
+	return 0
+}
+
+// MessageRuleMultiCarrierExcludedRef declares an offending reference to
+// the SAME excluded field ("hi") via TWO different carriers at once — a
+// cel_expression rule and a oneof rule — so a single WithMessageRules
+// schema load can prove D-10's gate reports offenders from more than one
+// carrier in ONE pass (Task 1's acceptance criteria: "offenders across
+// two different carriers on one message are reported in one pass"). No
+// fixture among the four single-carrier ones above can exercise this by
+// itself, since each carries exactly one carrier.
+type MessageRuleMultiCarrierExcludedRef struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Lo            int32                  `protobuf:"varint,1,opt,name=lo,proto3" json:"lo,omitempty"`
+	Hi            int32                  `protobuf:"varint,2,opt,name=hi,proto3" json:"hi,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *MessageRuleMultiCarrierExcludedRef) Reset() {
+	*x = MessageRuleMultiCarrierExcludedRef{}
+	mi := &file_mixinforprototest_v1_messagerules_proto_msgTypes[11]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *MessageRuleMultiCarrierExcludedRef) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*MessageRuleMultiCarrierExcludedRef) ProtoMessage() {}
+
+func (x *MessageRuleMultiCarrierExcludedRef) ProtoReflect() protoreflect.Message {
+	mi := &file_mixinforprototest_v1_messagerules_proto_msgTypes[11]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use MessageRuleMultiCarrierExcludedRef.ProtoReflect.Descriptor instead.
+func (*MessageRuleMultiCarrierExcludedRef) Descriptor() ([]byte, []int) {
+	return file_mixinforprototest_v1_messagerules_proto_rawDescGZIP(), []int{11}
+}
+
+func (x *MessageRuleMultiCarrierExcludedRef) GetLo() int32 {
+	if x != nil {
+		return x.Lo
+	}
+	return 0
+}
+
+func (x *MessageRuleMultiCarrierExcludedRef) GetHi() int32 {
+	if x != nil {
+		return x.Hi
+	}
+	return 0
+}
+
+// MessageRuleCelExpressionNoFieldRef carries a cel_expression rule that
+// makes no this.<field> select at all — VAL-08/empty's legal-no-op edge
+// probe: schema load must succeed under WithMessageRules(OnCreate) and
+// seed no extraFields, exactly like a message with no message-level rules
+// at all (MessageRuleNone).
+type MessageRuleCelExpressionNoFieldRef struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Lo            int32                  `protobuf:"varint,1,opt,name=lo,proto3" json:"lo,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *MessageRuleCelExpressionNoFieldRef) Reset() {
+	*x = MessageRuleCelExpressionNoFieldRef{}
+	mi := &file_mixinforprototest_v1_messagerules_proto_msgTypes[12]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *MessageRuleCelExpressionNoFieldRef) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*MessageRuleCelExpressionNoFieldRef) ProtoMessage() {}
+
+func (x *MessageRuleCelExpressionNoFieldRef) ProtoReflect() protoreflect.Message {
+	mi := &file_mixinforprototest_v1_messagerules_proto_msgTypes[12]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use MessageRuleCelExpressionNoFieldRef.ProtoReflect.Descriptor instead.
+func (*MessageRuleCelExpressionNoFieldRef) Descriptor() ([]byte, []int) {
+	return file_mixinforprototest_v1_messagerules_proto_rawDescGZIP(), []int{12}
+}
+
+func (x *MessageRuleCelExpressionNoFieldRef) GetLo() int32 {
+	if x != nil {
+		return x.Lo
+	}
+	return 0
+}
+
 var File_mixinforprototest_v1_messagerules_proto protoreflect.FileDescriptor
 
 const file_mixinforprototest_v1_messagerules_proto_rawDesc = "" +
@@ -445,7 +779,32 @@ const file_mixinforprototest_v1_messagerules_proto_rawDesc = "" +
 	"\x14MessageRuleLookalike\x12\x0e\n" +
 	"\x02lo\x18\x01 \x01(\x05R\x02lo\x12\x0e\n" +
 	"\x02hi\x18\x02 \x01(\x05R\x02hi:\xa5\x01\xbaH\xa1\x01\x1a\x9e\x01\n" +
-	"0messagerules.message_rule_lookalike.no_field_ref\x12\valways true\x1a][1, 2, 3].exists(lo, lo == 1) && size('this.lo is not a real reference') >= 0 && this.hi >= 0B\xeb\x01\n" +
+	"0messagerules.message_rule_lookalike.no_field_ref\x12\valways true\x1a][1, 2, 3].exists(lo, lo == 1) && size('this.lo is not a real reference') >= 0 && this.hi >= 0\"U\n" +
+	"\x1aMessageRuleCelExpressionOk\x12\x0e\n" +
+	"\x02lo\x18\x01 \x01(\x05R\x02lo\x12\x0e\n" +
+	"\x02hi\x18\x02 \x01(\x05R\x02hi:\x17\xbaH\x14*\x12this.lo <= this.hi\"^\n" +
+	"#MessageRuleCelExpressionExcludedRef\x12\x0e\n" +
+	"\x02lo\x18\x01 \x01(\x05R\x02lo\x12\x0e\n" +
+	"\x02hi\x18\x02 \x01(\x05R\x02hi:\x17\xbaH\x14*\x12this.lo <= this.hi\"E\n" +
+	"\x12MessageRuleOneofOk\x12\x0e\n" +
+	"\x02lo\x18\x01 \x01(\x05R\x02lo\x12\x0e\n" +
+	"\x02hi\x18\x02 \x01(\x05R\x02hi:\x0f\xbaH\f\"\n" +
+	"\n" +
+	"\x02lo\n" +
+	"\x02hi\x10\x01\"N\n" +
+	"\x1bMessageRuleOneofExcludedRef\x12\x0e\n" +
+	"\x02lo\x18\x01 \x01(\x05R\x02lo\x12\x0e\n" +
+	"\x02hi\x18\x02 \x01(\x05R\x02hi:\x0f\xbaH\f\"\n" +
+	"\n" +
+	"\x02lo\n" +
+	"\x02hi\x10\x01\"g\n" +
+	"\"MessageRuleMultiCarrierExcludedRef\x12\x0e\n" +
+	"\x02lo\x18\x01 \x01(\x05R\x02lo\x12\x0e\n" +
+	"\x02hi\x18\x02 \x01(\x05R\x02hi:!\xbaH\x1e\"\b\n" +
+	"\x02lo\n" +
+	"\x02hi*\x12this.lo <= this.hi\"A\n" +
+	"\"MessageRuleCelExpressionNoFieldRef\x12\x0e\n" +
+	"\x02lo\x18\x01 \x01(\x05R\x02lo:\v\xbaH\b*\x061 == 1B\xeb\x01\n" +
 	"\x18com.mixinforprototest.v1B\x11MessagerulesProtoP\x01ZKgithub.com/smintz/entconnect/mixinforproto/internal/gen/mixinforprototestv1\xa2\x02\x03MXX\xaa\x02\x14Mixinforprototest.V1\xca\x02\x14Mixinforprototest\\V1\xe2\x02 Mixinforprototest\\V1\\GPBMetadata\xea\x02\x15Mixinforprototest::V1b\x06proto3"
 
 var (
@@ -460,15 +819,21 @@ func file_mixinforprototest_v1_messagerules_proto_rawDescGZIP() []byte {
 	return file_mixinforprototest_v1_messagerules_proto_rawDescData
 }
 
-var file_mixinforprototest_v1_messagerules_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
+var file_mixinforprototest_v1_messagerules_proto_msgTypes = make([]protoimpl.MessageInfo, 13)
 var file_mixinforprototest_v1_messagerules_proto_goTypes = []any{
-	(*MessageRuleOk)(nil),              // 0: mixinforprototest.v1.MessageRuleOk
-	(*MessageRuleExcludedRef)(nil),     // 1: mixinforprototest.v1.MessageRuleExcludedRef
-	(*MessageRuleTwoExcludedRefs)(nil), // 2: mixinforprototest.v1.MessageRuleTwoExcludedRefs
-	(*MessageRuleDetail)(nil),          // 3: mixinforprototest.v1.MessageRuleDetail
-	(*MessageRuleUnderivableRef)(nil),  // 4: mixinforprototest.v1.MessageRuleUnderivableRef
-	(*MessageRuleNone)(nil),            // 5: mixinforprototest.v1.MessageRuleNone
-	(*MessageRuleLookalike)(nil),       // 6: mixinforprototest.v1.MessageRuleLookalike
+	(*MessageRuleOk)(nil),                       // 0: mixinforprototest.v1.MessageRuleOk
+	(*MessageRuleExcludedRef)(nil),              // 1: mixinforprototest.v1.MessageRuleExcludedRef
+	(*MessageRuleTwoExcludedRefs)(nil),          // 2: mixinforprototest.v1.MessageRuleTwoExcludedRefs
+	(*MessageRuleDetail)(nil),                   // 3: mixinforprototest.v1.MessageRuleDetail
+	(*MessageRuleUnderivableRef)(nil),           // 4: mixinforprototest.v1.MessageRuleUnderivableRef
+	(*MessageRuleNone)(nil),                     // 5: mixinforprototest.v1.MessageRuleNone
+	(*MessageRuleLookalike)(nil),                // 6: mixinforprototest.v1.MessageRuleLookalike
+	(*MessageRuleCelExpressionOk)(nil),          // 7: mixinforprototest.v1.MessageRuleCelExpressionOk
+	(*MessageRuleCelExpressionExcludedRef)(nil), // 8: mixinforprototest.v1.MessageRuleCelExpressionExcludedRef
+	(*MessageRuleOneofOk)(nil),                  // 9: mixinforprototest.v1.MessageRuleOneofOk
+	(*MessageRuleOneofExcludedRef)(nil),         // 10: mixinforprototest.v1.MessageRuleOneofExcludedRef
+	(*MessageRuleMultiCarrierExcludedRef)(nil),  // 11: mixinforprototest.v1.MessageRuleMultiCarrierExcludedRef
+	(*MessageRuleCelExpressionNoFieldRef)(nil),  // 12: mixinforprototest.v1.MessageRuleCelExpressionNoFieldRef
 }
 var file_mixinforprototest_v1_messagerules_proto_depIdxs = []int32{
 	3, // 0: mixinforprototest.v1.MessageRuleUnderivableRef.detail:type_name -> mixinforprototest.v1.MessageRuleDetail
@@ -490,7 +855,7 @@ func file_mixinforprototest_v1_messagerules_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_mixinforprototest_v1_messagerules_proto_rawDesc), len(file_mixinforprototest_v1_messagerules_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   7,
+			NumMessages:   13,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

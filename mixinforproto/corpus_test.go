@@ -394,6 +394,18 @@ var corpusCoverage = map[string]string{
 	"mixinforprototest.v1.MessageRuleOk":              "golden:messagerules_ok",
 	"mixinforprototest.v1.MessageRuleExcludedRef":     "golden:messagerules_excluded_ref",
 	"mixinforprototest.v1.MessageRuleTwoExcludedRefs": "test:TestBuildHookState_MessageRuleTwoExcludedRefsFailsInOnePass",
+	// Plan 03-08's CR-01 gap-closure corpus: the cel_expression and oneof
+	// MessageRules carriers, previously never read by
+	// checkMessageRuleReferences. Each is a named test (not a golden), same
+	// as MessageRuleTwoExcludedRefs above — every one of these fixtures
+	// exists to prove a schema-load property, not a field-derivation shape
+	// of its own interest.
+	"mixinforprototest.v1.MessageRuleCelExpressionOk":          "test:TestBuildHookState_MessageRuleCelExpressionRefsSeedExtraFields",
+	"mixinforprototest.v1.MessageRuleCelExpressionExcludedRef": "test:TestBuildHookState_MessageRuleCelExpressionExcludedRefFailsSchemaLoad",
+	"mixinforprototest.v1.MessageRuleOneofOk":                  "test:TestBuildHookState_MessageRuleOneofRefsSeedExtraFields",
+	"mixinforprototest.v1.MessageRuleOneofExcludedRef":         "test:TestBuildHookState_MessageRuleOneofExcludedRefFailsSchemaLoad",
+	"mixinforprototest.v1.MessageRuleMultiCarrierExcludedRef":  "test:TestBuildHookState_MessageRuleMultiCarrierExcludedRefFailsInOnePass",
+	"mixinforprototest.v1.MessageRuleCelExpressionNoFieldRef":  "test:TestBuildHookState_MessageRuleCelExpressionNoFieldRefIsLegalNoOp",
 	// MessageRuleDetail is a reference-only type (MessageRuleUnderivableRef's
 	// message-typed "detail" field value, deliberately never AsJSON-opted-in) —
 	// its role is exercised indirectly through MessageRuleUnderivableRef's own test.
