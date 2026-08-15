@@ -100,3 +100,78 @@ func TestIgnoreAlways_NonIgnoredSiblingStillRejects(t *testing.T) {
 		t.Fatalf("want storage violation identity %q, got %v", wantRuleID+"\x00enforced", storageIDs)
 	}
 }
+
+// TestIgnoreIfZeroValue_ZeroStringSuppressedNonZeroNumSuppressed is Task
+// 2's zero-value real-Create case: "zeroable" set to its zero (""), and
+// "zeroable_num" left at its own zero-default (0, also
+// IGNORE_IF_ZERO_VALUE) — both fields are skipped by the local cel.Env,
+// producing zero violations at both the storage layer and the boundary.
+func TestIgnoreIfZeroValue_BothFieldsAtZeroProduceZeroViolations(t *testing.T) {
+	client := newTestClient(t)
+
+	_, err := client.IgnoreIfZeroWithCel.Create().
+		SetZeroable("").
+		Save(context.Background())
+	storageIDs, ok := violationIdentities(err)
+	if !ok {
+		t.Fatalf("want a nil error or a *protovalidate.ValidationError, got %T: %v", err, err)
+	}
+	if len(storageIDs) != 0 {
+		t.Fatalf("want zero storage-layer violations (both fields at their zero), got %v", storageIDs)
+	}
+
+	entity := &mixinforprototestv1.IgnoreIfZeroWithCel{Zeroable: "", ZeroableNum: 0}
+	boundaryErr := protovalidate.Validate(entity)
+	boundaryIDs, ok := violationIdentities(boundaryErr)
+	if !ok {
+		t.Fatalf("want a nil error or a *protovalidate.ValidationError from the boundary, got %T: %v", boundaryErr, boundaryErr)
+	}
+	if !sameSet(storageIDs, boundaryIDs) {
+		t.Fatalf("storage/boundary identity mismatch: storage=%v boundary=%v", storageIDs, boundaryIDs)
+	}
+}
+
+// TestIgnoreIfZeroValue_NonZeroFailingValuesRejectedIdentically is Task
+// 2's non-zero real-Create case: both "zeroable" and "zeroable_num" are
+// set to non-zero values that FAIL their own cel rules — both must be
+// rejected, and the storage-layer violation-identity set equals the
+// boundary's.
+func TestIgnoreIfZeroValue_NonZeroFailingValuesRejectedIdentically(t *testing.T) {
+	client := newTestClient(t)
+
+	const zeroableValue = "nope" // fails "this.startsWith('X')"
+	const zeroableNumValue = -1  // fails "this > 0"
+
+	_, err := client.IgnoreIfZeroWithCel.Create().
+		SetZeroable(zeroableValue).
+		SetZeroableNum(zeroableNumValue).
+		Save(context.Background())
+	if err == nil {
+		t.Fatal("want an error: neither field is at its zero, so neither is ignored")
+	}
+	storageIDs, ok := violationIdentities(err)
+	if !ok {
+		t.Fatalf("want a *protovalidate.ValidationError, got %T: %v", err, err)
+	}
+
+	entity := &mixinforprototestv1.IgnoreIfZeroWithCel{
+		Zeroable:    zeroableValue,
+		ZeroableNum: zeroableNumValue,
+	}
+	boundaryErr := protovalidate.Validate(entity)
+	boundaryIDs, ok := violationIdentities(boundaryErr)
+	if !ok {
+		t.Fatalf("want a *protovalidate.ValidationError from the boundary, got %T: %v", boundaryErr, boundaryErr)
+	}
+	if !sameSet(storageIDs, boundaryIDs) {
+		t.Fatalf("storage/boundary identity mismatch: storage=%v boundary=%v", storageIDs, boundaryIDs)
+	}
+	for _, want := range []string{
+		"ignore.ignore_if_zero_with_cel.zeroable.starts_with_x\x00zeroable",
+		"ignore.ignore_if_zero_with_cel.zeroable_num.positive\x00zeroable_num",
+	} {
+		if !storageIDs[want] {
+			t.Fatalf("want storage violation identity %q, got %v", want, storageIDs)
+		}
+	}
+}

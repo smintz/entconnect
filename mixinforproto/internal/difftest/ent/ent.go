@@ -15,6 +15,7 @@ import (
 	"github.com/smintz/entconnect/mixinforproto/internal/difftest/ent/doublecomparators"
 	"github.com/smintz/entconnect/mixinforproto/internal/difftest/ent/floatcomparators"
 	"github.com/smintz/entconnect/mixinforproto/internal/difftest/ent/ignorealwayswithcel"
+	"github.com/smintz/entconnect/mixinforproto/internal/difftest/ent/ignoreifzerowithcel"
 	"github.com/smintz/entconnect/mixinforproto/internal/difftest/ent/int32adjacent"
 	"github.com/smintz/entconnect/mixinforproto/internal/difftest/ent/int32comparators"
 	"github.com/smintz/entconnect/mixinforproto/internal/difftest/ent/int32overflow"
@@ -98,6 +99,7 @@ func checkColumn(t, c string) error {
 			doublecomparators.Table:         doublecomparators.ValidColumn,
 			floatcomparators.Table:          floatcomparators.ValidColumn,
 			ignorealwayswithcel.Table:       ignorealwayswithcel.ValidColumn,
+			ignoreifzerowithcel.Table:       ignoreifzerowithcel.ValidColumn,
 			int32adjacent.Table:             int32adjacent.ValidColumn,
 			int32comparators.Table:          int32comparators.ValidColumn,
 			int32overflow.Table:             int32overflow.ValidColumn,

@@ -502,3 +502,173 @@ func TestBuildHookState_UncompilableCELExpressionsAreCollectedInOnePass(t *testi
 		t.Fatalf("want a *derivationError, got %T", err)
 	}
 }
+
+// --- Plan 03-06 Task 2: IGNORE_IF_ZERO_VALUE at mutation time. Every
+// case below drives hs.evaluate directly against IgnoreIfZeroWithCel
+// (proto/mixinforprototest/v1/ignore.proto), which carries two fields —
+// a string and an int32 — both combining ignore = IGNORE_IF_ZERO_VALUE
+// with a custom cel rule, so the zero test is proven for more than one
+// Kind. ---
+
+// TestEvaluate_IgnoreIfZeroValue_ZeroStringProducesNoViolation is the
+// zero-string case: "zeroable" mutated to "" is skipped by the local
+// cel.Env entirely, even though the empty string would otherwise fail
+// "this.startsWith('X')".
+func TestEvaluate_IgnoreIfZeroValue_ZeroStringProducesNoViolation(t *testing.T) {
+	md := descriptorOf[*mixinforprototestv1.IgnoreIfZeroWithCel]()
+	hs := mustBuildHookState(t, md)
+
+	m := newFakeMutation(ent.OpCreate, "IgnoreIfZeroWithCel", map[string]ent.Value{
+		"zeroable": "",
+	})
+	violations, err := hs.evaluate(m)
+	if err != nil {
+		t.Fatalf("evaluate: %v", err)
+	}
+	if len(violations) != 0 {
+		t.Fatalf("want zero violations for the zero value, got %d: %v", len(violations), violations)
+	}
+}
+
+// TestEvaluate_IgnoreIfZeroValue_NonZeroFailingStringProducesOneViolation
+// is the non-zero case: "zeroable" mutated to a non-empty value that
+// FAILS its own cel rule produces exactly one violation (after
+// violation.go's (RuleId, FieldPath) dedup — this field's cel rule is
+// evaluated by BOTH halves of the hybrid once it is not ignored,
+// violation_test.go's own Pitfall 1 resolution) carrying the rule's own
+// RuleId — the gate suppresses at zero only, never wholesale.
+func TestEvaluate_IgnoreIfZeroValue_NonZeroFailingStringProducesOneViolation(t *testing.T) {
+	md := descriptorOf[*mixinforprototestv1.IgnoreIfZeroWithCel]()
+	hs := mustBuildHookState(t, md)
+
+	m := newFakeMutation(ent.OpCreate, "IgnoreIfZeroWithCel", map[string]ent.Value{
+		"zeroable": "nope",
+	})
+	violations, err := hs.evaluate(m)
+	if err != nil {
+		t.Fatalf("evaluate: %v", err)
+	}
+	deduped := dedupeViolations(violations)
+	if len(deduped) != 1 {
+		t.Fatalf("want exactly 1 violation after dedup, got %d: %v", len(deduped), deduped)
+	}
+	const wantRuleID = "ignore.ignore_if_zero_with_cel.zeroable.starts_with_x"
+	if got := deduped[0].GetRuleId(); got != wantRuleID {
+		t.Fatalf("want RuleId %q, got %q", wantRuleID, got)
+	}
+}
+
+// TestEvaluate_IgnoreIfZeroValue_ZeroInt32ProducesNoViolation mirrors the
+// zero-string case on a non-string scalar: "zeroable_num" mutated to 0
+// is skipped even though 0 fails "this > 0".
+func TestEvaluate_IgnoreIfZeroValue_ZeroInt32ProducesNoViolation(t *testing.T) {
+	md := descriptorOf[*mixinforprototestv1.IgnoreIfZeroWithCel]()
+	hs := mustBuildHookState(t, md)
+
+	m := newFakeMutation(ent.OpCreate, "IgnoreIfZeroWithCel", map[string]ent.Value{
+		"zeroable_num": int32(0),
+	})
+	violations, err := hs.evaluate(m)
+	if err != nil {
+		t.Fatalf("evaluate: %v", err)
+	}
+	if len(violations) != 0 {
+		t.Fatalf("want zero violations for the zero value, got %d: %v", len(violations), violations)
+	}
+}
+
+// TestEvaluate_IgnoreIfZeroValue_NonZeroFailingInt32ProducesOneViolation
+// mirrors the non-zero string case on int32: a negative value fails
+// "this > 0" and produces exactly one violation carrying the rule's own
+// RuleId.
+func TestEvaluate_IgnoreIfZeroValue_NonZeroFailingInt32ProducesOneViolation(t *testing.T) {
+	md := descriptorOf[*mixinforprototestv1.IgnoreIfZeroWithCel]()
+	hs := mustBuildHookState(t, md)
+
+	m := newFakeMutation(ent.OpCreate, "IgnoreIfZeroWithCel", map[string]ent.Value{
+		"zeroable_num": int32(-1),
+	})
+	violations, err := hs.evaluate(m)
+	if err != nil {
+		t.Fatalf("evaluate: %v", err)
+	}
+	deduped := dedupeViolations(violations)
+	if len(deduped) != 1 {
+		t.Fatalf("want exactly 1 violation after dedup, got %d: %v", len(deduped), deduped)
+	}
+	const wantRuleID = "ignore.ignore_if_zero_with_cel.zeroable_num.positive"
+	if got := deduped[0].GetRuleId(); got != wantRuleID {
+		t.Fatalf("want RuleId %q, got %q", wantRuleID, got)
+	}
+}
+
+// TestIsZeroForKind_CoversMultipleKinds proves isZeroForKind's zero/
+// non-zero verdict for at least three distinct protoreflect.Kind values,
+// including one non-string, against real field descriptors pulled from
+// IgnoreIfZeroWithCel (string) and a hand-built bool/int64 pair via
+// protodesc (this corpus has no bool/int64 field of its own).
+func TestIsZeroForKind_CoversMultipleKinds(t *testing.T) {
+	md := descriptorOf[*mixinforprototestv1.IgnoreIfZeroWithCel]()
+	stringFd := md.Fields().ByName("zeroable")
+	if stringFd == nil {
+		t.Fatal("want a \"zeroable\" field on IgnoreIfZeroWithCel")
+	}
+	int32Fd := md.Fields().ByName("zeroable_num")
+	if int32Fd == nil {
+		t.Fatal("want a \"zeroable_num\" field on IgnoreIfZeroWithCel")
+	}
+
+	fdProto := &descriptorpb.FileDescriptorProto{
+		Name:    proto.String("hooks_test/is_zero_for_kind.proto"),
+		Package: proto.String("mixinforprototest.hookstest.v1"),
+		Syntax:  proto.String("proto3"),
+		MessageType: []*descriptorpb.DescriptorProto{
+			{
+				Name: proto.String("BoolAndInt64"),
+				Field: []*descriptorpb.FieldDescriptorProto{
+					{
+						Name:   proto.String("flag"),
+						Number: proto.Int32(1),
+						Label:  descriptorpb.FieldDescriptorProto_LABEL_OPTIONAL.Enum(),
+						Type:   descriptorpb.FieldDescriptorProto_TYPE_BOOL.Enum(),
+					},
+					{
+						Name:   proto.String("count"),
+						Number: proto.Int32(2),
+						Label:  descriptorpb.FieldDescriptorProto_LABEL_OPTIONAL.Enum(),
+						Type:   descriptorpb.FieldDescriptorProto_TYPE_INT64.Enum(),
+					},
+				},
+			},
+		},
+	}
+	file, err := protodesc.NewFile(fdProto, protoregistry.GlobalFiles)
+	if err != nil {
+		t.Fatalf("protodesc.NewFile: %v", err)
+	}
+	boolFd := file.Messages().Get(0).Fields().ByName("flag")
+	int64Fd := file.Messages().Get(0).Fields().ByName("count")
+
+	for _, tc := range []struct {
+		name string
+		fd   protoreflect.FieldDescriptor
+		v    protoreflect.Value
+		want bool
+	}{
+		{"zero string", stringFd, protoreflect.ValueOfString(""), true},
+		{"non-zero string", stringFd, protoreflect.ValueOfString("x"), false},
+		{"zero int32", int32Fd, protoreflect.ValueOfInt32(0), true},
+		{"non-zero int32", int32Fd, protoreflect.ValueOfInt32(-1), false},
+		{"zero bool", boolFd, protoreflect.ValueOfBool(false), true},
+		{"non-zero bool", boolFd, protoreflect.ValueOfBool(true), false},
+		{"zero int64", int64Fd, protoreflect.ValueOfInt64(0), true},
+		{"non-zero int64", int64Fd, protoreflect.ValueOfInt64(1), false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			if got := isZeroForKind(tc.fd, tc.v); got != tc.want {
+				t.Fatalf("isZeroForKind(%s, %v) = %v, want %v", tc.fd.Name(), tc.v, got, tc.want)
+			}
+		})
+	}
+}
+

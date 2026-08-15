@@ -349,6 +349,39 @@ func hookFieldClass(fd protoreflect.FieldDescriptor) string {
 	}
 }
 
+// isZeroForKind reports whether v — a reverse-converted, valid
+// protoreflect.Value for fd — is fd's proto3 zero, for CR-02's
+// IGNORE_IF_ZERO_VALUE gate (evaluate()'s celFields loop). Scoped to
+// exactly the kinds hookFieldClass routes today (classScalar/
+// classOptionalScalar): string is "", bytes is length 0, bool is false,
+// every integer and float kind is 0, and enum is number 0. Any kind
+// outside that set returns false — never guessed — matching
+// hookFieldClass's own documented scope boundary; a wider Kind coverage
+// is a later plan's concern, same as hookFieldClass and reverse.go's
+// own scoping notes.
+func isZeroForKind(fd protoreflect.FieldDescriptor, v protoreflect.Value) bool {
+	switch fd.Kind() {
+	case protoreflect.StringKind:
+		return v.String() == ""
+	case protoreflect.BytesKind:
+		return len(v.Bytes()) == 0
+	case protoreflect.BoolKind:
+		return !v.Bool()
+	case protoreflect.Int32Kind, protoreflect.Sint32Kind, protoreflect.Sfixed32Kind,
+		protoreflect.Int64Kind, protoreflect.Sint64Kind, protoreflect.Sfixed64Kind:
+		return v.Int() == 0
+	case protoreflect.Uint32Kind, protoreflect.Fixed32Kind,
+		protoreflect.Uint64Kind, protoreflect.Fixed64Kind:
+		return v.Uint() == 0
+	case protoreflect.FloatKind, protoreflect.DoubleKind:
+		return v.Float() == 0
+	case protoreflect.EnumKind:
+		return v.Enum() == 0
+	default:
+		return false
+	}
+}
+
 // compileCELRule compiles r's expression into a cel.Program against a
 // cel.Env built the same way protovalidate's own evaluator builds its
 // per-field environment (buf.build/go/protovalidate@v1.2.0/builder.go,
@@ -562,6 +595,18 @@ func (hs *hookState) evaluate(m ent.Mutation) ([]*validate.Violation, error) {
 	for _, fe := range celFields {
 		val, ok := values[fe.fd.Number()]
 		if !ok || !val.IsValid() {
+			continue
+		}
+		// CR-02 gap closure, Task 2: IGNORE_IF_ZERO_VALUE is a
+		// mutation-time (value-dependent) decision — unlike
+		// IGNORE_ALWAYS (a compile-time skip, buildHookState above) —
+		// so it is checked here, against the actual reverse-converted
+		// value, every time evaluate() runs. Skipping only the LOCAL
+		// cel.Env for this one field, never the standard-rule half
+		// above (which protovalidate's own evaluator already scopes
+		// correctly for ignore, D-07 consequence 1's reused-not-
+		// reimplemented posture) and never any sibling field.
+		if fe.ignore == validate.Ignore_IGNORE_IF_ZERO_VALUE && isZeroForKind(fe.fd, val) {
 			continue
 		}
 		this := val.Interface()

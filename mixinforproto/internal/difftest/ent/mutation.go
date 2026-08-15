@@ -13,6 +13,7 @@ import (
 	"github.com/smintz/entconnect/mixinforproto/internal/difftest/ent/doublecomparators"
 	"github.com/smintz/entconnect/mixinforproto/internal/difftest/ent/floatcomparators"
 	"github.com/smintz/entconnect/mixinforproto/internal/difftest/ent/ignorealwayswithcel"
+	"github.com/smintz/entconnect/mixinforproto/internal/difftest/ent/ignoreifzerowithcel"
 	"github.com/smintz/entconnect/mixinforproto/internal/difftest/ent/int32adjacent"
 	"github.com/smintz/entconnect/mixinforproto/internal/difftest/ent/int32comparators"
 	"github.com/smintz/entconnect/mixinforproto/internal/difftest/ent/int32overflow"
@@ -48,6 +49,7 @@ const (
 	TypeDoubleComparators         = "DoubleComparators"
 	TypeFloatComparators          = "FloatComparators"
 	TypeIgnoreAlwaysWithCel       = "IgnoreAlwaysWithCel"
+	TypeIgnoreIfZeroWithCel       = "IgnoreIfZeroWithCel"
 	TypeInt32Adjacent             = "Int32Adjacent"
 	TypeInt32Comparators          = "Int32Comparators"
 	TypeInt32Overflow             = "Int32Overflow"
@@ -1433,6 +1435,422 @@ func (m *IgnoreAlwaysWithCelMutation) ClearEdge(name string) error {
 // It returns an error if the edge is not defined in the schema.
 func (m *IgnoreAlwaysWithCelMutation) ResetEdge(name string) error {
 	return fmt.Errorf("unknown IgnoreAlwaysWithCel edge %s", name)
+}
+
+// IgnoreIfZeroWithCelMutation represents an operation that mutates the IgnoreIfZeroWithCel nodes in the graph.
+type IgnoreIfZeroWithCelMutation struct {
+	config
+	op              Op
+	typ             string
+	id              *int
+	zeroable        *string
+	zeroable_num    *int32
+	addzeroable_num *int32
+	clearedFields   map[string]struct{}
+	done            bool
+	oldValue        func(context.Context) (*IgnoreIfZeroWithCel, error)
+	predicates      []predicate.IgnoreIfZeroWithCel
+}
+
+var _ ent.Mutation = (*IgnoreIfZeroWithCelMutation)(nil)
+
+// ignoreifzerowithcelOption allows management of the mutation configuration using functional options.
+type ignoreifzerowithcelOption func(*IgnoreIfZeroWithCelMutation)
+
+// newIgnoreIfZeroWithCelMutation creates new mutation for the IgnoreIfZeroWithCel entity.
+func newIgnoreIfZeroWithCelMutation(c config, op Op, opts ...ignoreifzerowithcelOption) *IgnoreIfZeroWithCelMutation {
+	m := &IgnoreIfZeroWithCelMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeIgnoreIfZeroWithCel,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withIgnoreIfZeroWithCelID sets the ID field of the mutation.
+func withIgnoreIfZeroWithCelID(id int) ignoreifzerowithcelOption {
+	return func(m *IgnoreIfZeroWithCelMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *IgnoreIfZeroWithCel
+		)
+		m.oldValue = func(ctx context.Context) (*IgnoreIfZeroWithCel, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().IgnoreIfZeroWithCel.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withIgnoreIfZeroWithCel sets the old IgnoreIfZeroWithCel of the mutation.
+func withIgnoreIfZeroWithCel(node *IgnoreIfZeroWithCel) ignoreifzerowithcelOption {
+	return func(m *IgnoreIfZeroWithCelMutation) {
+		m.oldValue = func(context.Context) (*IgnoreIfZeroWithCel, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m IgnoreIfZeroWithCelMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m IgnoreIfZeroWithCelMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *IgnoreIfZeroWithCelMutation) ID() (id int, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *IgnoreIfZeroWithCelMutation) IDs(ctx context.Context) ([]int, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []int{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().IgnoreIfZeroWithCel.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetZeroable sets the "zeroable" field.
+func (m *IgnoreIfZeroWithCelMutation) SetZeroable(s string) {
+	m.zeroable = &s
+}
+
+// Zeroable returns the value of the "zeroable" field in the mutation.
+func (m *IgnoreIfZeroWithCelMutation) Zeroable() (r string, exists bool) {
+	v := m.zeroable
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldZeroable returns the old "zeroable" field's value of the IgnoreIfZeroWithCel entity.
+// If the IgnoreIfZeroWithCel object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *IgnoreIfZeroWithCelMutation) OldZeroable(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldZeroable is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldZeroable requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldZeroable: %w", err)
+	}
+	return oldValue.Zeroable, nil
+}
+
+// ResetZeroable resets all changes to the "zeroable" field.
+func (m *IgnoreIfZeroWithCelMutation) ResetZeroable() {
+	m.zeroable = nil
+}
+
+// SetZeroableNum sets the "zeroable_num" field.
+func (m *IgnoreIfZeroWithCelMutation) SetZeroableNum(i int32) {
+	m.zeroable_num = &i
+	m.addzeroable_num = nil
+}
+
+// ZeroableNum returns the value of the "zeroable_num" field in the mutation.
+func (m *IgnoreIfZeroWithCelMutation) ZeroableNum() (r int32, exists bool) {
+	v := m.zeroable_num
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldZeroableNum returns the old "zeroable_num" field's value of the IgnoreIfZeroWithCel entity.
+// If the IgnoreIfZeroWithCel object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *IgnoreIfZeroWithCelMutation) OldZeroableNum(ctx context.Context) (v int32, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldZeroableNum is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldZeroableNum requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldZeroableNum: %w", err)
+	}
+	return oldValue.ZeroableNum, nil
+}
+
+// AddZeroableNum adds i to the "zeroable_num" field.
+func (m *IgnoreIfZeroWithCelMutation) AddZeroableNum(i int32) {
+	if m.addzeroable_num != nil {
+		*m.addzeroable_num += i
+	} else {
+		m.addzeroable_num = &i
+	}
+}
+
+// AddedZeroableNum returns the value that was added to the "zeroable_num" field in this mutation.
+func (m *IgnoreIfZeroWithCelMutation) AddedZeroableNum() (r int32, exists bool) {
+	v := m.addzeroable_num
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetZeroableNum resets all changes to the "zeroable_num" field.
+func (m *IgnoreIfZeroWithCelMutation) ResetZeroableNum() {
+	m.zeroable_num = nil
+	m.addzeroable_num = nil
+}
+
+// Where appends a list predicates to the IgnoreIfZeroWithCelMutation builder.
+func (m *IgnoreIfZeroWithCelMutation) Where(ps ...predicate.IgnoreIfZeroWithCel) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the IgnoreIfZeroWithCelMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *IgnoreIfZeroWithCelMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.IgnoreIfZeroWithCel, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *IgnoreIfZeroWithCelMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *IgnoreIfZeroWithCelMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (IgnoreIfZeroWithCel).
+func (m *IgnoreIfZeroWithCelMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *IgnoreIfZeroWithCelMutation) Fields() []string {
+	fields := make([]string, 0, 2)
+	if m.zeroable != nil {
+		fields = append(fields, ignoreifzerowithcel.FieldZeroable)
+	}
+	if m.zeroable_num != nil {
+		fields = append(fields, ignoreifzerowithcel.FieldZeroableNum)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *IgnoreIfZeroWithCelMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case ignoreifzerowithcel.FieldZeroable:
+		return m.Zeroable()
+	case ignoreifzerowithcel.FieldZeroableNum:
+		return m.ZeroableNum()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *IgnoreIfZeroWithCelMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case ignoreifzerowithcel.FieldZeroable:
+		return m.OldZeroable(ctx)
+	case ignoreifzerowithcel.FieldZeroableNum:
+		return m.OldZeroableNum(ctx)
+	}
+	return nil, fmt.Errorf("unknown IgnoreIfZeroWithCel field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *IgnoreIfZeroWithCelMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case ignoreifzerowithcel.FieldZeroable:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetZeroable(v)
+		return nil
+	case ignoreifzerowithcel.FieldZeroableNum:
+		v, ok := value.(int32)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetZeroableNum(v)
+		return nil
+	}
+	return fmt.Errorf("unknown IgnoreIfZeroWithCel field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *IgnoreIfZeroWithCelMutation) AddedFields() []string {
+	var fields []string
+	if m.addzeroable_num != nil {
+		fields = append(fields, ignoreifzerowithcel.FieldZeroableNum)
+	}
+	return fields
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *IgnoreIfZeroWithCelMutation) AddedField(name string) (ent.Value, bool) {
+	switch name {
+	case ignoreifzerowithcel.FieldZeroableNum:
+		return m.AddedZeroableNum()
+	}
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *IgnoreIfZeroWithCelMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	case ignoreifzerowithcel.FieldZeroableNum:
+		v, ok := value.(int32)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddZeroableNum(v)
+		return nil
+	}
+	return fmt.Errorf("unknown IgnoreIfZeroWithCel numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *IgnoreIfZeroWithCelMutation) ClearedFields() []string {
+	return nil
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *IgnoreIfZeroWithCelMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *IgnoreIfZeroWithCelMutation) ClearField(name string) error {
+	return fmt.Errorf("unknown IgnoreIfZeroWithCel nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *IgnoreIfZeroWithCelMutation) ResetField(name string) error {
+	switch name {
+	case ignoreifzerowithcel.FieldZeroable:
+		m.ResetZeroable()
+		return nil
+	case ignoreifzerowithcel.FieldZeroableNum:
+		m.ResetZeroableNum()
+		return nil
+	}
+	return fmt.Errorf("unknown IgnoreIfZeroWithCel field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *IgnoreIfZeroWithCelMutation) AddedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *IgnoreIfZeroWithCelMutation) AddedIDs(name string) []ent.Value {
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *IgnoreIfZeroWithCelMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *IgnoreIfZeroWithCelMutation) RemovedIDs(name string) []ent.Value {
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *IgnoreIfZeroWithCelMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *IgnoreIfZeroWithCelMutation) EdgeCleared(name string) bool {
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *IgnoreIfZeroWithCelMutation) ClearEdge(name string) error {
+	return fmt.Errorf("unknown IgnoreIfZeroWithCel unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *IgnoreIfZeroWithCelMutation) ResetEdge(name string) error {
+	return fmt.Errorf("unknown IgnoreIfZeroWithCel edge %s", name)
 }
 
 // Int32AdjacentMutation represents an operation that mutates the Int32Adjacent nodes in the graph.

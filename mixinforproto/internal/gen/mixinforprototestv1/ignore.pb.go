@@ -91,6 +91,64 @@ func (x *IgnoreAlwaysWithCel) GetEnforced() string {
 	return ""
 }
 
+// IgnoreIfZeroWithCel is Task 2's fixture: zeroable carries
+// ignore = IGNORE_IF_ZERO_VALUE plus a cel rule, so it is skipped only
+// when its reverse-converted value is the empty string, and enforced
+// normally otherwise. zeroable_num mirrors the same shape on a
+// non-string scalar (int32), so the zero test is proven for more than
+// one kind — hooks.go's isZeroForKind must cover both.
+type IgnoreIfZeroWithCel struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Zeroable      string                 `protobuf:"bytes,1,opt,name=zeroable,proto3" json:"zeroable,omitempty"`
+	ZeroableNum   int32                  `protobuf:"varint,2,opt,name=zeroable_num,json=zeroableNum,proto3" json:"zeroable_num,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *IgnoreIfZeroWithCel) Reset() {
+	*x = IgnoreIfZeroWithCel{}
+	mi := &file_mixinforprototest_v1_ignore_proto_msgTypes[1]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *IgnoreIfZeroWithCel) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*IgnoreIfZeroWithCel) ProtoMessage() {}
+
+func (x *IgnoreIfZeroWithCel) ProtoReflect() protoreflect.Message {
+	mi := &file_mixinforprototest_v1_ignore_proto_msgTypes[1]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use IgnoreIfZeroWithCel.ProtoReflect.Descriptor instead.
+func (*IgnoreIfZeroWithCel) Descriptor() ([]byte, []int) {
+	return file_mixinforprototest_v1_ignore_proto_rawDescGZIP(), []int{1}
+}
+
+func (x *IgnoreIfZeroWithCel) GetZeroable() string {
+	if x != nil {
+		return x.Zeroable
+	}
+	return ""
+}
+
+func (x *IgnoreIfZeroWithCel) GetZeroableNum() int32 {
+	if x != nil {
+		return x.ZeroableNum
+	}
+	return 0
+}
+
 var File_mixinforprototest_v1_ignore_proto protoreflect.FileDescriptor
 
 const file_mixinforprototest_v1_ignore_proto_rawDesc = "" +
@@ -100,7 +158,12 @@ const file_mixinforprototest_v1_ignore_proto_rawDesc = "" +
 	"\x0ealways_ignored\x18\x01 \x01(\tBt\xbaHq\xba\x01k\n" +
 	":ignore.ignore_always_with_cel.always_ignored.starts_with_x\x12\x17value must start with X\x1a\x14this.startsWith('X')\xd8\x01\x03R\ralwaysIgnored\x12\x87\x01\n" +
 	"\benforced\x18\x02 \x01(\tBk\xbaHh\xba\x01e\n" +
-	"4ignore.ignore_always_with_cel.enforced.starts_with_x\x12\x17value must start with X\x1a\x14this.startsWith('X')R\benforcedB\xe5\x01\n" +
+	"4ignore.ignore_always_with_cel.enforced.starts_with_x\x12\x17value must start with X\x1a\x14this.startsWith('X')R\benforced\"\xaa\x02\n" +
+	"\x13IgnoreIfZeroWithCel\x12\x8b\x01\n" +
+	"\bzeroable\x18\x01 \x01(\tBo\xbaHl\xba\x01f\n" +
+	"5ignore.ignore_if_zero_with_cel.zeroable.starts_with_x\x12\x17value must start with X\x1a\x14this.startsWith('X')\xd8\x01\x01R\bzeroable\x12\x84\x01\n" +
+	"\fzeroable_num\x18\x02 \x01(\x05Ba\xbaH^\xba\x01X\n" +
+	"4ignore.ignore_if_zero_with_cel.zeroable_num.positive\x12\x16value must be positive\x1a\bthis > 0\xd8\x01\x01R\vzeroableNumB\xe5\x01\n" +
 	"\x18com.mixinforprototest.v1B\vIgnoreProtoP\x01ZKgithub.com/smintz/entconnect/mixinforproto/internal/gen/mixinforprototestv1\xa2\x02\x03MXX\xaa\x02\x14Mixinforprototest.V1\xca\x02\x14Mixinforprototest\\V1\xe2\x02 Mixinforprototest\\V1\\GPBMetadata\xea\x02\x15Mixinforprototest::V1b\x06proto3"
 
 var (
@@ -115,9 +178,10 @@ func file_mixinforprototest_v1_ignore_proto_rawDescGZIP() []byte {
 	return file_mixinforprototest_v1_ignore_proto_rawDescData
 }
 
-var file_mixinforprototest_v1_ignore_proto_msgTypes = make([]protoimpl.MessageInfo, 1)
+var file_mixinforprototest_v1_ignore_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
 var file_mixinforprototest_v1_ignore_proto_goTypes = []any{
 	(*IgnoreAlwaysWithCel)(nil), // 0: mixinforprototest.v1.IgnoreAlwaysWithCel
+	(*IgnoreIfZeroWithCel)(nil), // 1: mixinforprototest.v1.IgnoreIfZeroWithCel
 }
 var file_mixinforprototest_v1_ignore_proto_depIdxs = []int32{
 	0, // [0:0] is the sub-list for method output_type
@@ -138,7 +202,7 @@ func file_mixinforprototest_v1_ignore_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_mixinforprototest_v1_ignore_proto_rawDesc), len(file_mixinforprototest_v1_ignore_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   1,
+			NumMessages:   2,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

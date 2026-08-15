@@ -45,6 +45,18 @@ func (f IgnoreAlwaysWithCelFunc) Mutate(ctx context.Context, m ent.Mutation) (en
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.IgnoreAlwaysWithCelMutation", m)
 }
 
+// The IgnoreIfZeroWithCelFunc type is an adapter to allow the use of ordinary
+// function as IgnoreIfZeroWithCel mutator.
+type IgnoreIfZeroWithCelFunc func(context.Context, *ent.IgnoreIfZeroWithCelMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f IgnoreIfZeroWithCelFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.IgnoreIfZeroWithCelMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.IgnoreIfZeroWithCelMutation", m)
+}
+
 // The Int32AdjacentFunc type is an adapter to allow the use of ordinary
 // function as Int32Adjacent mutator.
 type Int32AdjacentFunc func(context.Context, *ent.Int32AdjacentMutation) (ent.Value, error)

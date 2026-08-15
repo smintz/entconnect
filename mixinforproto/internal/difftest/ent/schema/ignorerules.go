@@ -27,3 +27,22 @@ func (IgnoreAlwaysWithCel) Mixin() []ent.Mixin {
 		mixinforproto.MixinForProto[*mixinforprototestv1.IgnoreAlwaysWithCel](),
 	}
 }
+
+// IgnoreIfZeroWithCel declares MixinForProto against the generated
+// IgnoreIfZeroWithCel message type (proto/mixinforprototest/v1/
+// ignore.proto), Plan 03-06 Task 2's fixture: "zeroable" (string) and
+// "zeroable_num" (int32) both carry ignore = IGNORE_IF_ZERO_VALUE plus a
+// cel rule a real value can fail — the real generated ent.Client
+// counterpart to hooks_test.go's direct hookState.evaluate zero-value
+// tests, proving the mutation-time gate through ent's real withHooks
+// pipeline (D-13).
+type IgnoreIfZeroWithCel struct {
+	ent.Schema
+}
+
+// Mixin returns the derived mixin — the only thing this schema declares.
+func (IgnoreIfZeroWithCel) Mixin() []ent.Mixin {
+	return []ent.Mixin{
+		mixinforproto.MixinForProto[*mixinforprototestv1.IgnoreIfZeroWithCel](),
+	}
+}

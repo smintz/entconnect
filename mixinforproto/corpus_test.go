@@ -408,6 +408,10 @@ var corpusCoverage = map[string]string{
 	// than a golden fixture, so the storage-vs-boundary identity
 	// comparison is the recorded coverage claim.
 	"mixinforprototest.v1.IgnoreAlwaysWithCel": "test:TestIgnoreAlways_SuppressedFieldProducesZeroViolations",
+	// Plan 03-06 Task 2's IGNORE_IF_ZERO_VALUE fixture — proven both by
+	// hooks_test.go's direct hookState.evaluate zero/non-zero cases and
+	// by ignore_test.go's real ent.Client differential proof.
+	"mixinforprototest.v1.IgnoreIfZeroWithCel": "test:TestEvaluate_IgnoreIfZeroValue_ZeroStringProducesNoViolation",
 }
 
 // TestCorpusMessagesHaveRecordedCoverage checks corpusCoverage in BOTH

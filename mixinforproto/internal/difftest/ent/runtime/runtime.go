@@ -6,6 +6,7 @@ import (
 	"github.com/smintz/entconnect/mixinforproto/internal/difftest/ent/doublecomparators"
 	"github.com/smintz/entconnect/mixinforproto/internal/difftest/ent/floatcomparators"
 	"github.com/smintz/entconnect/mixinforproto/internal/difftest/ent/ignorealwayswithcel"
+	"github.com/smintz/entconnect/mixinforproto/internal/difftest/ent/ignoreifzerowithcel"
 	"github.com/smintz/entconnect/mixinforproto/internal/difftest/ent/int32adjacent"
 	"github.com/smintz/entconnect/mixinforproto/internal/difftest/ent/int32comparators"
 	"github.com/smintz/entconnect/mixinforproto/internal/difftest/ent/int32overflow"
@@ -86,6 +87,21 @@ func init() {
 	ignorealwayswithcelDescEnforced := ignorealwayswithcelMixinFields0[1].Descriptor()
 	// ignorealwayswithcel.DefaultEnforced holds the default value on creation for the enforced field.
 	ignorealwayswithcel.DefaultEnforced = ignorealwayswithcelDescEnforced.Default.(string)
+	ignoreifzerowithcelMixin := schema.IgnoreIfZeroWithCel{}.Mixin()
+	ignoreifzerowithcelMixinHooks0 := ignoreifzerowithcelMixin[0].Hooks()
+	ignoreifzerowithcel.Hooks[0] = ignoreifzerowithcelMixinHooks0[0]
+	ignoreifzerowithcelMixinFields0 := ignoreifzerowithcelMixin[0].Fields()
+	_ = ignoreifzerowithcelMixinFields0
+	ignoreifzerowithcelFields := schema.IgnoreIfZeroWithCel{}.Fields()
+	_ = ignoreifzerowithcelFields
+	// ignoreifzerowithcelDescZeroable is the schema descriptor for zeroable field.
+	ignoreifzerowithcelDescZeroable := ignoreifzerowithcelMixinFields0[0].Descriptor()
+	// ignoreifzerowithcel.DefaultZeroable holds the default value on creation for the zeroable field.
+	ignoreifzerowithcel.DefaultZeroable = ignoreifzerowithcelDescZeroable.Default.(string)
+	// ignoreifzerowithcelDescZeroableNum is the schema descriptor for zeroable_num field.
+	ignoreifzerowithcelDescZeroableNum := ignoreifzerowithcelMixinFields0[1].Descriptor()
+	// ignoreifzerowithcel.DefaultZeroableNum holds the default value on creation for the zeroable_num field.
+	ignoreifzerowithcel.DefaultZeroableNum = ignoreifzerowithcelDescZeroableNum.Default.(int32)
 	int32adjacentMixin := schema.Int32Adjacent{}.Mixin()
 	int32adjacentMixinHooks0 := int32adjacentMixin[0].Hooks()
 	int32adjacent.Hooks[0] = int32adjacentMixinHooks0[0]

@@ -45,6 +45,18 @@ var (
 		Columns:    IgnoreAlwaysWithCelsColumns,
 		PrimaryKey: []*schema.Column{IgnoreAlwaysWithCelsColumns[0]},
 	}
+	// IgnoreIfZeroWithCelsColumns holds the columns for the "ignore_if_zero_with_cels" table.
+	IgnoreIfZeroWithCelsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "zeroable", Type: field.TypeString, Default: ""},
+		{Name: "zeroable_num", Type: field.TypeInt32, Default: 0},
+	}
+	// IgnoreIfZeroWithCelsTable holds the schema information for the "ignore_if_zero_with_cels" table.
+	IgnoreIfZeroWithCelsTable = &schema.Table{
+		Name:       "ignore_if_zero_with_cels",
+		Columns:    IgnoreIfZeroWithCelsColumns,
+		PrimaryKey: []*schema.Column{IgnoreIfZeroWithCelsColumns[0]},
+	}
 	// Int32adjacentsColumns holds the columns for the "int32adjacents" table.
 	Int32adjacentsColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt, Increment: true},
@@ -286,6 +298,7 @@ var (
 		DoubleComparatorsTable,
 		FloatComparatorsTable,
 		IgnoreAlwaysWithCelsTable,
+		IgnoreIfZeroWithCelsTable,
 		Int32adjacentsTable,
 		Int32comparatorsTable,
 		Int32overflowsTable,

@@ -17,6 +17,7 @@ import (
 	"github.com/smintz/entconnect/mixinforproto/internal/difftest/ent/doublecomparators"
 	"github.com/smintz/entconnect/mixinforproto/internal/difftest/ent/floatcomparators"
 	"github.com/smintz/entconnect/mixinforproto/internal/difftest/ent/ignorealwayswithcel"
+	"github.com/smintz/entconnect/mixinforproto/internal/difftest/ent/ignoreifzerowithcel"
 	"github.com/smintz/entconnect/mixinforproto/internal/difftest/ent/int32adjacent"
 	"github.com/smintz/entconnect/mixinforproto/internal/difftest/ent/int32comparators"
 	"github.com/smintz/entconnect/mixinforproto/internal/difftest/ent/int32overflow"
@@ -50,6 +51,8 @@ type Client struct {
 	FloatComparators *FloatComparatorsClient
 	// IgnoreAlwaysWithCel is the client for interacting with the IgnoreAlwaysWithCel builders.
 	IgnoreAlwaysWithCel *IgnoreAlwaysWithCelClient
+	// IgnoreIfZeroWithCel is the client for interacting with the IgnoreIfZeroWithCel builders.
+	IgnoreIfZeroWithCel *IgnoreIfZeroWithCelClient
 	// Int32Adjacent is the client for interacting with the Int32Adjacent builders.
 	Int32Adjacent *Int32AdjacentClient
 	// Int32Comparators is the client for interacting with the Int32Comparators builders.
@@ -104,6 +107,7 @@ func (c *Client) init() {
 	c.DoubleComparators = NewDoubleComparatorsClient(c.config)
 	c.FloatComparators = NewFloatComparatorsClient(c.config)
 	c.IgnoreAlwaysWithCel = NewIgnoreAlwaysWithCelClient(c.config)
+	c.IgnoreIfZeroWithCel = NewIgnoreIfZeroWithCelClient(c.config)
 	c.Int32Adjacent = NewInt32AdjacentClient(c.config)
 	c.Int32Comparators = NewInt32ComparatorsClient(c.config)
 	c.Int32Overflow = NewInt32OverflowClient(c.config)
@@ -219,6 +223,7 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 		DoubleComparators:         NewDoubleComparatorsClient(cfg),
 		FloatComparators:          NewFloatComparatorsClient(cfg),
 		IgnoreAlwaysWithCel:       NewIgnoreAlwaysWithCelClient(cfg),
+		IgnoreIfZeroWithCel:       NewIgnoreIfZeroWithCelClient(cfg),
 		Int32Adjacent:             NewInt32AdjacentClient(cfg),
 		Int32Comparators:          NewInt32ComparatorsClient(cfg),
 		Int32Overflow:             NewInt32OverflowClient(cfg),
@@ -261,6 +266,7 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 		DoubleComparators:         NewDoubleComparatorsClient(cfg),
 		FloatComparators:          NewFloatComparatorsClient(cfg),
 		IgnoreAlwaysWithCel:       NewIgnoreAlwaysWithCelClient(cfg),
+		IgnoreIfZeroWithCel:       NewIgnoreIfZeroWithCelClient(cfg),
 		Int32Adjacent:             NewInt32AdjacentClient(cfg),
 		Int32Comparators:          NewInt32ComparatorsClient(cfg),
 		Int32Overflow:             NewInt32OverflowClient(cfg),
@@ -310,9 +316,10 @@ func (c *Client) Close() error {
 // In order to add hooks to a specific client, call: `client.Node.Use(...)`.
 func (c *Client) Use(hooks ...Hook) {
 	for _, n := range []interface{ Use(...Hook) }{
-		c.DoubleComparators, c.FloatComparators, c.IgnoreAlwaysWithCel, c.Int32Adjacent,
-		c.Int32Comparators, c.Int32Overflow, c.MessageRules, c.MixedFieldRules,
-		c.RequiredOptionalBytes, c.RequiredOptionalNonString, c.RequiredOptionalString,
+		c.DoubleComparators, c.FloatComparators, c.IgnoreAlwaysWithCel,
+		c.IgnoreIfZeroWithCel, c.Int32Adjacent, c.Int32Comparators, c.Int32Overflow,
+		c.MessageRules, c.MixedFieldRules, c.RequiredOptionalBytes,
+		c.RequiredOptionalNonString, c.RequiredOptionalString,
 		c.RequiredPlainNonString, c.RequiredString, c.ResidualCel, c.StringByteBounds,
 		c.StringCodePointBounds, c.StringFormatEmail, c.StringFormatHostname,
 		c.StringFormatIp, c.StringFormatUri, c.StringFormatUuid,
@@ -326,9 +333,10 @@ func (c *Client) Use(hooks ...Hook) {
 // In order to add interceptors to a specific client, call: `client.Node.Intercept(...)`.
 func (c *Client) Intercept(interceptors ...Interceptor) {
 	for _, n := range []interface{ Intercept(...Interceptor) }{
-		c.DoubleComparators, c.FloatComparators, c.IgnoreAlwaysWithCel, c.Int32Adjacent,
-		c.Int32Comparators, c.Int32Overflow, c.MessageRules, c.MixedFieldRules,
-		c.RequiredOptionalBytes, c.RequiredOptionalNonString, c.RequiredOptionalString,
+		c.DoubleComparators, c.FloatComparators, c.IgnoreAlwaysWithCel,
+		c.IgnoreIfZeroWithCel, c.Int32Adjacent, c.Int32Comparators, c.Int32Overflow,
+		c.MessageRules, c.MixedFieldRules, c.RequiredOptionalBytes,
+		c.RequiredOptionalNonString, c.RequiredOptionalString,
 		c.RequiredPlainNonString, c.RequiredString, c.ResidualCel, c.StringByteBounds,
 		c.StringCodePointBounds, c.StringFormatEmail, c.StringFormatHostname,
 		c.StringFormatIp, c.StringFormatUri, c.StringFormatUuid,
@@ -347,6 +355,8 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.FloatComparators.mutate(ctx, m)
 	case *IgnoreAlwaysWithCelMutation:
 		return c.IgnoreAlwaysWithCel.mutate(ctx, m)
+	case *IgnoreIfZeroWithCelMutation:
+		return c.IgnoreIfZeroWithCel.mutate(ctx, m)
 	case *Int32AdjacentMutation:
 		return c.Int32Adjacent.mutate(ctx, m)
 	case *Int32ComparatorsMutation:
@@ -791,6 +801,140 @@ func (c *IgnoreAlwaysWithCelClient) mutate(ctx context.Context, m *IgnoreAlwaysW
 		return (&IgnoreAlwaysWithCelDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
 	default:
 		return nil, fmt.Errorf("ent: unknown IgnoreAlwaysWithCel mutation op: %q", m.Op())
+	}
+}
+
+// IgnoreIfZeroWithCelClient is a client for the IgnoreIfZeroWithCel schema.
+type IgnoreIfZeroWithCelClient struct {
+	config
+}
+
+// NewIgnoreIfZeroWithCelClient returns a client for the IgnoreIfZeroWithCel from the given config.
+func NewIgnoreIfZeroWithCelClient(c config) *IgnoreIfZeroWithCelClient {
+	return &IgnoreIfZeroWithCelClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `ignoreifzerowithcel.Hooks(f(g(h())))`.
+func (c *IgnoreIfZeroWithCelClient) Use(hooks ...Hook) {
+	c.hooks.IgnoreIfZeroWithCel = append(c.hooks.IgnoreIfZeroWithCel, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `ignoreifzerowithcel.Intercept(f(g(h())))`.
+func (c *IgnoreIfZeroWithCelClient) Intercept(interceptors ...Interceptor) {
+	c.inters.IgnoreIfZeroWithCel = append(c.inters.IgnoreIfZeroWithCel, interceptors...)
+}
+
+// Create returns a builder for creating a IgnoreIfZeroWithCel entity.
+func (c *IgnoreIfZeroWithCelClient) Create() *IgnoreIfZeroWithCelCreate {
+	mutation := newIgnoreIfZeroWithCelMutation(c.config, OpCreate)
+	return &IgnoreIfZeroWithCelCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of IgnoreIfZeroWithCel entities.
+func (c *IgnoreIfZeroWithCelClient) CreateBulk(builders ...*IgnoreIfZeroWithCelCreate) *IgnoreIfZeroWithCelCreateBulk {
+	return &IgnoreIfZeroWithCelCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *IgnoreIfZeroWithCelClient) MapCreateBulk(slice any, setFunc func(*IgnoreIfZeroWithCelCreate, int)) *IgnoreIfZeroWithCelCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &IgnoreIfZeroWithCelCreateBulk{err: fmt.Errorf("calling to IgnoreIfZeroWithCelClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*IgnoreIfZeroWithCelCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &IgnoreIfZeroWithCelCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for IgnoreIfZeroWithCel.
+func (c *IgnoreIfZeroWithCelClient) Update() *IgnoreIfZeroWithCelUpdate {
+	mutation := newIgnoreIfZeroWithCelMutation(c.config, OpUpdate)
+	return &IgnoreIfZeroWithCelUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *IgnoreIfZeroWithCelClient) UpdateOne(_m *IgnoreIfZeroWithCel) *IgnoreIfZeroWithCelUpdateOne {
+	mutation := newIgnoreIfZeroWithCelMutation(c.config, OpUpdateOne, withIgnoreIfZeroWithCel(_m))
+	return &IgnoreIfZeroWithCelUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *IgnoreIfZeroWithCelClient) UpdateOneID(id int) *IgnoreIfZeroWithCelUpdateOne {
+	mutation := newIgnoreIfZeroWithCelMutation(c.config, OpUpdateOne, withIgnoreIfZeroWithCelID(id))
+	return &IgnoreIfZeroWithCelUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for IgnoreIfZeroWithCel.
+func (c *IgnoreIfZeroWithCelClient) Delete() *IgnoreIfZeroWithCelDelete {
+	mutation := newIgnoreIfZeroWithCelMutation(c.config, OpDelete)
+	return &IgnoreIfZeroWithCelDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *IgnoreIfZeroWithCelClient) DeleteOne(_m *IgnoreIfZeroWithCel) *IgnoreIfZeroWithCelDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *IgnoreIfZeroWithCelClient) DeleteOneID(id int) *IgnoreIfZeroWithCelDeleteOne {
+	builder := c.Delete().Where(ignoreifzerowithcel.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &IgnoreIfZeroWithCelDeleteOne{builder}
+}
+
+// Query returns a query builder for IgnoreIfZeroWithCel.
+func (c *IgnoreIfZeroWithCelClient) Query() *IgnoreIfZeroWithCelQuery {
+	return &IgnoreIfZeroWithCelQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeIgnoreIfZeroWithCel},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a IgnoreIfZeroWithCel entity by its id.
+func (c *IgnoreIfZeroWithCelClient) Get(ctx context.Context, id int) (*IgnoreIfZeroWithCel, error) {
+	return c.Query().Where(ignoreifzerowithcel.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *IgnoreIfZeroWithCelClient) GetX(ctx context.Context, id int) *IgnoreIfZeroWithCel {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *IgnoreIfZeroWithCelClient) Hooks() []Hook {
+	hooks := c.hooks.IgnoreIfZeroWithCel
+	return append(hooks[:len(hooks):len(hooks)], ignoreifzerowithcel.Hooks[:]...)
+}
+
+// Interceptors returns the client interceptors.
+func (c *IgnoreIfZeroWithCelClient) Interceptors() []Interceptor {
+	return c.inters.IgnoreIfZeroWithCel
+}
+
+func (c *IgnoreIfZeroWithCelClient) mutate(ctx context.Context, m *IgnoreIfZeroWithCelMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&IgnoreIfZeroWithCelCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&IgnoreIfZeroWithCelUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&IgnoreIfZeroWithCelUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&IgnoreIfZeroWithCelDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown IgnoreIfZeroWithCel mutation op: %q", m.Op())
 	}
 }
 
@@ -3477,8 +3621,8 @@ func (c *StringPatternClient) mutate(ctx context.Context, m *StringPatternMutati
 // hooks and interceptors per client, for fast access.
 type (
 	hooks struct {
-		DoubleComparators, FloatComparators, IgnoreAlwaysWithCel, Int32Adjacent,
-		Int32Comparators, Int32Overflow, MessageRules, MixedFieldRules,
+		DoubleComparators, FloatComparators, IgnoreAlwaysWithCel, IgnoreIfZeroWithCel,
+		Int32Adjacent, Int32Comparators, Int32Overflow, MessageRules, MixedFieldRules,
 		RequiredOptionalBytes, RequiredOptionalNonString, RequiredOptionalString,
 		RequiredPlainNonString, RequiredString, ResidualCel, StringByteBounds,
 		StringCodePointBounds, StringFormatEmail, StringFormatHostname, StringFormatIp,
@@ -3486,8 +3630,8 @@ type (
 		StringPattern []ent.Hook
 	}
 	inters struct {
-		DoubleComparators, FloatComparators, IgnoreAlwaysWithCel, Int32Adjacent,
-		Int32Comparators, Int32Overflow, MessageRules, MixedFieldRules,
+		DoubleComparators, FloatComparators, IgnoreAlwaysWithCel, IgnoreIfZeroWithCel,
+		Int32Adjacent, Int32Comparators, Int32Overflow, MessageRules, MixedFieldRules,
 		RequiredOptionalBytes, RequiredOptionalNonString, RequiredOptionalString,
 		RequiredPlainNonString, RequiredString, ResidualCel, StringByteBounds,
 		StringCodePointBounds, StringFormatEmail, StringFormatHostname, StringFormatIp,

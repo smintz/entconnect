@@ -35,3 +35,28 @@ message IgnoreAlwaysWithCel {
     expression: "this.startsWith('X')"
   }];
 }
+
+// IgnoreIfZeroWithCel is Task 2's fixture: zeroable carries
+// ignore = IGNORE_IF_ZERO_VALUE plus a cel rule, so it is skipped only
+// when its reverse-converted value is the empty string, and enforced
+// normally otherwise. zeroable_num mirrors the same shape on a
+// non-string scalar (int32), so the zero test is proven for more than
+// one kind — hooks.go's isZeroForKind must cover both.
+message IgnoreIfZeroWithCel {
+  string zeroable = 1 [
+    (buf.validate.field).ignore = IGNORE_IF_ZERO_VALUE,
+    (buf.validate.field).cel = {
+      id: "ignore.ignore_if_zero_with_cel.zeroable.starts_with_x"
+      message: "value must start with X"
+      expression: "this.startsWith('X')"
+    }
+  ];
+  int32 zeroable_num = 2 [
+    (buf.validate.field).ignore = IGNORE_IF_ZERO_VALUE,
+    (buf.validate.field).cel = {
+      id: "ignore.ignore_if_zero_with_cel.zeroable_num.positive"
+      message: "value must be positive"
+      expression: "this > 0"
+    }
+  ];
+}
