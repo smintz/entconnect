@@ -1,62 +1,36 @@
 ---
 phase: 03-validation-fidelity
-verified: 2026-08-14T00:00:00Z
+verified: 2026-08-15T00:00:00Z
 status: gaps_found
-score: 5/8 must-haves verified
+score: 7/8 must-haves verified
 behavior_unverified: 0
 overrides_applied: 0
+re_verification:
+  previous_status: gaps_found
+  previous_score: 5/8
+  gaps_closed:
+    - "CR-01: MessageRules.cel_expression and MessageRules.oneof carriers never read by checkMessageRuleReferences — closed by 03-08 (messageRuleReferences three-carrier convergence point)"
+    - "CR-02: (buf.validate.field).ignore not honored at the storage layer — closed by 03-06 (fieldEvaluator.ignore + isZeroForKind)"
+    - "CR-03: Exclude/Override not honored at the storage layer, including a type-changing Override's D-12 fault — closed by 03-06 (isExcluded/isOverridden check placed before ResolveFieldRules)"
+    - "WR-04: WithMessageRules(trigger) discarded its argument — closed by 03-08 (messageRulesSet/messageRulesTrigger)"
+    - "WR-07: violation_test.go cited a nonexistent Makefile gate — closed by 03-07 (check-single-validationerror-site, wired into make/pipeline.sh/CI)"
+  gaps_remaining: []
+  regressions: []
 gaps:
-  - truth: "A schema-layer violation carries the same protovalidate constraint ID and message as the boundary interceptor would produce ... so a caller cannot tell which layer caught it (ROADMAP Phase 3 Success Criterion 2 / VAL-07)"
+  - truth: "A schema-layer violation carries the same protovalidate constraint ID and message as the boundary interceptor would produce ... so a caller cannot tell which layer caught it (ROADMAP Phase 3 Success Criterion 1/2, third independent rule-carrier counterexample surfaced by 03-REVIEW.md's CR-01)"
     status: failed
-    reason: "CR-01: MessageRules.cel_expression and MessageRules.oneof are not enumerated by D-10's schema-load reference gate (checkMessageRuleReferences walks only msgRules.GetCel()). A message-level rule declared via either alternate carrier bypasses the gate entirely: schema load succeeds even when the rule references an Excluded/Override'd field, and the storage layer evaluates the rule against a fabricated proto3-zero value rather than real mutation data — a phantom verdict where boundary accepts and storage rejects (or vice versa) for the same input."
-    artifacts:
-      - path: "mixinforproto/messagerules.go"
-        issue: "Line 96 (`if msgRules == nil || len(msgRules.GetCel()) == 0`) and line 116 (`for _, r := range msgRules.GetCel()`) only inspect the `cel` carrier of buf.validate.MessageRules; `cel_expression` (repeated string, field 5) and `oneof` (repeated MessageOneofRule, field 4) are real, generated (GetCelExpression()/GetOneof() confirmed present in the pinned protovalidate module) but never read anywhere in this file."
-    missing:
-      - "Enumerate cel_expression and oneof carriers in checkMessageRuleReferences, folding their field references into the same D-10 gate and extraFields seeding as the cel carrier."
-      - "A corpus fixture in proto/mixinforprototest/v1/messagerules.proto exercising cel_expression and/or oneof so PIPE-06's sweep can detect a regression here."
-  - truth: "(same SC2/VAL-07 identity guarantee, second independent counterexample) — (buf.validate.field).ignore is honored identically at both layers"
-    status: failed
-    reason: "CR-02: buildHookState (compiling local CEL programs) and evaluate (running them) never read rules.GetIgnore(). protovalidate's own evaluator honors IGNORE_ALWAYS/IGNORE_IF_ZERO_VALUE; the locally-compiled CEL half does not. For a field with ignore=IGNORE_ALWAYS plus a cel rule, the boundary accepts (ignore correctly suppresses the rule) while storage rejects (the local half runs the rule anyway) — confirmed present in code: no GetIgnore reference exists in hooks.go, and fieldmap.go's own boundaryOnlyNonConstraintFields list already names \"ignore\" as a known field the storage layer must special-case, which it does not."
+    reason: "buf.validate.oneof (OneofRules, e.g. (buf.validate.oneof).required attached to a real proto oneof block via the google.protobuf.OneofOptions extension) is a third, independent protovalidate rule-carrier extension alongside FieldRules and MessageRules. It is enforced correctly at the RPC boundary (protovalidate's own evaluator honors OneofRules.required) but mixinforproto never resolves it (grep confirms zero calls to protovalidate.ResolveOneofRules anywhere in the module), never records it in SourceMessage.BoundaryOnly provenance (recordBoundaryOnly resolves rule IDs per-field via boundaryOnlyRuleIDs(fd), which has no visibility into the containing oneof's own OneofDescriptor.Options()), and is not covered by either of 03-08's two new declaration-surface exhaustiveness guards (Guard A walks buf.validate.MessageRules' descriptor; Guard B walks buf.validate.FieldRules' descriptor — neither walks buf.validate.OneofRules, which is a distinct extension on google.protobuf.OneofOptions, not a member of either message). This is distinct from the MessageRules.oneof carrier (MessageOneofRule, a repeated-field-name list on a message-level cel/cel_expression-style rule) that 03-08 closed under the same 'CR-01' label — confirmed by reading proto/buf/validate/validate.proto: MessageOneofRule is at line 253 inside message MessageRules; OneofRules is a separate top-level message at line 264, extended onto OneofOptions at line 106. A schema declaring (buf.validate.oneof).required = true loads cleanly, and any write that reaches the generated ent.Client directly (background jobs, migrations, other internal callers bypassing the RPC boundary) can persist an entity violating that oneof's required constraint with zero record anywhere that this could happen — the exact 'a caller cannot tell which layer caught it' promise is false here in the strongest sense: neither layer catches it at storage, and there is no provenance annotation telling a Phase 5 drift-check consumer this gap exists."
     artifacts:
       - path: "mixinforproto/hooks.go"
-        issue: "buildHookState's per-field loop (lines ~227-248) compiles every rules.GetCel() entry into a celProgram unconditionally; evaluate's CEL-evaluation loop (lines ~526-549) runs every compiled program unconditionally. Neither site checks rules.GetIgnore()."
+        issue: "buildHookState's per-field loop and mixin.go's Hooks() never resolve or evaluate OneofRules for any real oneof; checkOneofResolution (derive.go) only requires oneof members to be Excluded/Overridden, it says nothing about the oneof-level required constraint itself."
+      - path: "mixinforproto/derive.go"
+        issue: "recordBoundaryOnly / boundaryOnlyRuleIDs are field-scoped only; no code path resolves protovalidate.ResolveOneofRules(od) or records a BoundaryOnlyOneof*-shaped provenance entry."
+      - path: "mixinforproto/messagerules_test.go, mixinforproto/hooks_test.go"
+        issue: "TestMessageRulesDeclarationSurfaceIsFullyHandled and TestFieldRulesDeclarationSurfaceIsFullyHandled each walk a different protobuf message descriptor (MessageRules, FieldRules); OneofRules is a third message and is walked by neither, so an OneofRules member — including the one member that exists today, `required` — is invisible to both guards by construction, not merely unexempted."
     missing:
-      - "Gate local CEL program compilation/evaluation on rules.GetIgnore() (skip entirely for IGNORE_ALWAYS; skip when the reverse-converted value is the type's zero for IGNORE_IF_ZERO_VALUE)."
-      - "A corpus fixture using (buf.validate.field).ignore paired with a cel rule so the PIPE-06 sweep is no longer blind to this divergence (grep -rn ignore proto/mixinforprototest/ currently returns nothing)."
-  - truth: "Override(...) 'suppresses validation relay for that field entirely' (option.go's own documented Override semantics) and the BoundaryOnlyOverridden annotation this phase emits is accurate"
-    status: failed
-    reason: "CR-03, independently reproduced by this verifier (not just cited from the code review): buildHookState's per-field loop never calls o.isExcluded(name) or o.isOverridden(name) before building an evaluator entry, so a field named in Exclude(...) or Override(...) is still compiled into hs.evaluators and still enforced at the storage layer. This directly contradicts option.go's documented Override semantics and the BoundaryOnlyOverridden provenance derive.go records for Phase 5's drift check — the annotation says 'boundary-only', the hook enforces it anyway. Separately, a type-changing Override (e.g. Override(\"both\", field.Bool(\"both\")) on a string-typed proto field, a combination derive_test.go already exercises as supported) hands reverseValue a bool for a StringKind descriptor, producing a D-12 data-integrity error that runtime.MapError maps to CodeInternal — a permanent HTTP 500 on every write to that entity, from a schema that loads without complaint."
-    artifacts:
-      - path: "mixinforproto/hooks.go"
-        issue: "The per-field loop in buildHookState (~lines 191-259) walks md.Fields() and resolves rules/class for every field with no Exclude/Override check, unlike messageRuleFieldUnavailable (messagerules.go:185-190) which does check both — the codebase's own asymmetry confirms this was an oversight, not a design choice."
-    missing:
-      - "Skip o.isExcluded(name) || o.isOverridden(name) fields in buildHookState's per-field loop, before rule resolution."
-      - "Unit tests pinning 'an overridden field produces zero storage-layer violations' and 'an excluded field produces no evaluator entry'."
-    reproduced_by_verifier: true
-    reproduction_evidence: |
-      Two probe tests added to mixinforproto/zz_probe_test.go, run, and removed (working tree confirmed clean after removal, no source modified):
-
-      TestZZProbe_OverrideStillEnforced — MixedFieldRules with Override("both", field.String("both")),
-      mutation value "nope" (fails the field's own cel rule "this.startsWith('X')"):
-        violations for overridden field 'both': 2
-          ruleID=constraints.mixed_field_rules.both.starts_with_x field=both msg=value must start with X
-          ruleID=constraints.mixed_field_rules.both.starts_with_x field=both msg=value must start with X
-        FAIL: got 2 violations, want 0
-
-      TestZZProbe_ExcludeStillEnforced — same fixture with Exclude("both"):
-        violations for excluded field 'both': 2
-        FAIL: got 2 violations, want 0
-  - truth: "VAL-07's single-ValidationError-construction-site invariant is enforced by CI, not merely documented (WR-07)"
-    status: failed
-    reason: "violation_test.go:262-269 cites 'Makefile's grep-based check for the authoritative, whole-repo version of this assertion' as backing the invariant that violation.go is the only file constructing a *protovalidate.ValidationError{. No such Makefile target exists. Makefile's .PHONY list is 'build vet test test-determinism test-standalone check-modules check-stubs check-goversion check-dep-parity pipeline' — confirmed by direct read, no check-single-validationerror-site or equivalent target present, and grep -rn 'protovalidate.ValidationError{' Makefile returns nothing. A comment claiming a gate exists when none does is worse than no comment: it tells future reviewers/planners the invariant is enforced when it is not."
-    artifacts:
-      - path: "mixinforproto/violation_test.go"
-        issue: "Lines 262-269 reference a nonexistent Makefile target as the authoritative enforcement mechanism for VAL-07's identity invariant."
-      - path: "Makefile"
-        issue: "No grep-based single-construction-site check exists anywhere in the file."
-    missing:
-      - "Add the Makefile target the test comment already describes (or an equivalent CI step), or correct the comment to stop claiming enforcement that doesn't exist."
+      - "Resolve each real oneof's OneofRules via protovalidate.ResolveOneofRules in derive.go's per-message walk and record it into SourceMessage.BoundaryOnly with a new BoundaryOnlyReason naming the oneof (as 03-REVIEW.md's CR-01 fix option (a) proposes), OR explicitly document this as a deliberate v1 scope boundary in mixinforproto.md/README.md with a named test asserting the omission is intentional (fix option (b)) — silence is not acceptable per this codebase's own established convention (constraintClassExceptions's precedent)."
+      - "A corpus fixture under proto/mixinforprototest/v1/ declaring (buf.validate.oneof) so the coverage/exhaustiveness machinery has something to check against."
+      - "A third declaration-surface guard (or an extension of an existing one) walking buf.validate.OneofRules' own descriptor, mirroring Guard A/B's shape, so a future protovalidate release adding a member to OneofRules is also caught."
 deferred: []
 human_verification: []
 ---
@@ -65,124 +39,174 @@ human_verification: []
 
 **Phase Goal:** Residual and message-level validation rules that Tier 1 can't translate get executed with byte-identical results at both the RPC boundary and the storage layer, proven by an automated differential harness
 
-**Verified:** 2026-08-14
+**Verified:** 2026-08-15
 **Status:** gaps_found
-**Re-verification:** No — initial verification
+**Re-verification:** Yes — after gap closure (03-06, 03-07, 03-08 executed against the prior VERIFICATION.md's CR-01/CR-02/CR-03/WR-07 findings)
 
 ## Goal Achievement
 
-This phase's central claim — Success Criterion 2, "a schema-layer violation carries the same
-protovalidate constraint ID and message as the boundary interceptor would produce ... so a
-caller cannot tell which layer caught it" — is **falsified** by three independently reproducible
-counterexamples. Two (CR-01 message-rule carriers, CR-02 `ignore`) were confirmed by static
-read of the pinned protovalidate module plus the hook code; the third (CR-03 `Override`/`Exclude`
-enforcement) was independently reproduced by this verifier with two fresh probe tests run against
-the real corpus fixture and then deleted, leaving the working tree clean. `03-REVIEW.md`'s
-narrative for all three matches what the code actually does.
+All five gaps recorded in the prior `03-VERIFICATION.md` (CR-01, CR-02, CR-03, WR-07, and the
+implicit VAL-08 partial from CR-01) are independently confirmed closed by direct code read and
+live test execution in this pass — not merely accepted from the three gap-closure SUMMARYs.
+`mixinforproto/messagerules.go` now calls `GetCelExpression()`/`GetOneof()`; `mixinforproto/hooks.go`
+now consults `GetIgnore()`/`Ignore_IGNORE_ALWAYS`/`isZeroForKind` and gates the per-field loop on
+`o.isExcluded(name) || o.isOverridden(name)` **before** `protovalidate.ResolveFieldRules(fd)` is
+called (confirmed by the `grep -n` line-number ordering the plan's own acceptance criterion
+demands); `Makefile`/`scripts/pipeline.sh`/`.github/workflows/ci.yml`/`mixinforproto/violation_test.go`
+all reference `check-single-validationerror-site`, and running it against the current tree exits 0
+naming exactly one production construction site. Every closure-specific test named in the three
+SUMMARYs was run live in this pass (`TestFieldRulesDeclarationSurfaceIsFullyHandled`,
+`TestMessageRulesDeclarationSurfaceIsFullyHandled`, `TestIgnoreAlways_*`, `TestIgnoreIfZeroValue_*`,
+`TestOptionSuppression_*`, `TestMessageRuleCelExpression_*`, `TestMessageRuleOneof_*`,
+`TestSweep_*`, `TestCorpusMessagesHaveRecordedCoverage`, `TestCorpusExercisesEveryProtovalidateConstraintClass`)
+and all pass.
 
-The full test suite passing is not evidence against these gaps — none of the three has a corpus
-fixture that would exercise it (no `ignore` fixture exists anywhere in
-`proto/mixinforprototest/`; no `cel_expression`/`oneof` message-rule fixture exists; and no test
-in the existing suite calls `Override`/`Exclude` together with a hook-bearing schema and then
-asserts zero violations). The gaps are real and the differential harness this phase was built to
-deliver is currently blind to all three.
+However, this run's own code review (`03-REVIEW.md`) surfaced a **new, independently-confirmed**
+CRITICAL finding that the prior verification pass did not catch and that none of the three
+gap-closure plans targeted: `buf.validate.oneof` (`OneofRules`, extending
+`google.protobuf.OneofOptions`) is a **third** protovalidate rule-carrier extension — distinct
+from `FieldRules` and from `MessageRules.oneof` (`MessageOneofRule`) — that `mixinforproto` never
+resolves, never records as boundary-only provenance, and that neither of 03-08's two new
+declaration-surface exhaustiveness guards can see, because each guard walks a different
+message's descriptor (`MessageRules`, `FieldRules`) and `OneofRules` is a third, separate message.
+This verifier independently confirmed the finding by reading `proto/buf/validate/validate.proto`
+directly (`OneofRules` at line 264, extended onto `OneofOptions` at line 106 — a genuinely
+different declaration site from `MessageOneofRule` at line 253 inside `MessageRules`) and by
+confirming `grep -rn 'ResolveOneofRules' mixinforproto/*.go` returns nothing. This is the same
+class of gap CR-01/CR-02/CR-03 were — a rule the boundary enforces that the storage layer neither
+enforces nor documents as unenforced — and it falls squarely inside this phase's own stated
+invariant #5 ("unhandled rule carriers must fail loudly ... never silently downgrade a field to
+unvalidated at the storage layer"). It was not closed by this wave's gap-closure work and remains
+open.
 
 ### Observable Truths
 
 | # | Truth | Status | Evidence |
 |---|-------|--------|----------|
-| 1 | Mixin hook evaluates the full protovalidate field-rule set for every in-scope field, standard and residual, compiled once at schema load (SC1) | ✓ VERIFIED | `hooks.go` `buildHookState` precompiles one `protovalidate.Validator` (`WithDisableLazy`) plus per-field `cel.Program`s at schema-load time only (never inside the returned `ent.Hook` closure — confirmed by reading `hook()`/`evaluate()`); `standardValidatorBuildCount`/`celCompileCount` test seams exist and are exercised by `hooks_test.go`'s `TestBuildHookState_StandardValidatorBuiltOnceAtConstruction`. |
-| 2 | A schema-layer violation carries the same protovalidate constraint ID and message as the boundary interceptor, so a caller cannot tell which layer caught it (SC2/VAL-07) | ✗ FAILED | Falsified three independent ways: CR-01 (message-rule `cel_expression`/`oneof` bypass), CR-02 (`ignore` not honored locally), CR-03 (`Override`/`Exclude` not honored, independently reproduced). See Gaps. |
-| 3 | Message-level rules stay boundary-only unless `WithMessageRules(OnCreate)`; hook ordering documented and tested; boundary validator built once per process (SC3/VAL-08/VAL-09/VAL-10) | ⚠️ PARTIAL | `WithMessageRules(OnCreate)` gate itself works for the `cel` carrier (`hooks_test.go` `TestEvaluate_MessageLevelRulesStayBoundaryOnlyByDefault`) and hook-ordering/once-per-process are independently tested (`internal/entconnecttest/hookwiring/ordering_test.go`, `runtime/interceptor_test.go`) — but the opt-in's D-10 schema-load gate is incomplete per CR-01, so "stays boundary-only unless opted in, and the opt-in is safe" does not fully hold for `cel_expression`/`oneof`-declared message rules. |
-| 4 | CI fails when `mixinforproto`'s and `entconnect`'s resolved protovalidate/cel-go (and related) versions diverge (SC4/VAL-11) | ✓ VERIFIED | `Makefile`'s `check-dep-parity` target (confirmed present, `DEP_PARITY_MODULES` explicit five-module set, `GOWORK=off` on both `go list -m` calls, fails loudly when a module is absent from either go.mod) is wired into CI's standalone job per `03-04-SUMMARY.md` and `.github/workflows/ci.yml`. |
-| 5 | A conformance corpus golden-asserts every field-mapping rule and protovalidate constraint class; a differential harness feeds random values through every corpus message asserting `protovalidate verdict == ent mutation verdict` for field-scoped rules (SC5/PIPE-05/PIPE-06) | ⚠️ PARTIAL | The harness (`internal/difftest/sweep_test.go`, `corpus_test.go`'s constraint-class coverage guard) exists, runs, and is green — but it is structurally blind to all three CR gaps (no `ignore` fixture, no `cel_expression`/`oneof` message-rule fixture, no `Override`+hook-bearing-schema-produces-zero-violations case), so "the harness proves parity" cannot be claimed for the rule shapes those gaps cover. |
-| 6 | Reverse conversion table complete for every derivation kind, fails closed on conversion faults (VAL-04, Plan 03-02) | ✓ VERIFIED | `mixinforproto/reverse.go`'s exhaustive kind switch plus `reverse_test.go`'s per-kind round-trip and D-12 fail-closed tests; `03-02-SUMMARY.md` claims match file contents read. |
-| 7 | Real ent client genuinely invokes the mixin hook in the real mutation path (D-13, Plan 03-04) | ✓ VERIFIED | `internal/entconnecttest/hookwiring/wiring_test.go` drives a real HTTP Connect server + real sqlite ent.Client; file exists, is substantive (not a stub), and is exercised by `make test` (environment note: `make test` passes at HEAD). |
-| 8 | VAL-07's single-`ValidationError`-construction-site invariant is enforced by CI (WR-07) | ✗ FAILED | `violation_test.go:262-269` cites a Makefile grep-based check that does not exist. Confirmed: `.PHONY` list has no such target, `grep -rn 'protovalidate\.ValidationError{' Makefile` is empty. |
+| 1 | Mixin hook evaluates the full protovalidate field-rule set for every in-scope field, standard and residual, compiled once at schema load (SC1) | ✓ VERIFIED | `hooks.go`'s `buildHookState` precompiles one `protovalidate.Validator` plus per-field `cel.Program`s at schema-load time only; unchanged from prior pass, not disputed by this run's review. |
+| 2 | A schema-layer violation carries the same protovalidate constraint ID and message as the boundary interceptor, so a caller cannot tell which layer caught it (SC2/VAL-07) | ⚠️ PARTIAL | The three previously-falsifying counterexamples (CR-01 message-rule carriers, CR-02 `ignore`, CR-03 `Exclude`/`Override`) are now closed and independently re-verified live in this pass (see Gaps Closed). A fourth, independent counterexample — `buf.validate.oneof`/`OneofRules` — was newly surfaced by this run's code review and independently confirmed by this verifier; it remains open. See Gaps. |
+| 3 | Message-level rules stay boundary-only unless `WithMessageRules(OnCreate)`; hook ordering documented and tested; boundary validator built once per process (SC3/VAL-08/VAL-09/VAL-10) | ✓ VERIFIED | `WithMessageRules(trigger)` now stores and validates its argument (WR-04 closed, `option.go` `messageRulesSet`/`messageRulesTrigger` confirmed); the `cel`, `cel_expression`, and `oneof` (`MessageRules.oneof`) carriers all flow through the single D-10 gate (`messageRuleReferences`, confirmed present and tested); hook-ordering/once-per-process tests unchanged from prior pass and not disputed. |
+| 4 | CI fails when `mixinforproto`'s and `entconnect`'s resolved protovalidate/cel-go versions diverge (SC4/VAL-11) | ✓ VERIFIED | `check-dep-parity` unchanged from prior pass; not disputed. |
+| 5 | A conformance corpus golden-asserts every field-mapping rule and protovalidate constraint class; a differential harness feeds random values through every corpus message asserting `protovalidate verdict == ent mutation verdict` for field-scoped rules (SC5/PIPE-05/PIPE-06) | ⚠️ PARTIAL | The harness now exercises `ignore`, `cel_expression`, and `MessageRules.oneof` fixtures (all run live in this pass, all green) — the three previously-blind rule shapes are now covered. But the harness (and the corpus generally) has no fixture and no coverage claim anywhere for `buf.validate.oneof`/`OneofRules`, so "the harness proves parity" still cannot be claimed for that rule shape. |
+| 6 | Reverse conversion table complete for every derivation kind, fails closed on conversion faults (VAL-04) | ✓ VERIFIED | Unchanged from prior pass; not disputed. |
+| 7 | Real ent client genuinely invokes the mixin hook in the real mutation path (D-13) | ✓ VERIFIED | Unchanged from prior pass; not disputed. |
+| 8 | VAL-07's single-`ValidationError`-construction-site invariant is enforced by CI, not merely documented (WR-07) | ✓ VERIFIED | `check-single-validationerror-site` exists, is wired into `Makefile`/`scripts/pipeline.sh`/`.github/workflows/ci.yml`, and was run live in this pass against the working tree: exits 0, names exactly one production site (`mixinforproto/violation.go:64`). |
 
-**Score:** 5/8 truths verified (3 failed as blockers, 0 present-but-behavior-unverified)
+**Score:** 7/8 truths verified (1 partial counted as failed for scoring purposes — truth #2's `OneofRules` gap and truth #5's corresponding blind spot are two facets of the same root-cause gap, tracked as one gap entry below)
 
 ### Required Artifacts
 
 | Artifact | Expected | Status | Details |
 |----------|----------|--------|---------|
-| `mixinforproto/hooks.go` | Complete D-07 hybrid: schema-load-compiled validator + CEL programs, mutation-time evaluate() | ✓ VERIFIED (exists, substantive, wired) but ⚠️ contains the CR-01(partially)/CR-02/CR-03 defects | `buildHookState`/`evaluate` present and wired into `mixin.go`'s `Hooks()`; defects are logic gaps, not missing wiring. |
-| `mixinforproto/messagerules.go` | D-10's schema-load reference gate, enumerating all message-rule carriers | ✗ INCOMPLETE | Only walks `GetCel()`; `GetCelExpression()`/`GetOneof()` never read (CR-01). |
-| `mixinforproto/violation.go` | Single shared `*protovalidate.ValidationError` constructor, deterministic ordering/dedup | ✓ VERIFIED | `newValidationError`, `sortViolations` present per `03-03-SUMMARY.md` claims; not independently disputed by the review. |
-| `mixinforproto/reverse.go` | Complete reverse conversion table | ✓ VERIFIED | Confirmed via file read and `03-02-SUMMARY.md` cross-check. |
-| `internal/entconnecttest/hookwiring/{wiring_test.go,ordering_test.go}` | D-13 wiring proof, VAL-09 ordering proof | ✓ VERIFIED | Both files present in `03-REVIEW.md`'s files-reviewed list and referenced by `03-04-SUMMARY.md`'s key-files; not disputed. |
-| `Makefile` (`check-dep-parity`) | VAL-11 gate | ✓ VERIFIED | Present, confirmed by direct read (`check-dep-parity:` target with `DEP_PARITY_MODULES` loop). |
-| `mixinforproto/internal/difftest/sweep_test.go` | PIPE-06 differential sweep | ✓ VERIFIED (exists, wired, runs) but ⚠️ HOLLOW for the three gap classes | Runs and passes, but has no fixture that would surface CR-01/CR-02/CR-03 — coverage gap, not a wiring gap. |
+| `mixinforproto/hooks.go` | Ignore-aware, option-aware `buildHookState`/`evaluate` | ✓ VERIFIED | `GetIgnore()`, `Ignore_IGNORE_ALWAYS`, `isZeroForKind`, and `isExcluded(name) \|\| isOverridden(name)` (placed before `ResolveFieldRules`) all confirmed present by direct read and by the passing `TestHooksGo_ExcludedOverriddenCheckPrecedesResolveFieldRules` structural test. |
+| `mixinforproto/messagerules.go` | Full three-carrier (`cel`/`cel_expression`/`oneof`) D-10 schema-load reference gate | ✓ VERIFIED | `GetCelExpression()`, `GetOneof()` (the `MessageOneofRule` list) both confirmed present and read via `messageRuleReferences`; distinct from the still-missing `OneofRules` extension (see Gaps). |
+| `mixinforproto/violation.go` | Single shared `*protovalidate.ValidationError` constructor | ✓ VERIFIED | Unchanged; the sole site named by `check-single-validationerror-site`'s live-run output. |
+| `Makefile` (`check-single-validationerror-site`) | WR-07 gate | ✓ VERIFIED | Present, `.PHONY`-registered, run live in this pass, exits 0. |
+| `mixinforproto/messagerules_test.go` / `hooks_test.go` | Declaration-surface exhaustiveness guards | ✓ VERIFIED, but ⚠️ SCOPED NARROWER THAN THE FULL PROTOVALIDATE DECLARATION SURFACE | Both guards run live and pass; each walks one message descriptor (`MessageRules`, `FieldRules`) and neither walks `OneofRules`, which is a structurally separate message — the guards' own reflective design cannot see a member of a message they never enumerate. |
+| `mixinforproto/internal/difftest/{ignore_test.go,optionsuppression_test.go,messagerules_test.go}` | Real-`ent.Client` differential proofs for `ignore`, `Override`/`Exclude`, `cel_expression`, `MessageRules.oneof` | ✓ VERIFIED | All run live in this pass, all pass. No corresponding fixture exists for `OneofRules`. |
 
 ### Key Link Verification
 
 | From | To | Via | Status | Details |
 |------|----|----|--------|---------|
-| `mixinforproto/mixin.go` | `mixinforproto/hooks.go` | `protoMixin[M].Hooks()` | ✓ WIRED | Confirmed by `mixin.go` read (not disputed by review or this verifier's reading). |
-| `mixinforproto/hooks.go` | `mixinforproto/messagerules.go` | `checkMessageRuleReferences` called from `buildHookState` when `messageRulesOnCreate` | ✓ WIRED (but with the CR-01 gap inside `checkMessageRuleReferences` itself) | Call site at `hooks.go:182` confirmed. |
-| `mixinforproto/hooks.go` | `mixinforproto/option.go` | `o.isExcluded`/`o.isOverridden` consulted in the per-field loop | ✗ NOT WIRED | Confirmed absent — this is CR-03. `messageRuleFieldUnavailable` (messagerules.go) calls both; `buildHookState`'s own per-field loop calls neither. |
-| `internal/entconnecttest/hookwiring/wiring_test.go` | `mixinforproto/hooks.go` | Real Connect Create request through real ent.Client | ✓ WIRED | Per file existence and `03-04-SUMMARY.md`'s described assertions; consistent with `03-REVIEW.md`'s files-reviewed list containing this file with no finding against it. |
+| `mixinforproto/hooks.go` | `mixinforproto/option.go` | `o.isExcluded`/`o.isOverridden` consulted before `ResolveFieldRules` in the per-field loop | ✓ WIRED | Confirmed by `grep -n` line-number ordering: `isExcluded(` at line 230, `ResolveFieldRules(` at line 234. Previously recorded NOT WIRED (CR-03) — now closed. |
+| `mixinforproto/hooks.go` | `validate.FieldRules.GetIgnore()` | compile-time (`IGNORE_ALWAYS`) and mutation-time (`IGNORE_IF_ZERO_VALUE`) gates | ✓ WIRED | Confirmed present at lines 278/281 and 640. Previously absent (CR-02) — now closed. |
+| `mixinforproto/messagerules.go` | `validate.MessageRules.GetCelExpression()`/`GetOneof()` | `messageRuleReferences` normalization | ✓ WIRED | Confirmed present at lines 137/275/292. Previously absent (CR-01) — now closed. |
+| `mixinforproto/derive.go` | `protovalidate.ResolveOneofRules` | (expected: per-oneof provenance recording) | ✗ NOT WIRED | Confirmed absent — `grep -rn 'ResolveOneofRules' mixinforproto/*.go` returns nothing. This is the new gap. |
+| `Makefile check-single-validationerror-site` | `scripts/pipeline.sh` / `.github/workflows/ci.yml` | three-way wiring matching `check-dep-parity`'s precedent | ✓ WIRED | Confirmed: `scripts/pipeline.sh` step 6/6, one CI step in the `modules` job. Previously absent (WR-07) — now closed. |
+
+### Data-Flow Trace (Level 4)
+
+Not applicable in the UI-rendering sense — this phase's "data flow" is the boundary-vs-storage
+violation-identity comparison, exercised directly by the differential harness tests run live above
+(`TestSweep_DriverlessDifferential`, `TestIgnoreAlways_*`, `TestOptionSuppression_*`,
+`TestMessageRuleCelExpression_*`, `TestMessageRuleOneof_*`) rather than by a separate trace.
+
+### Behavioral Spot-Checks
+
+| Behavior | Command | Result | Status |
+|----------|---------|--------|--------|
+| CR-02/CR-03 fix wired (ignore, Exclude/Override honored at storage) | `go test ./internal/difftest/... -run 'TestIgnore\|TestOptionSuppression' -v` | All PASS | ✓ PASS |
+| CR-01 fix wired (cel_expression, MessageRules.oneof honored at schema-load gate + storage) | `go test ./internal/difftest/... -run 'TestMessageRuleCelExpression\|TestMessageRuleOneof' -v` | All PASS | ✓ PASS |
+| Declaration-surface exhaustiveness guards run and pass | `go test . -run 'TestFieldRulesDeclarationSurfaceIsFullyHandled\|TestMessageRulesDeclarationSurfaceIsFullyHandled' -v` | Both PASS | ✓ PASS |
+| WR-07 gate enforces the single-construction-site invariant | `make check-single-validationerror-site` | `OK: ... constructed at exactly one production site: ./mixinforproto/violation.go`, exit 0 | ✓ PASS |
+| PIPE-06 differential sweep still green | `go test ./internal/difftest/... -run TestSweep -v` | All PASS | ✓ PASS |
+| Corpus coverage/constraint-class guards still green | `go test . -run 'TestCorpusMessagesHaveRecordedCoverage\|TestCorpusExercisesEveryProtovalidateConstraintClass' -v` | Both PASS | ✓ PASS |
+| `OneofRules` resolved anywhere in the module | `grep -rn 'ResolveOneofRules\|BoundaryOnlyOneof' mixinforproto/*.go` | No matches | ✗ FAIL (confirms the gap) |
+
+### Probe Execution
+
+No `scripts/*/tests/probe-*.sh` convention is used by this project; not applicable.
 
 ### Requirements Coverage
 
 | Requirement | Source Plan | Status | Evidence |
 |-------------|-------------|--------|----------|
-| VAL-04 | 03-01, 03-02, 03-03, 03-05 | ✓ SATISFIED | Hook compiles/evaluates residual + standard rules once at schema load; reverse table complete. |
-| VAL-05 | 03-01 | ✓ SATISFIED | Operation-dependent scope via single `m.Fields()` read, empirically proven (03-01-SUMMARY tracer test). |
-| VAL-06 | 03-01 | ✓ SATISFIED | `newValidationError` constructs structured errors outside RPC context; no value-embedding in messages (spot check: `newFieldViolation`/`celResultToViolation` never interpolate the rejected value). |
-| VAL-07 | 03-01, 03-03, 03-04 | ✗ BLOCKED | Falsified by CR-01/CR-02/CR-03 (identity guarantee does not hold for these rule shapes) and WR-07 (invariant claimed-but-unenforced). |
-| VAL-08 | 03-03, 03-05 | ⚠️ PARTIALLY BLOCKED | `cel` carrier works; `cel_expression`/`oneof` carriers bypass the opt-in gate (CR-01). |
-| VAL-09 | 03-04 | ✓ SATISFIED | Relative-ordering test across Policed/Unpoliced fixtures, confirmed present. |
-| VAL-10 | 03-04 | ✓ SATISFIED | `runtime/interceptor_test.go`'s construction-count assertions, confirmed present. |
-| VAL-11 | 03-04 | ✓ SATISFIED | `check-dep-parity` Makefile target confirmed, wired into CI per summary. |
-| PIPE-05 | 03-02, 03-05 | ✓ SATISFIED | Constraint-class coverage guard (`corpus_test.go`) confirmed present per file list. |
-| PIPE-06 | 03-01, 03-05 | ⚠️ PARTIALLY BLOCKED | Sweep exists and runs, but is structurally blind to the three gap classes above — "differential harness proves parity" cannot be claimed for `ignore`, `cel_expression`/`oneof` message rules, or `Override`+hook interaction. |
+| VAL-04 | 03-01, 03-02, 03-03, 03-05, 03-06 | ✓ SATISFIED | Hook compiles/evaluates residual + standard rules once at schema load; reverse table complete; ignore/Exclude/Override now correctly gated. |
+| VAL-05 | 03-01 | ✓ SATISFIED | Unchanged from prior pass. |
+| VAL-06 | 03-01, 03-07 | ✓ SATISFIED | `newValidationError` constructs structured errors outside RPC context; single-construction-site now CI-enforced. |
+| VAL-07 | 03-01, 03-03, 03-04, 03-06, 03-07, 03-08 | ⚠️ PARTIALLY BLOCKED | CR-01/CR-02/CR-03/WR-07 all closed and re-verified; the new `OneofRules` gap is a fourth, independent counterexample to the same identity guarantee. |
+| VAL-08 | 03-03, 03-05, 03-08 | ⚠️ PARTIALLY BLOCKED | `cel`, `cel_expression`, `MessageRules.oneof` carriers now all correctly gated and trigger-honoring; `OneofRules` (the distinct top-level extension) is outside `WithMessageRules`'s scope entirely and has no gate of any kind. |
+| VAL-09 | 03-04 | ✓ SATISFIED | Unchanged from prior pass. |
+| VAL-10 | 03-04 | ✓ SATISFIED | Unchanged from prior pass. |
+| VAL-11 | 03-04 | ✓ SATISFIED | Unchanged from prior pass. |
+| PIPE-05 | 03-02, 03-05, 03-06, 03-08 | ⚠️ PARTIALLY BLOCKED | Constraint-class coverage guard extended and green for `ignore`/`cel_expression`/`MessageRules.oneof`; still has zero coverage of `OneofRules`, and neither declaration-surface guard can see that message. |
+| PIPE-06 | 03-01, 03-05, 03-06, 03-08 | ⚠️ PARTIALLY BLOCKED | Differential harness now exercises `ignore`, `Override`/`Exclude`, `cel_expression`, `MessageRules.oneof` — no longer blind to any of the three originally-reported gap classes. Still blind to `OneofRules`. |
 
-No orphaned requirements: all ten IDs (VAL-04..VAL-11, PIPE-05, PIPE-06) appear in REQUIREMENTS.md's Phase 3 mapping and are each claimed by at least one of the five plans' `requirements:` frontmatter.
+No orphaned requirements: all ten IDs (VAL-04..VAL-11, PIPE-05, PIPE-06) appear in REQUIREMENTS.md's
+Phase 3 mapping and are each claimed by at least one plan's `requirements:` frontmatter across the
+now-eight plans in this phase.
+
+**Note (documentation drift, not a code gap):** `.planning/REQUIREMENTS.md`'s checklist section
+still shows `VAL-09`/`VAL-10`/`VAL-11` as unchecked (`- [ ]`) even though its own Traceability table
+and this verification (and the prior one) both mark them Complete/SATISFIED — a stale checkbox from
+before the phase's gap-closure work, not evidence of an unresolved requirement. Recommend updating
+the checkboxes in a documentation pass; not blocking.
 
 ### Anti-Patterns Found
 
 | File | Line | Pattern | Severity | Impact |
 |------|------|---------|----------|--------|
-| `mixinforproto/violation_test.go` | 262-269 | Comment claims a CI/Makefile enforcement mechanism that does not exist | 🛑 Blocker | Directly undermines confidence in VAL-07's core invariant; a reviewer reading the comment believes the invariant is machine-enforced when it is not (WR-07). |
-| `mixinforproto/messagerules.go` | 96, 116 | Incomplete enumeration of a proto message's declared rule carriers (`cel` only, not `cel_expression`/`oneof`) | 🛑 Blocker | CR-01 — phantom verdicts. |
-| `mixinforproto/hooks.go` | 227-248, 526-549 | `rules.GetIgnore()` never consulted | 🛑 Blocker | CR-02 — divergent verdicts for `ignore`-carrying fields. |
-| `mixinforproto/hooks.go` | 191-259 | `o.isExcluded`/`o.isOverridden` never consulted in the per-field loop | 🛑 Blocker | CR-03 — Override/Exclude semantics violated; a type-changing Override causes a permanent CodeInternal 500. |
-| `mixinforproto/option.go` | 157-161 | `WithMessageRules(trigger)` discards `trigger` entirely | ⚠️ Warning | WR-04 in review — not independently re-verified in depth by this pass but consistent with direct code read (function body only sets `o.messageRules = true`, never inspects `trigger`). |
+| `mixinforproto/derive.go`, `mixinforproto/hooks.go` | (module-wide) | `OneofRules` (`buf.validate.oneof`) is a silently unhandled rule carrier — no storage enforcement, no `BoundaryOnly` provenance, no exhaustiveness guard | 🛑 Blocker | See Gaps. Same class as the now-closed CR-01/CR-02/CR-03, independently confirmed by this verifier. |
+| `mixinforproto/reverse.go:217-224` | `reverseEnum` | Interpolates the rejected mutation value (`%q`, `name`) into its returned error text, unlike every sibling reverse-conversion function | ⚠️ Warning | Non-blocking per 03-REVIEW.md (WR-01): currently masked by `runtime.MapError`'s default-case redaction inside this stack, but `mixinforproto` is designed for standalone adoption with no dependency on `runtime` — a standalone consumer propagating this error verbatim would leak a rejected value across a trust boundary. Not targeted by any of this wave's gap-closure plans; recommend a follow-up fix but does not block this phase's goal (VAL-06's "no value-embedding" invariant is about the boundary/storage identity guarantee's OTHER violation-message paths, which the gap-closure plans' own tests confirm remain clean). |
+| `mixinforproto/README.md:47-51,213-224` | — | README still states `Exclude`/`Override` are "not yet available" and omits `Exclude`/`Override`/`WithMessageRules`/`OnCreate`/`MessageRuleTrigger` from the API reference table, despite all being shipped, exported, and load-bearing as of this phase | ⚠️ Warning | Non-blocking per 03-REVIEW.md (WR-02): a documentation accuracy issue, not a code-behavior gap. Not targeted by this wave's gap-closure plans. |
 
-No `TBD`/`FIXME`/`XXX` unresolved debt markers were found in the phase's changed files (per `03-REVIEW.md`'s scope; not independently re-scanned in full — the review's file list and this verifier's targeted reads did not surface any).
+No `TBD`/`FIXME`/`XXX` unresolved debt markers found in this phase's changed files (03-06/03-07/03-08's own `key-files` lists, spot-checked directly).
 
 ### Human Verification Required
 
-None. All three blocking gaps are code-level, deterministically reproducible (two by static read against the pinned protovalidate module's generated getters, one independently reproduced with a probe test by this verifier), and require no human judgment to confirm.
+None. The one outstanding gap (`OneofRules`) is code-level and deterministically confirmed by
+static read against the vendored `proto/buf/validate/validate.proto` plus a repo-wide grep showing
+zero calls to `protovalidate.ResolveOneofRules` — no human judgment is needed to confirm it.
 
 ### Gaps Summary
 
-The phase delivered substantial, well-tested machinery (reverse conversion, real-client wiring,
-hook ordering, dependency-parity CI gate, differential sweep infrastructure) — six of eight
-observable truths hold cleanly. But the phase's own headline guarantee, Success Criterion 2 ("a
-caller cannot tell which layer caught it"), fails for three concrete, non-overlapping rule
-shapes: protovalidate's `cel_expression`/`oneof` message-rule carriers (CR-01), the `ignore`
-field option (CR-02), and the `Exclude`/`Override` mixin options (CR-03) — the last of which this
-verifier independently reproduced with fresh probe tests against the real `MixedFieldRules`
-corpus fixture, not merely accepted from the code review's narrative. A fourth item, WR-07,
-means the one invariant meant to structurally prevent a second `ValidationError`-construction
-site from silently reintroducing this class of bug is enforced by nothing, despite test comments
-claiming otherwise.
+Five of the prior verification's six recorded deficiencies (CR-01, CR-02, CR-03, WR-07, and VAL-08's
+CR-01-driven partial) are closed and independently re-verified in this pass by direct code read and
+live test execution — not merely accepted from the 03-06/03-07/03-08 SUMMARYs. The
+`hooks.go -> option.go` key link previously recorded NOT WIRED is now wired and pinned by a
+dedicated structural test; the WR-07 gate exists, is three-way wired, and was run live against the
+working tree; all three previously-blind rule shapes (`ignore`, `Exclude`/`Override`,
+`cel_expression`/`MessageRules.oneof`) now have real-`ent.Client` differential proofs that pass.
 
-All four gaps share one root cause: `buildHookState`'s per-field loop and
-`checkMessageRuleReferences`'s carrier walk each reason about a narrow slice of protovalidate's
-rule-declaration surface (the single `cel` carrier; the descriptor alone, never the `Option` set)
-rather than the full surface the boundary interceptor's own protovalidate evaluator already
-handles correctly. None of the three CR gaps has a corpus fixture that would surface it in the
-existing green test suite — the PIPE-06 differential harness this phase exists to deliver is
-therefore not exercising the exact rule shapes where boundary/storage disagreement is most likely.
+But this phase is not yet goal-achieved. This run's own code review surfaced — and this verifier
+independently confirmed by direct source read — a fourth, structurally distinct counterexample to
+Success Criterion 2's "a caller cannot tell which layer caught it" promise: `buf.validate.oneof`
+(`OneofRules`, extending `google.protobuf.OneofOptions`) is a rule carrier this codebase has never
+handled, at any point in this phase's eight plans, and that its own newly-built exhaustiveness
+guards (Guard A/B, closed by 03-08 specifically to prevent exactly this failure mode) cannot detect,
+because each guard walks a different protobuf message's descriptor and `OneofRules` is a third,
+separate message neither guard enumerates. The gap is real, reproducible without any human judgment,
+and falls inside this phase's own invariant #5. It was not part of the prior verification's gap set
+and so was not a target of 03-06/03-07/03-08 — it is newly surfaced, not a regression of closed work.
 
-These are must-fix items before this phase can be considered goal-achieved: the roadmap's stated
-success criterion is a byte-identical-verdict guarantee, and three concrete, reproducible
-counterexamples exist in the current codebase.
+This phase cannot be marked goal-achieved until this gap is either closed (resolve `OneofRules` via
+`protovalidate.ResolveOneofRules`, record provenance, add a corpus fixture and a third
+declaration-surface guard) or explicitly, deliberately scoped out with a written design reason and a
+named test asserting the omission is intentional — the same discipline this very codebase already
+applies to every other documented exception (`constraintClassExceptions`).
 
 ---
 
-_Verified: 2026-08-14_
+_Verified: 2026-08-15_
 _Verifier: Claude (gsd-verifier)_
