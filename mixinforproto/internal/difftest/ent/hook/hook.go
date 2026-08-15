@@ -117,6 +117,18 @@ func (f MixedFieldRulesFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Va
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.MixedFieldRulesMutation", m)
 }
 
+// The OverriddenMixedFieldRulesFunc type is an adapter to allow the use of ordinary
+// function as OverriddenMixedFieldRules mutator.
+type OverriddenMixedFieldRulesFunc func(context.Context, *ent.OverriddenMixedFieldRulesMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f OverriddenMixedFieldRulesFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.OverriddenMixedFieldRulesMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.OverriddenMixedFieldRulesMutation", m)
+}
+
 // The RequiredOptionalBytesFunc type is an adapter to allow the use of ordinary
 // function as RequiredOptionalBytes mutator.
 type RequiredOptionalBytesFunc func(context.Context, *ent.RequiredOptionalBytesMutation) (ent.Value, error)

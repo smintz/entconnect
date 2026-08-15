@@ -23,6 +23,7 @@ import (
 	"github.com/smintz/entconnect/mixinforproto/internal/difftest/ent/int32overflow"
 	"github.com/smintz/entconnect/mixinforproto/internal/difftest/ent/messagerules"
 	"github.com/smintz/entconnect/mixinforproto/internal/difftest/ent/mixedfieldrules"
+	"github.com/smintz/entconnect/mixinforproto/internal/difftest/ent/overriddenmixedfieldrules"
 	"github.com/smintz/entconnect/mixinforproto/internal/difftest/ent/requiredoptionalbytes"
 	"github.com/smintz/entconnect/mixinforproto/internal/difftest/ent/requiredoptionalnonstring"
 	"github.com/smintz/entconnect/mixinforproto/internal/difftest/ent/requiredoptionalstring"
@@ -63,6 +64,8 @@ type Client struct {
 	MessageRules *MessageRulesClient
 	// MixedFieldRules is the client for interacting with the MixedFieldRules builders.
 	MixedFieldRules *MixedFieldRulesClient
+	// OverriddenMixedFieldRules is the client for interacting with the OverriddenMixedFieldRules builders.
+	OverriddenMixedFieldRules *OverriddenMixedFieldRulesClient
 	// RequiredOptionalBytes is the client for interacting with the RequiredOptionalBytes builders.
 	RequiredOptionalBytes *RequiredOptionalBytesClient
 	// RequiredOptionalNonString is the client for interacting with the RequiredOptionalNonString builders.
@@ -113,6 +116,7 @@ func (c *Client) init() {
 	c.Int32Overflow = NewInt32OverflowClient(c.config)
 	c.MessageRules = NewMessageRulesClient(c.config)
 	c.MixedFieldRules = NewMixedFieldRulesClient(c.config)
+	c.OverriddenMixedFieldRules = NewOverriddenMixedFieldRulesClient(c.config)
 	c.RequiredOptionalBytes = NewRequiredOptionalBytesClient(c.config)
 	c.RequiredOptionalNonString = NewRequiredOptionalNonStringClient(c.config)
 	c.RequiredOptionalString = NewRequiredOptionalStringClient(c.config)
@@ -229,6 +233,7 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 		Int32Overflow:             NewInt32OverflowClient(cfg),
 		MessageRules:              NewMessageRulesClient(cfg),
 		MixedFieldRules:           NewMixedFieldRulesClient(cfg),
+		OverriddenMixedFieldRules: NewOverriddenMixedFieldRulesClient(cfg),
 		RequiredOptionalBytes:     NewRequiredOptionalBytesClient(cfg),
 		RequiredOptionalNonString: NewRequiredOptionalNonStringClient(cfg),
 		RequiredOptionalString:    NewRequiredOptionalStringClient(cfg),
@@ -272,6 +277,7 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 		Int32Overflow:             NewInt32OverflowClient(cfg),
 		MessageRules:              NewMessageRulesClient(cfg),
 		MixedFieldRules:           NewMixedFieldRulesClient(cfg),
+		OverriddenMixedFieldRules: NewOverriddenMixedFieldRulesClient(cfg),
 		RequiredOptionalBytes:     NewRequiredOptionalBytesClient(cfg),
 		RequiredOptionalNonString: NewRequiredOptionalNonStringClient(cfg),
 		RequiredOptionalString:    NewRequiredOptionalStringClient(cfg),
@@ -318,8 +324,8 @@ func (c *Client) Use(hooks ...Hook) {
 	for _, n := range []interface{ Use(...Hook) }{
 		c.DoubleComparators, c.FloatComparators, c.IgnoreAlwaysWithCel,
 		c.IgnoreIfZeroWithCel, c.Int32Adjacent, c.Int32Comparators, c.Int32Overflow,
-		c.MessageRules, c.MixedFieldRules, c.RequiredOptionalBytes,
-		c.RequiredOptionalNonString, c.RequiredOptionalString,
+		c.MessageRules, c.MixedFieldRules, c.OverriddenMixedFieldRules,
+		c.RequiredOptionalBytes, c.RequiredOptionalNonString, c.RequiredOptionalString,
 		c.RequiredPlainNonString, c.RequiredString, c.ResidualCel, c.StringByteBounds,
 		c.StringCodePointBounds, c.StringFormatEmail, c.StringFormatHostname,
 		c.StringFormatIp, c.StringFormatUri, c.StringFormatUuid,
@@ -335,8 +341,8 @@ func (c *Client) Intercept(interceptors ...Interceptor) {
 	for _, n := range []interface{ Intercept(...Interceptor) }{
 		c.DoubleComparators, c.FloatComparators, c.IgnoreAlwaysWithCel,
 		c.IgnoreIfZeroWithCel, c.Int32Adjacent, c.Int32Comparators, c.Int32Overflow,
-		c.MessageRules, c.MixedFieldRules, c.RequiredOptionalBytes,
-		c.RequiredOptionalNonString, c.RequiredOptionalString,
+		c.MessageRules, c.MixedFieldRules, c.OverriddenMixedFieldRules,
+		c.RequiredOptionalBytes, c.RequiredOptionalNonString, c.RequiredOptionalString,
 		c.RequiredPlainNonString, c.RequiredString, c.ResidualCel, c.StringByteBounds,
 		c.StringCodePointBounds, c.StringFormatEmail, c.StringFormatHostname,
 		c.StringFormatIp, c.StringFormatUri, c.StringFormatUuid,
@@ -367,6 +373,8 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.MessageRules.mutate(ctx, m)
 	case *MixedFieldRulesMutation:
 		return c.MixedFieldRules.mutate(ctx, m)
+	case *OverriddenMixedFieldRulesMutation:
+		return c.OverriddenMixedFieldRules.mutate(ctx, m)
 	case *RequiredOptionalBytesMutation:
 		return c.RequiredOptionalBytes.mutate(ctx, m)
 	case *RequiredOptionalNonStringMutation:
@@ -1605,6 +1613,140 @@ func (c *MixedFieldRulesClient) mutate(ctx context.Context, m *MixedFieldRulesMu
 		return (&MixedFieldRulesDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
 	default:
 		return nil, fmt.Errorf("ent: unknown MixedFieldRules mutation op: %q", m.Op())
+	}
+}
+
+// OverriddenMixedFieldRulesClient is a client for the OverriddenMixedFieldRules schema.
+type OverriddenMixedFieldRulesClient struct {
+	config
+}
+
+// NewOverriddenMixedFieldRulesClient returns a client for the OverriddenMixedFieldRules from the given config.
+func NewOverriddenMixedFieldRulesClient(c config) *OverriddenMixedFieldRulesClient {
+	return &OverriddenMixedFieldRulesClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `overriddenmixedfieldrules.Hooks(f(g(h())))`.
+func (c *OverriddenMixedFieldRulesClient) Use(hooks ...Hook) {
+	c.hooks.OverriddenMixedFieldRules = append(c.hooks.OverriddenMixedFieldRules, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `overriddenmixedfieldrules.Intercept(f(g(h())))`.
+func (c *OverriddenMixedFieldRulesClient) Intercept(interceptors ...Interceptor) {
+	c.inters.OverriddenMixedFieldRules = append(c.inters.OverriddenMixedFieldRules, interceptors...)
+}
+
+// Create returns a builder for creating a OverriddenMixedFieldRules entity.
+func (c *OverriddenMixedFieldRulesClient) Create() *OverriddenMixedFieldRulesCreate {
+	mutation := newOverriddenMixedFieldRulesMutation(c.config, OpCreate)
+	return &OverriddenMixedFieldRulesCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of OverriddenMixedFieldRules entities.
+func (c *OverriddenMixedFieldRulesClient) CreateBulk(builders ...*OverriddenMixedFieldRulesCreate) *OverriddenMixedFieldRulesCreateBulk {
+	return &OverriddenMixedFieldRulesCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *OverriddenMixedFieldRulesClient) MapCreateBulk(slice any, setFunc func(*OverriddenMixedFieldRulesCreate, int)) *OverriddenMixedFieldRulesCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &OverriddenMixedFieldRulesCreateBulk{err: fmt.Errorf("calling to OverriddenMixedFieldRulesClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*OverriddenMixedFieldRulesCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &OverriddenMixedFieldRulesCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for OverriddenMixedFieldRules.
+func (c *OverriddenMixedFieldRulesClient) Update() *OverriddenMixedFieldRulesUpdate {
+	mutation := newOverriddenMixedFieldRulesMutation(c.config, OpUpdate)
+	return &OverriddenMixedFieldRulesUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *OverriddenMixedFieldRulesClient) UpdateOne(_m *OverriddenMixedFieldRules) *OverriddenMixedFieldRulesUpdateOne {
+	mutation := newOverriddenMixedFieldRulesMutation(c.config, OpUpdateOne, withOverriddenMixedFieldRules(_m))
+	return &OverriddenMixedFieldRulesUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *OverriddenMixedFieldRulesClient) UpdateOneID(id int) *OverriddenMixedFieldRulesUpdateOne {
+	mutation := newOverriddenMixedFieldRulesMutation(c.config, OpUpdateOne, withOverriddenMixedFieldRulesID(id))
+	return &OverriddenMixedFieldRulesUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for OverriddenMixedFieldRules.
+func (c *OverriddenMixedFieldRulesClient) Delete() *OverriddenMixedFieldRulesDelete {
+	mutation := newOverriddenMixedFieldRulesMutation(c.config, OpDelete)
+	return &OverriddenMixedFieldRulesDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *OverriddenMixedFieldRulesClient) DeleteOne(_m *OverriddenMixedFieldRules) *OverriddenMixedFieldRulesDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *OverriddenMixedFieldRulesClient) DeleteOneID(id int) *OverriddenMixedFieldRulesDeleteOne {
+	builder := c.Delete().Where(overriddenmixedfieldrules.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &OverriddenMixedFieldRulesDeleteOne{builder}
+}
+
+// Query returns a query builder for OverriddenMixedFieldRules.
+func (c *OverriddenMixedFieldRulesClient) Query() *OverriddenMixedFieldRulesQuery {
+	return &OverriddenMixedFieldRulesQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeOverriddenMixedFieldRules},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a OverriddenMixedFieldRules entity by its id.
+func (c *OverriddenMixedFieldRulesClient) Get(ctx context.Context, id int) (*OverriddenMixedFieldRules, error) {
+	return c.Query().Where(overriddenmixedfieldrules.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *OverriddenMixedFieldRulesClient) GetX(ctx context.Context, id int) *OverriddenMixedFieldRules {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *OverriddenMixedFieldRulesClient) Hooks() []Hook {
+	hooks := c.hooks.OverriddenMixedFieldRules
+	return append(hooks[:len(hooks):len(hooks)], overriddenmixedfieldrules.Hooks[:]...)
+}
+
+// Interceptors returns the client interceptors.
+func (c *OverriddenMixedFieldRulesClient) Interceptors() []Interceptor {
+	return c.inters.OverriddenMixedFieldRules
+}
+
+func (c *OverriddenMixedFieldRulesClient) mutate(ctx context.Context, m *OverriddenMixedFieldRulesMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&OverriddenMixedFieldRulesCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&OverriddenMixedFieldRulesUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&OverriddenMixedFieldRulesUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&OverriddenMixedFieldRulesDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown OverriddenMixedFieldRules mutation op: %q", m.Op())
 	}
 }
 
@@ -3623,19 +3765,19 @@ type (
 	hooks struct {
 		DoubleComparators, FloatComparators, IgnoreAlwaysWithCel, IgnoreIfZeroWithCel,
 		Int32Adjacent, Int32Comparators, Int32Overflow, MessageRules, MixedFieldRules,
-		RequiredOptionalBytes, RequiredOptionalNonString, RequiredOptionalString,
-		RequiredPlainNonString, RequiredString, ResidualCel, StringByteBounds,
-		StringCodePointBounds, StringFormatEmail, StringFormatHostname, StringFormatIp,
-		StringFormatUri, StringFormatUuid, StringFormatWithSibling,
-		StringPattern []ent.Hook
+		OverriddenMixedFieldRules, RequiredOptionalBytes, RequiredOptionalNonString,
+		RequiredOptionalString, RequiredPlainNonString, RequiredString, ResidualCel,
+		StringByteBounds, StringCodePointBounds, StringFormatEmail,
+		StringFormatHostname, StringFormatIp, StringFormatUri, StringFormatUuid,
+		StringFormatWithSibling, StringPattern []ent.Hook
 	}
 	inters struct {
 		DoubleComparators, FloatComparators, IgnoreAlwaysWithCel, IgnoreIfZeroWithCel,
 		Int32Adjacent, Int32Comparators, Int32Overflow, MessageRules, MixedFieldRules,
-		RequiredOptionalBytes, RequiredOptionalNonString, RequiredOptionalString,
-		RequiredPlainNonString, RequiredString, ResidualCel, StringByteBounds,
-		StringCodePointBounds, StringFormatEmail, StringFormatHostname, StringFormatIp,
-		StringFormatUri, StringFormatUuid, StringFormatWithSibling,
-		StringPattern []ent.Interceptor
+		OverriddenMixedFieldRules, RequiredOptionalBytes, RequiredOptionalNonString,
+		RequiredOptionalString, RequiredPlainNonString, RequiredString, ResidualCel,
+		StringByteBounds, StringCodePointBounds, StringFormatEmail,
+		StringFormatHostname, StringFormatIp, StringFormatUri, StringFormatUuid,
+		StringFormatWithSibling, StringPattern []ent.Interceptor
 	}
 )

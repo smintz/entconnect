@@ -21,6 +21,7 @@ import (
 	"github.com/smintz/entconnect/mixinforproto/internal/difftest/ent/int32overflow"
 	"github.com/smintz/entconnect/mixinforproto/internal/difftest/ent/messagerules"
 	"github.com/smintz/entconnect/mixinforproto/internal/difftest/ent/mixedfieldrules"
+	"github.com/smintz/entconnect/mixinforproto/internal/difftest/ent/overriddenmixedfieldrules"
 	"github.com/smintz/entconnect/mixinforproto/internal/difftest/ent/requiredoptionalbytes"
 	"github.com/smintz/entconnect/mixinforproto/internal/difftest/ent/requiredoptionalnonstring"
 	"github.com/smintz/entconnect/mixinforproto/internal/difftest/ent/requiredoptionalstring"
@@ -105,6 +106,7 @@ func checkColumn(t, c string) error {
 			int32overflow.Table:             int32overflow.ValidColumn,
 			messagerules.Table:              messagerules.ValidColumn,
 			mixedfieldrules.Table:           mixedfieldrules.ValidColumn,
+			overriddenmixedfieldrules.Table: overriddenmixedfieldrules.ValidColumn,
 			requiredoptionalbytes.Table:     requiredoptionalbytes.ValidColumn,
 			requiredoptionalnonstring.Table: requiredoptionalnonstring.ValidColumn,
 			requiredoptionalstring.Table:    requiredoptionalstring.ValidColumn,

@@ -12,6 +12,7 @@ import (
 	"github.com/smintz/entconnect/mixinforproto/internal/difftest/ent/int32overflow"
 	"github.com/smintz/entconnect/mixinforproto/internal/difftest/ent/messagerules"
 	"github.com/smintz/entconnect/mixinforproto/internal/difftest/ent/mixedfieldrules"
+	"github.com/smintz/entconnect/mixinforproto/internal/difftest/ent/overriddenmixedfieldrules"
 	"github.com/smintz/entconnect/mixinforproto/internal/difftest/ent/requiredoptionalbytes"
 	"github.com/smintz/entconnect/mixinforproto/internal/difftest/ent/requiredoptionalnonstring"
 	"github.com/smintz/entconnect/mixinforproto/internal/difftest/ent/requiredoptionalstring"
@@ -221,6 +222,23 @@ func init() {
 	mixedfieldrulesDescCelOnly := mixedfieldrulesMixinFields0[2].Descriptor()
 	// mixedfieldrules.DefaultCelOnly holds the default value on creation for the cel_only field.
 	mixedfieldrules.DefaultCelOnly = mixedfieldrulesDescCelOnly.Default.(string)
+	overriddenmixedfieldrulesMixin := schema.OverriddenMixedFieldRules{}.Mixin()
+	overriddenmixedfieldrulesMixinHooks0 := overriddenmixedfieldrulesMixin[0].Hooks()
+	overriddenmixedfieldrules.Hooks[0] = overriddenmixedfieldrulesMixinHooks0[0]
+	overriddenmixedfieldrulesMixinFields0 := overriddenmixedfieldrulesMixin[0].Fields()
+	_ = overriddenmixedfieldrulesMixinFields0
+	overriddenmixedfieldrulesFields := schema.OverriddenMixedFieldRules{}.Fields()
+	_ = overriddenmixedfieldrulesFields
+	// overriddenmixedfieldrulesDescStandardOnly is the schema descriptor for standard_only field.
+	overriddenmixedfieldrulesDescStandardOnly := overriddenmixedfieldrulesMixinFields0[1].Descriptor()
+	// overriddenmixedfieldrules.DefaultStandardOnly holds the default value on creation for the standard_only field.
+	overriddenmixedfieldrules.DefaultStandardOnly = overriddenmixedfieldrulesDescStandardOnly.Default.(string)
+	// overriddenmixedfieldrules.StandardOnlyValidator is a validator for the "standard_only" field. It is called by the builders before save.
+	overriddenmixedfieldrules.StandardOnlyValidator = overriddenmixedfieldrulesDescStandardOnly.Validators[0].(func(string) error)
+	// overriddenmixedfieldrulesDescCelOnly is the schema descriptor for cel_only field.
+	overriddenmixedfieldrulesDescCelOnly := overriddenmixedfieldrulesMixinFields0[2].Descriptor()
+	// overriddenmixedfieldrules.DefaultCelOnly holds the default value on creation for the cel_only field.
+	overriddenmixedfieldrules.DefaultCelOnly = overriddenmixedfieldrulesDescCelOnly.Default.(string)
 	requiredoptionalbytesMixin := schema.RequiredOptionalBytes{}.Mixin()
 	requiredoptionalbytesMixinHooks0 := requiredoptionalbytesMixin[0].Hooks()
 	requiredoptionalbytes.Hooks[0] = requiredoptionalbytesMixinHooks0[0]

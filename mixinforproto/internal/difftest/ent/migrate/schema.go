@@ -123,6 +123,19 @@ var (
 		Columns:    MixedFieldRulesColumns,
 		PrimaryKey: []*schema.Column{MixedFieldRulesColumns[0]},
 	}
+	// OverriddenMixedFieldRulesColumns holds the columns for the "overridden_mixed_field_rules" table.
+	OverriddenMixedFieldRulesColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "both", Type: field.TypeString},
+		{Name: "standard_only", Type: field.TypeString, Default: ""},
+		{Name: "cel_only", Type: field.TypeString, Default: ""},
+	}
+	// OverriddenMixedFieldRulesTable holds the schema information for the "overridden_mixed_field_rules" table.
+	OverriddenMixedFieldRulesTable = &schema.Table{
+		Name:       "overridden_mixed_field_rules",
+		Columns:    OverriddenMixedFieldRulesColumns,
+		PrimaryKey: []*schema.Column{OverriddenMixedFieldRulesColumns[0]},
+	}
 	// RequiredOptionalBytesColumns holds the columns for the "required_optional_bytes" table.
 	RequiredOptionalBytesColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt, Increment: true},
@@ -304,6 +317,7 @@ var (
 		Int32overflowsTable,
 		MessageRulesTable,
 		MixedFieldRulesTable,
+		OverriddenMixedFieldRulesTable,
 		RequiredOptionalBytesTable,
 		RequiredOptionalNonStringsTable,
 		RequiredOptionalStringsTable,

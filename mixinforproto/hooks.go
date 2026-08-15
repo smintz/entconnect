@@ -137,14 +137,22 @@ type hookState struct {
 
 // buildHookState walks md's fields at schema-load time, resolving each
 // field's protovalidate rules via the same ResolveFieldRules path Tier 1
-// already uses (D-03/fieldmap.go's resolvedFieldRules). A field with NO
-// protovalidate rules at all is never added to evaluators, so a message
-// with no constraints anywhere pays no mutation-time cost and Hooks()
-// returns no hook at all for it (mixin.go's len(hs.evaluators) == 0
-// check). A field WITH a rule but an unbindable derivation class (D-09;
-// hookFieldClass returns "") is skipped the same way — that gap is
+// already uses (D-03/fieldmap.go's resolvedFieldRules). Four kinds of
+// field never get an evaluators entry: (1) a field named in
+// Exclude(...) or Override(...) — CR-03's gap closure, skipped BEFORE
+// ResolveFieldRules is even called, so no rule is ever resolved or
+// compiled for it and a type-changing Override can never reach
+// reverseValue; (2) a field with NO protovalidate rule of its own AND
+// no message-level rule reading it (isExtra) — nothing for either half
+// of the hybrid to enforce; (3) a field WITH a rule but an unbindable
+// derivation class (D-09; hookFieldClass returns "") — that gap is
 // mixinforproto's own, recorded elsewhere as boundary-only provenance
-// (derive.go's recordBoundaryOnly, 03-02), not panicked on here.
+// (derive.go's recordBoundaryOnly, 03-02), not panicked on here; and
+// (4), narrower than a full skip, a field carrying
+// ignore = IGNORE_ALWAYS still gets an entry (see the ignore-handling
+// comment below) but with no compiled CEL programs. A message with no
+// constraints anywhere pays no mutation-time cost and Hooks() returns
+// no hook at all for it (mixin.go's len(hs.evaluators) == 0 check).
 //
 // Every field that survives both checks gets an entry in evaluators
 // (D-02: standard rules and residual CEL alike are in scope), and — only
@@ -199,6 +207,29 @@ func buildHookState(md protoreflect.MessageDescriptor, opts ...Option) (*hookSta
 	for i := 0; i < fds.Len(); i++ {
 		fd := fds.Get(i)
 		name := string(fd.Name())
+
+		// CR-03 gap closure (03-06-PLAN.md): a field named in
+		// Exclude(...) or Override(...) is skipped BEFORE
+		// ResolveFieldRules is even called — placement is load-bearing,
+		// not incidental. Skipping here (rather than after resolution)
+		// is what stops a type-changing Override (e.g. Override("both",
+		// field.Bool("both")) on a string-typed proto field) from ever
+		// reaching reverseValue with a value of the replacement field's
+		// Go type: reverseValue would reject it as a D-12 data-integrity
+		// fault, which runtime.MapError maps to CodeInternal — a
+		// permanent HTTP 500 on every write to the entity (T-03-06-01).
+		// This is not a redundant check against derive.go's own
+		// Exclude/Override handling (Fields()/Annotations() run through
+		// a SEPARATE derive[M] call, mixin.go) — buildHookState has no
+		// visibility into that walk's outcome, so it must re-consult o
+		// itself. messageRuleFieldUnavailable (messagerules.go) already
+		// rejects an excluded or overridden field as a message-rule
+		// reference and fails schema load (D-10), so extraFields can
+		// never contain one when messageRulesOnCreate succeeded — this
+		// skip can never strand a message-rule reference.
+		if o.isExcluded(name) || o.isOverridden(name) {
+			continue
+		}
 
 		rules, err := protovalidate.ResolveFieldRules(fd)
 		if err != nil {

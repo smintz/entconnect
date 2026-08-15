@@ -33,6 +33,9 @@ type MessageRules func(*sql.Selector)
 // MixedFieldRules is the predicate function for mixedfieldrules builders.
 type MixedFieldRules func(*sql.Selector)
 
+// OverriddenMixedFieldRules is the predicate function for overriddenmixedfieldrules builders.
+type OverriddenMixedFieldRules func(*sql.Selector)
+
 // RequiredOptionalBytes is the predicate function for requiredoptionalbytes builders.
 type RequiredOptionalBytes func(*sql.Selector)
 

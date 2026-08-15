@@ -30,6 +30,8 @@ type Tx struct {
 	MessageRules *MessageRulesClient
 	// MixedFieldRules is the client for interacting with the MixedFieldRules builders.
 	MixedFieldRules *MixedFieldRulesClient
+	// OverriddenMixedFieldRules is the client for interacting with the OverriddenMixedFieldRules builders.
+	OverriddenMixedFieldRules *OverriddenMixedFieldRulesClient
 	// RequiredOptionalBytes is the client for interacting with the RequiredOptionalBytes builders.
 	RequiredOptionalBytes *RequiredOptionalBytesClient
 	// RequiredOptionalNonString is the client for interacting with the RequiredOptionalNonString builders.
@@ -200,6 +202,7 @@ func (tx *Tx) init() {
 	tx.Int32Overflow = NewInt32OverflowClient(tx.config)
 	tx.MessageRules = NewMessageRulesClient(tx.config)
 	tx.MixedFieldRules = NewMixedFieldRulesClient(tx.config)
+	tx.OverriddenMixedFieldRules = NewOverriddenMixedFieldRulesClient(tx.config)
 	tx.RequiredOptionalBytes = NewRequiredOptionalBytesClient(tx.config)
 	tx.RequiredOptionalNonString = NewRequiredOptionalNonStringClient(tx.config)
 	tx.RequiredOptionalString = NewRequiredOptionalStringClient(tx.config)

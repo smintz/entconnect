@@ -3,6 +3,7 @@ package mixinforproto
 import (
 	"errors"
 	"math"
+	"os"
 	"sort"
 	"strings"
 	"testing"
@@ -11,6 +12,7 @@ import (
 	"buf.build/go/protovalidate"
 
 	"entgo.io/ent"
+	"entgo.io/ent/schema/field"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protodesc"
 	"google.golang.org/protobuf/reflect/protoreflect"
@@ -672,3 +674,198 @@ func TestIsZeroForKind_CoversMultipleKinds(t *testing.T) {
 	}
 }
 
+// --- Plan 03-06 Task 3: Exclude(...)/Override(...) suppress
+// storage-layer validation relay (CR-03 gap closure). Every test below
+// drives MixedFieldRules (proto/mixinforprototest/v1/constraints.proto)
+// — the same fixture 03-VERIFICATION.md's own probe used to falsify
+// this — with mutation value "nope" on "both", which fails BOTH its
+// string.min_len=3 rule AND its "this.startsWith('X')" cel rule; the
+// verifier observed 2 violations for it pre-fix. ---
+
+func mixedFieldsMD(t *testing.T) protoreflect.MessageDescriptor {
+	t.Helper()
+	return descriptorOf[*mixinforprototestv1.MixedFieldRules]()
+}
+
+// TestBuildHookState_ExcludedFieldHasNoEvaluatorEntry proves Exclude's
+// build-time half: hs.evaluators carries no entry for "both" at all,
+// while its rule-bearing siblings still do.
+func TestBuildHookState_ExcludedFieldHasNoEvaluatorEntry(t *testing.T) {
+	md := mixedFieldsMD(t)
+	hs := mustBuildHookState(t, md, Exclude("both"))
+
+	names := map[string]bool{}
+	for _, fe := range hs.evaluators {
+		names[string(fe.fd.Name())] = true
+	}
+	if names["both"] {
+		t.Fatalf("want no evaluators entry for excluded field %q, got entries: %v", "both", names)
+	}
+	if !names["standard_only"] || !names["cel_only"] {
+		t.Fatalf("want evaluators entries for both non-excluded siblings, got: %v", names)
+	}
+}
+
+// TestEvaluate_ExcludedFieldProducesZeroViolations is Behavior 2's first
+// half: Exclude("both") with mutation both="nope" produces ZERO
+// violations naming field "both" — pre-fix, this field alone produced 2.
+func TestEvaluate_ExcludedFieldProducesZeroViolations(t *testing.T) {
+	md := mixedFieldsMD(t)
+	hs := mustBuildHookState(t, md, Exclude("both"))
+
+	m := newFakeMutation(ent.OpCreate, "MixedFieldRules", map[string]ent.Value{
+		"both": "nope",
+	})
+	violations, err := hs.evaluate(m)
+	if err != nil {
+		t.Fatalf("evaluate: %v", err)
+	}
+	for _, v := range violations {
+		if singleViolationField(v) == "both" {
+			t.Fatalf("want zero violations naming excluded field %q, got: %v", "both", violations)
+		}
+	}
+}
+
+// TestEvaluate_ExcludedSiblingsStillViolateWithUnchangedRuleIDs is
+// Behavior 3, Exclude half: standard_only and cel_only still violate
+// their own rules normally, with unchanged RuleIds, while "both" is
+// excluded — suppression is per-field, not per-message.
+func TestEvaluate_ExcludedSiblingsStillViolateWithUnchangedRuleIDs(t *testing.T) {
+	md := mixedFieldsMD(t)
+	hs := mustBuildHookState(t, md, Exclude("both"))
+
+	m := newFakeMutation(ent.OpCreate, "MixedFieldRules", map[string]ent.Value{
+		"both":          "nope",
+		"standard_only": "ab", // below min_len=3
+		"cel_only":      "abc",
+	})
+	violations, err := hs.evaluate(m)
+	if err != nil {
+		t.Fatalf("evaluate: %v", err)
+	}
+	deduped := dedupeViolations(violations)
+	got := violationRuleIDs(deduped)
+	want := []string{mixedCelOnlyRuleID, mixedMinLenRuleID}
+	sort.Strings(want)
+	if len(got) != len(want) {
+		t.Fatalf("want RuleIds %v, got %v", want, got)
+	}
+	for i := range want {
+		if got[i] != want[i] {
+			t.Fatalf("want RuleIds %v, got %v", want, got)
+		}
+	}
+}
+
+// TestEvaluate_OverriddenFieldProducesZeroViolations is Behavior 1's
+// first half: Override("both", field.String("both")) with mutation
+// both="nope" produces ZERO violations naming field "both".
+func TestEvaluate_OverriddenFieldProducesZeroViolations(t *testing.T) {
+	md := mixedFieldsMD(t)
+	hs := mustBuildHookState(t, md, Override("both", field.String("both")))
+
+	m := newFakeMutation(ent.OpCreate, "MixedFieldRules", map[string]ent.Value{
+		"both": "nope",
+	})
+	violations, err := hs.evaluate(m)
+	if err != nil {
+		t.Fatalf("evaluate: %v", err)
+	}
+	for _, v := range violations {
+		if singleViolationField(v) == "both" {
+			t.Fatalf("want zero violations naming overridden field %q, got: %v", "both", violations)
+		}
+	}
+}
+
+// TestEvaluate_OverriddenSiblingsStillViolateWithUnchangedRuleIDs
+// mirrors the Exclude-half sibling test, under Override instead.
+func TestEvaluate_OverriddenSiblingsStillViolateWithUnchangedRuleIDs(t *testing.T) {
+	md := mixedFieldsMD(t)
+	hs := mustBuildHookState(t, md, Override("both", field.String("both")))
+
+	m := newFakeMutation(ent.OpCreate, "MixedFieldRules", map[string]ent.Value{
+		"both":          "nope",
+		"standard_only": "ab", // below min_len=3
+		"cel_only":      "abc",
+	})
+	violations, err := hs.evaluate(m)
+	if err != nil {
+		t.Fatalf("evaluate: %v", err)
+	}
+	deduped := dedupeViolations(violations)
+	got := violationRuleIDs(deduped)
+	want := []string{mixedCelOnlyRuleID, mixedMinLenRuleID}
+	sort.Strings(want)
+	if len(got) != len(want) {
+		t.Fatalf("want RuleIds %v, got %v", want, got)
+	}
+	for i := range want {
+		if got[i] != want[i] {
+			t.Fatalf("want RuleIds %v, got %v", want, got)
+		}
+	}
+}
+
+// TestEvaluate_TypeChangingOverrideReturnsNilErrorAndNoViolations proves
+// the placement criterion's behavioral face: Override("both",
+// field.Bool("both")) on the string-typed proto field, with mutation
+// both=true (the REPLACEMENT field's Go type, bool, not the original
+// proto field's string type), returns a nil error and an empty
+// violation slice — previously a D-12 data-integrity error
+// (runtime.MapError maps it to CodeInternal, a permanent HTTP 500 on
+// every write) because "both" reached reverseValue with a bool value
+// against a string-kind field descriptor.
+func TestEvaluate_TypeChangingOverrideReturnsNilErrorAndNoViolations(t *testing.T) {
+	md := mixedFieldsMD(t)
+	hs := mustBuildHookState(t, md, Override("both", field.Bool("both")))
+
+	m := newFakeMutation(ent.OpCreate, "MixedFieldRules", map[string]ent.Value{
+		"both": true,
+	})
+	violations, err := hs.evaluate(m)
+	if err != nil {
+		t.Fatalf("want a nil error for a type-changing Override, got: %v", err)
+	}
+	if len(violations) != 0 {
+		t.Fatalf("want zero violations, got: %v", violations)
+	}
+}
+
+// TestBuildHookState_AllRuleBearingFieldsExcludedProducesNoEvaluators
+// proves the empty edge: a derivation whose every rule-bearing field is
+// Excluded yields len(hs.evaluators) == 0.
+func TestBuildHookState_AllRuleBearingFieldsExcludedProducesNoEvaluators(t *testing.T) {
+	md := mixedFieldsMD(t)
+	hs := mustBuildHookState(t, md, Exclude("both", "standard_only", "cel_only"))
+	if len(hs.evaluators) != 0 {
+		t.Fatalf("want zero evaluators when every rule-bearing field is excluded, got %d", len(hs.evaluators))
+	}
+}
+
+// TestHooksGo_ExcludedOverriddenCheckPrecedesResolveFieldRules pins the
+// placement criterion itself, structurally: the first occurrence of
+// "isExcluded(" in hooks.go's source must appear before the first
+// occurrence of "ResolveFieldRules(" — after resolution instead, a
+// type-changing Override reaches reverseValue and yields the D-12 fault
+// runtime.MapError maps to CodeInternal (03-06-PLAN.md acceptance
+// criteria, Task 3).
+func TestHooksGo_ExcludedOverriddenCheckPrecedesResolveFieldRules(t *testing.T) {
+	src, err := os.ReadFile("hooks.go")
+	if err != nil {
+		t.Fatalf("reading hooks.go: %v", err)
+	}
+	text := string(src)
+	excludedIdx := strings.Index(text, "isExcluded(")
+	resolveIdx := strings.Index(text, "ResolveFieldRules(")
+	if excludedIdx == -1 {
+		t.Fatal("want at least one \"isExcluded(\" occurrence in hooks.go")
+	}
+	if resolveIdx == -1 {
+		t.Fatal("want at least one \"ResolveFieldRules(\" occurrence in hooks.go")
+	}
+	if excludedIdx >= resolveIdx {
+		t.Fatalf("want the first isExcluded( occurrence (offset %d) before the first ResolveFieldRules( occurrence (offset %d)", excludedIdx, resolveIdx)
+	}
+}
