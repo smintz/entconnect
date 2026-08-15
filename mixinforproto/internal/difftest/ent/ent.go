@@ -14,6 +14,7 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"github.com/smintz/entconnect/mixinforproto/internal/difftest/ent/doublecomparators"
 	"github.com/smintz/entconnect/mixinforproto/internal/difftest/ent/floatcomparators"
+	"github.com/smintz/entconnect/mixinforproto/internal/difftest/ent/ignorealwayswithcel"
 	"github.com/smintz/entconnect/mixinforproto/internal/difftest/ent/int32adjacent"
 	"github.com/smintz/entconnect/mixinforproto/internal/difftest/ent/int32comparators"
 	"github.com/smintz/entconnect/mixinforproto/internal/difftest/ent/int32overflow"
@@ -96,6 +97,7 @@ func checkColumn(t, c string) error {
 		columnCheck = sql.NewColumnCheck(map[string]func(string) bool{
 			doublecomparators.Table:         doublecomparators.ValidColumn,
 			floatcomparators.Table:          floatcomparators.ValidColumn,
+			ignorealwayswithcel.Table:       ignorealwayswithcel.ValidColumn,
 			int32adjacent.Table:             int32adjacent.ValidColumn,
 			int32comparators.Table:          int32comparators.ValidColumn,
 			int32overflow.Table:             int32overflow.ValidColumn,

@@ -16,6 +16,8 @@ type Tx struct {
 	DoubleComparators *DoubleComparatorsClient
 	// FloatComparators is the client for interacting with the FloatComparators builders.
 	FloatComparators *FloatComparatorsClient
+	// IgnoreAlwaysWithCel is the client for interacting with the IgnoreAlwaysWithCel builders.
+	IgnoreAlwaysWithCel *IgnoreAlwaysWithCelClient
 	// Int32Adjacent is the client for interacting with the Int32Adjacent builders.
 	Int32Adjacent *Int32AdjacentClient
 	// Int32Comparators is the client for interacting with the Int32Comparators builders.
@@ -189,6 +191,7 @@ func (tx *Tx) Client() *Client {
 func (tx *Tx) init() {
 	tx.DoubleComparators = NewDoubleComparatorsClient(tx.config)
 	tx.FloatComparators = NewFloatComparatorsClient(tx.config)
+	tx.IgnoreAlwaysWithCel = NewIgnoreAlwaysWithCelClient(tx.config)
 	tx.Int32Adjacent = NewInt32AdjacentClient(tx.config)
 	tx.Int32Comparators = NewInt32ComparatorsClient(tx.config)
 	tx.Int32Overflow = NewInt32OverflowClient(tx.config)

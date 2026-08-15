@@ -401,6 +401,13 @@ var corpusCoverage = map[string]string{
 	"mixinforprototest.v1.MessageRuleUnderivableRef": "test:TestBuildHookState_MessageRuleUnderivableRefFailsSchemaLoad",
 	"mixinforprototest.v1.MessageRuleNone":           "test:TestBuildHookState_MessageRuleNoneIsLegalNoOp",
 	"mixinforprototest.v1.MessageRuleLookalike":      "test:TestBuildHookState_MessageRuleLookalikeDoesNotFalsePositive",
+
+	// Plan 03-06's ignore.proto corpus (CR-02 gap closure): a field
+	// carrying (buf.validate.field).ignore together with a custom cel
+	// rule, proven through internal/difftest's real ent.Client rather
+	// than a golden fixture, so the storage-vs-boundary identity
+	// comparison is the recorded coverage claim.
+	"mixinforprototest.v1.IgnoreAlwaysWithCel": "test:TestIgnoreAlways_SuppressedFieldProducesZeroViolations",
 }
 
 // TestCorpusMessagesHaveRecordedCoverage checks corpusCoverage in BOTH

@@ -16,6 +16,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"github.com/smintz/entconnect/mixinforproto/internal/difftest/ent/doublecomparators"
 	"github.com/smintz/entconnect/mixinforproto/internal/difftest/ent/floatcomparators"
+	"github.com/smintz/entconnect/mixinforproto/internal/difftest/ent/ignorealwayswithcel"
 	"github.com/smintz/entconnect/mixinforproto/internal/difftest/ent/int32adjacent"
 	"github.com/smintz/entconnect/mixinforproto/internal/difftest/ent/int32comparators"
 	"github.com/smintz/entconnect/mixinforproto/internal/difftest/ent/int32overflow"
@@ -47,6 +48,8 @@ type Client struct {
 	DoubleComparators *DoubleComparatorsClient
 	// FloatComparators is the client for interacting with the FloatComparators builders.
 	FloatComparators *FloatComparatorsClient
+	// IgnoreAlwaysWithCel is the client for interacting with the IgnoreAlwaysWithCel builders.
+	IgnoreAlwaysWithCel *IgnoreAlwaysWithCelClient
 	// Int32Adjacent is the client for interacting with the Int32Adjacent builders.
 	Int32Adjacent *Int32AdjacentClient
 	// Int32Comparators is the client for interacting with the Int32Comparators builders.
@@ -100,6 +103,7 @@ func (c *Client) init() {
 	c.Schema = migrate.NewSchema(c.driver)
 	c.DoubleComparators = NewDoubleComparatorsClient(c.config)
 	c.FloatComparators = NewFloatComparatorsClient(c.config)
+	c.IgnoreAlwaysWithCel = NewIgnoreAlwaysWithCelClient(c.config)
 	c.Int32Adjacent = NewInt32AdjacentClient(c.config)
 	c.Int32Comparators = NewInt32ComparatorsClient(c.config)
 	c.Int32Overflow = NewInt32OverflowClient(c.config)
@@ -214,6 +218,7 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 		config:                    cfg,
 		DoubleComparators:         NewDoubleComparatorsClient(cfg),
 		FloatComparators:          NewFloatComparatorsClient(cfg),
+		IgnoreAlwaysWithCel:       NewIgnoreAlwaysWithCelClient(cfg),
 		Int32Adjacent:             NewInt32AdjacentClient(cfg),
 		Int32Comparators:          NewInt32ComparatorsClient(cfg),
 		Int32Overflow:             NewInt32OverflowClient(cfg),
@@ -255,6 +260,7 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 		config:                    cfg,
 		DoubleComparators:         NewDoubleComparatorsClient(cfg),
 		FloatComparators:          NewFloatComparatorsClient(cfg),
+		IgnoreAlwaysWithCel:       NewIgnoreAlwaysWithCelClient(cfg),
 		Int32Adjacent:             NewInt32AdjacentClient(cfg),
 		Int32Comparators:          NewInt32ComparatorsClient(cfg),
 		Int32Overflow:             NewInt32OverflowClient(cfg),
@@ -304,9 +310,9 @@ func (c *Client) Close() error {
 // In order to add hooks to a specific client, call: `client.Node.Use(...)`.
 func (c *Client) Use(hooks ...Hook) {
 	for _, n := range []interface{ Use(...Hook) }{
-		c.DoubleComparators, c.FloatComparators, c.Int32Adjacent, c.Int32Comparators,
-		c.Int32Overflow, c.MessageRules, c.MixedFieldRules, c.RequiredOptionalBytes,
-		c.RequiredOptionalNonString, c.RequiredOptionalString,
+		c.DoubleComparators, c.FloatComparators, c.IgnoreAlwaysWithCel, c.Int32Adjacent,
+		c.Int32Comparators, c.Int32Overflow, c.MessageRules, c.MixedFieldRules,
+		c.RequiredOptionalBytes, c.RequiredOptionalNonString, c.RequiredOptionalString,
 		c.RequiredPlainNonString, c.RequiredString, c.ResidualCel, c.StringByteBounds,
 		c.StringCodePointBounds, c.StringFormatEmail, c.StringFormatHostname,
 		c.StringFormatIp, c.StringFormatUri, c.StringFormatUuid,
@@ -320,9 +326,9 @@ func (c *Client) Use(hooks ...Hook) {
 // In order to add interceptors to a specific client, call: `client.Node.Intercept(...)`.
 func (c *Client) Intercept(interceptors ...Interceptor) {
 	for _, n := range []interface{ Intercept(...Interceptor) }{
-		c.DoubleComparators, c.FloatComparators, c.Int32Adjacent, c.Int32Comparators,
-		c.Int32Overflow, c.MessageRules, c.MixedFieldRules, c.RequiredOptionalBytes,
-		c.RequiredOptionalNonString, c.RequiredOptionalString,
+		c.DoubleComparators, c.FloatComparators, c.IgnoreAlwaysWithCel, c.Int32Adjacent,
+		c.Int32Comparators, c.Int32Overflow, c.MessageRules, c.MixedFieldRules,
+		c.RequiredOptionalBytes, c.RequiredOptionalNonString, c.RequiredOptionalString,
 		c.RequiredPlainNonString, c.RequiredString, c.ResidualCel, c.StringByteBounds,
 		c.StringCodePointBounds, c.StringFormatEmail, c.StringFormatHostname,
 		c.StringFormatIp, c.StringFormatUri, c.StringFormatUuid,
@@ -339,6 +345,8 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.DoubleComparators.mutate(ctx, m)
 	case *FloatComparatorsMutation:
 		return c.FloatComparators.mutate(ctx, m)
+	case *IgnoreAlwaysWithCelMutation:
+		return c.IgnoreAlwaysWithCel.mutate(ctx, m)
 	case *Int32AdjacentMutation:
 		return c.Int32Adjacent.mutate(ctx, m)
 	case *Int32ComparatorsMutation:
@@ -649,6 +657,140 @@ func (c *FloatComparatorsClient) mutate(ctx context.Context, m *FloatComparators
 		return (&FloatComparatorsDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
 	default:
 		return nil, fmt.Errorf("ent: unknown FloatComparators mutation op: %q", m.Op())
+	}
+}
+
+// IgnoreAlwaysWithCelClient is a client for the IgnoreAlwaysWithCel schema.
+type IgnoreAlwaysWithCelClient struct {
+	config
+}
+
+// NewIgnoreAlwaysWithCelClient returns a client for the IgnoreAlwaysWithCel from the given config.
+func NewIgnoreAlwaysWithCelClient(c config) *IgnoreAlwaysWithCelClient {
+	return &IgnoreAlwaysWithCelClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `ignorealwayswithcel.Hooks(f(g(h())))`.
+func (c *IgnoreAlwaysWithCelClient) Use(hooks ...Hook) {
+	c.hooks.IgnoreAlwaysWithCel = append(c.hooks.IgnoreAlwaysWithCel, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `ignorealwayswithcel.Intercept(f(g(h())))`.
+func (c *IgnoreAlwaysWithCelClient) Intercept(interceptors ...Interceptor) {
+	c.inters.IgnoreAlwaysWithCel = append(c.inters.IgnoreAlwaysWithCel, interceptors...)
+}
+
+// Create returns a builder for creating a IgnoreAlwaysWithCel entity.
+func (c *IgnoreAlwaysWithCelClient) Create() *IgnoreAlwaysWithCelCreate {
+	mutation := newIgnoreAlwaysWithCelMutation(c.config, OpCreate)
+	return &IgnoreAlwaysWithCelCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of IgnoreAlwaysWithCel entities.
+func (c *IgnoreAlwaysWithCelClient) CreateBulk(builders ...*IgnoreAlwaysWithCelCreate) *IgnoreAlwaysWithCelCreateBulk {
+	return &IgnoreAlwaysWithCelCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *IgnoreAlwaysWithCelClient) MapCreateBulk(slice any, setFunc func(*IgnoreAlwaysWithCelCreate, int)) *IgnoreAlwaysWithCelCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &IgnoreAlwaysWithCelCreateBulk{err: fmt.Errorf("calling to IgnoreAlwaysWithCelClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*IgnoreAlwaysWithCelCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &IgnoreAlwaysWithCelCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for IgnoreAlwaysWithCel.
+func (c *IgnoreAlwaysWithCelClient) Update() *IgnoreAlwaysWithCelUpdate {
+	mutation := newIgnoreAlwaysWithCelMutation(c.config, OpUpdate)
+	return &IgnoreAlwaysWithCelUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *IgnoreAlwaysWithCelClient) UpdateOne(_m *IgnoreAlwaysWithCel) *IgnoreAlwaysWithCelUpdateOne {
+	mutation := newIgnoreAlwaysWithCelMutation(c.config, OpUpdateOne, withIgnoreAlwaysWithCel(_m))
+	return &IgnoreAlwaysWithCelUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *IgnoreAlwaysWithCelClient) UpdateOneID(id int) *IgnoreAlwaysWithCelUpdateOne {
+	mutation := newIgnoreAlwaysWithCelMutation(c.config, OpUpdateOne, withIgnoreAlwaysWithCelID(id))
+	return &IgnoreAlwaysWithCelUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for IgnoreAlwaysWithCel.
+func (c *IgnoreAlwaysWithCelClient) Delete() *IgnoreAlwaysWithCelDelete {
+	mutation := newIgnoreAlwaysWithCelMutation(c.config, OpDelete)
+	return &IgnoreAlwaysWithCelDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *IgnoreAlwaysWithCelClient) DeleteOne(_m *IgnoreAlwaysWithCel) *IgnoreAlwaysWithCelDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *IgnoreAlwaysWithCelClient) DeleteOneID(id int) *IgnoreAlwaysWithCelDeleteOne {
+	builder := c.Delete().Where(ignorealwayswithcel.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &IgnoreAlwaysWithCelDeleteOne{builder}
+}
+
+// Query returns a query builder for IgnoreAlwaysWithCel.
+func (c *IgnoreAlwaysWithCelClient) Query() *IgnoreAlwaysWithCelQuery {
+	return &IgnoreAlwaysWithCelQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeIgnoreAlwaysWithCel},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a IgnoreAlwaysWithCel entity by its id.
+func (c *IgnoreAlwaysWithCelClient) Get(ctx context.Context, id int) (*IgnoreAlwaysWithCel, error) {
+	return c.Query().Where(ignorealwayswithcel.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *IgnoreAlwaysWithCelClient) GetX(ctx context.Context, id int) *IgnoreAlwaysWithCel {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *IgnoreAlwaysWithCelClient) Hooks() []Hook {
+	hooks := c.hooks.IgnoreAlwaysWithCel
+	return append(hooks[:len(hooks):len(hooks)], ignorealwayswithcel.Hooks[:]...)
+}
+
+// Interceptors returns the client interceptors.
+func (c *IgnoreAlwaysWithCelClient) Interceptors() []Interceptor {
+	return c.inters.IgnoreAlwaysWithCel
+}
+
+func (c *IgnoreAlwaysWithCelClient) mutate(ctx context.Context, m *IgnoreAlwaysWithCelMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&IgnoreAlwaysWithCelCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&IgnoreAlwaysWithCelUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&IgnoreAlwaysWithCelUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&IgnoreAlwaysWithCelDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown IgnoreAlwaysWithCel mutation op: %q", m.Op())
 	}
 }
 
@@ -3335,19 +3477,21 @@ func (c *StringPatternClient) mutate(ctx context.Context, m *StringPatternMutati
 // hooks and interceptors per client, for fast access.
 type (
 	hooks struct {
-		DoubleComparators, FloatComparators, Int32Adjacent, Int32Comparators,
-		Int32Overflow, MessageRules, MixedFieldRules, RequiredOptionalBytes,
-		RequiredOptionalNonString, RequiredOptionalString, RequiredPlainNonString,
-		RequiredString, ResidualCel, StringByteBounds, StringCodePointBounds,
-		StringFormatEmail, StringFormatHostname, StringFormatIp, StringFormatUri,
-		StringFormatUuid, StringFormatWithSibling, StringPattern []ent.Hook
+		DoubleComparators, FloatComparators, IgnoreAlwaysWithCel, Int32Adjacent,
+		Int32Comparators, Int32Overflow, MessageRules, MixedFieldRules,
+		RequiredOptionalBytes, RequiredOptionalNonString, RequiredOptionalString,
+		RequiredPlainNonString, RequiredString, ResidualCel, StringByteBounds,
+		StringCodePointBounds, StringFormatEmail, StringFormatHostname, StringFormatIp,
+		StringFormatUri, StringFormatUuid, StringFormatWithSibling,
+		StringPattern []ent.Hook
 	}
 	inters struct {
-		DoubleComparators, FloatComparators, Int32Adjacent, Int32Comparators,
-		Int32Overflow, MessageRules, MixedFieldRules, RequiredOptionalBytes,
-		RequiredOptionalNonString, RequiredOptionalString, RequiredPlainNonString,
-		RequiredString, ResidualCel, StringByteBounds, StringCodePointBounds,
-		StringFormatEmail, StringFormatHostname, StringFormatIp, StringFormatUri,
-		StringFormatUuid, StringFormatWithSibling, StringPattern []ent.Interceptor
+		DoubleComparators, FloatComparators, IgnoreAlwaysWithCel, Int32Adjacent,
+		Int32Comparators, Int32Overflow, MessageRules, MixedFieldRules,
+		RequiredOptionalBytes, RequiredOptionalNonString, RequiredOptionalString,
+		RequiredPlainNonString, RequiredString, ResidualCel, StringByteBounds,
+		StringCodePointBounds, StringFormatEmail, StringFormatHostname, StringFormatIp,
+		StringFormatUri, StringFormatUuid, StringFormatWithSibling,
+		StringPattern []ent.Interceptor
 	}
 )

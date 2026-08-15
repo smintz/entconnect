@@ -12,6 +12,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"github.com/smintz/entconnect/mixinforproto/internal/difftest/ent/doublecomparators"
 	"github.com/smintz/entconnect/mixinforproto/internal/difftest/ent/floatcomparators"
+	"github.com/smintz/entconnect/mixinforproto/internal/difftest/ent/ignorealwayswithcel"
 	"github.com/smintz/entconnect/mixinforproto/internal/difftest/ent/int32adjacent"
 	"github.com/smintz/entconnect/mixinforproto/internal/difftest/ent/int32comparators"
 	"github.com/smintz/entconnect/mixinforproto/internal/difftest/ent/int32overflow"
@@ -46,6 +47,7 @@ const (
 	// Node types.
 	TypeDoubleComparators         = "DoubleComparators"
 	TypeFloatComparators          = "FloatComparators"
+	TypeIgnoreAlwaysWithCel       = "IgnoreAlwaysWithCel"
 	TypeInt32Adjacent             = "Int32Adjacent"
 	TypeInt32Comparators          = "Int32Comparators"
 	TypeInt32Overflow             = "Int32Overflow"
@@ -1051,6 +1053,386 @@ func (m *FloatComparatorsMutation) ClearEdge(name string) error {
 // It returns an error if the edge is not defined in the schema.
 func (m *FloatComparatorsMutation) ResetEdge(name string) error {
 	return fmt.Errorf("unknown FloatComparators edge %s", name)
+}
+
+// IgnoreAlwaysWithCelMutation represents an operation that mutates the IgnoreAlwaysWithCel nodes in the graph.
+type IgnoreAlwaysWithCelMutation struct {
+	config
+	op             Op
+	typ            string
+	id             *int
+	always_ignored *string
+	enforced       *string
+	clearedFields  map[string]struct{}
+	done           bool
+	oldValue       func(context.Context) (*IgnoreAlwaysWithCel, error)
+	predicates     []predicate.IgnoreAlwaysWithCel
+}
+
+var _ ent.Mutation = (*IgnoreAlwaysWithCelMutation)(nil)
+
+// ignorealwayswithcelOption allows management of the mutation configuration using functional options.
+type ignorealwayswithcelOption func(*IgnoreAlwaysWithCelMutation)
+
+// newIgnoreAlwaysWithCelMutation creates new mutation for the IgnoreAlwaysWithCel entity.
+func newIgnoreAlwaysWithCelMutation(c config, op Op, opts ...ignorealwayswithcelOption) *IgnoreAlwaysWithCelMutation {
+	m := &IgnoreAlwaysWithCelMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeIgnoreAlwaysWithCel,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withIgnoreAlwaysWithCelID sets the ID field of the mutation.
+func withIgnoreAlwaysWithCelID(id int) ignorealwayswithcelOption {
+	return func(m *IgnoreAlwaysWithCelMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *IgnoreAlwaysWithCel
+		)
+		m.oldValue = func(ctx context.Context) (*IgnoreAlwaysWithCel, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().IgnoreAlwaysWithCel.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withIgnoreAlwaysWithCel sets the old IgnoreAlwaysWithCel of the mutation.
+func withIgnoreAlwaysWithCel(node *IgnoreAlwaysWithCel) ignorealwayswithcelOption {
+	return func(m *IgnoreAlwaysWithCelMutation) {
+		m.oldValue = func(context.Context) (*IgnoreAlwaysWithCel, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m IgnoreAlwaysWithCelMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m IgnoreAlwaysWithCelMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *IgnoreAlwaysWithCelMutation) ID() (id int, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *IgnoreAlwaysWithCelMutation) IDs(ctx context.Context) ([]int, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []int{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().IgnoreAlwaysWithCel.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetAlwaysIgnored sets the "always_ignored" field.
+func (m *IgnoreAlwaysWithCelMutation) SetAlwaysIgnored(s string) {
+	m.always_ignored = &s
+}
+
+// AlwaysIgnored returns the value of the "always_ignored" field in the mutation.
+func (m *IgnoreAlwaysWithCelMutation) AlwaysIgnored() (r string, exists bool) {
+	v := m.always_ignored
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldAlwaysIgnored returns the old "always_ignored" field's value of the IgnoreAlwaysWithCel entity.
+// If the IgnoreAlwaysWithCel object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *IgnoreAlwaysWithCelMutation) OldAlwaysIgnored(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldAlwaysIgnored is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldAlwaysIgnored requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldAlwaysIgnored: %w", err)
+	}
+	return oldValue.AlwaysIgnored, nil
+}
+
+// ResetAlwaysIgnored resets all changes to the "always_ignored" field.
+func (m *IgnoreAlwaysWithCelMutation) ResetAlwaysIgnored() {
+	m.always_ignored = nil
+}
+
+// SetEnforced sets the "enforced" field.
+func (m *IgnoreAlwaysWithCelMutation) SetEnforced(s string) {
+	m.enforced = &s
+}
+
+// Enforced returns the value of the "enforced" field in the mutation.
+func (m *IgnoreAlwaysWithCelMutation) Enforced() (r string, exists bool) {
+	v := m.enforced
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldEnforced returns the old "enforced" field's value of the IgnoreAlwaysWithCel entity.
+// If the IgnoreAlwaysWithCel object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *IgnoreAlwaysWithCelMutation) OldEnforced(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldEnforced is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldEnforced requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldEnforced: %w", err)
+	}
+	return oldValue.Enforced, nil
+}
+
+// ResetEnforced resets all changes to the "enforced" field.
+func (m *IgnoreAlwaysWithCelMutation) ResetEnforced() {
+	m.enforced = nil
+}
+
+// Where appends a list predicates to the IgnoreAlwaysWithCelMutation builder.
+func (m *IgnoreAlwaysWithCelMutation) Where(ps ...predicate.IgnoreAlwaysWithCel) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the IgnoreAlwaysWithCelMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *IgnoreAlwaysWithCelMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.IgnoreAlwaysWithCel, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *IgnoreAlwaysWithCelMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *IgnoreAlwaysWithCelMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (IgnoreAlwaysWithCel).
+func (m *IgnoreAlwaysWithCelMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *IgnoreAlwaysWithCelMutation) Fields() []string {
+	fields := make([]string, 0, 2)
+	if m.always_ignored != nil {
+		fields = append(fields, ignorealwayswithcel.FieldAlwaysIgnored)
+	}
+	if m.enforced != nil {
+		fields = append(fields, ignorealwayswithcel.FieldEnforced)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *IgnoreAlwaysWithCelMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case ignorealwayswithcel.FieldAlwaysIgnored:
+		return m.AlwaysIgnored()
+	case ignorealwayswithcel.FieldEnforced:
+		return m.Enforced()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *IgnoreAlwaysWithCelMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case ignorealwayswithcel.FieldAlwaysIgnored:
+		return m.OldAlwaysIgnored(ctx)
+	case ignorealwayswithcel.FieldEnforced:
+		return m.OldEnforced(ctx)
+	}
+	return nil, fmt.Errorf("unknown IgnoreAlwaysWithCel field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *IgnoreAlwaysWithCelMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case ignorealwayswithcel.FieldAlwaysIgnored:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetAlwaysIgnored(v)
+		return nil
+	case ignorealwayswithcel.FieldEnforced:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetEnforced(v)
+		return nil
+	}
+	return fmt.Errorf("unknown IgnoreAlwaysWithCel field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *IgnoreAlwaysWithCelMutation) AddedFields() []string {
+	return nil
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *IgnoreAlwaysWithCelMutation) AddedField(name string) (ent.Value, bool) {
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *IgnoreAlwaysWithCelMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	}
+	return fmt.Errorf("unknown IgnoreAlwaysWithCel numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *IgnoreAlwaysWithCelMutation) ClearedFields() []string {
+	return nil
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *IgnoreAlwaysWithCelMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *IgnoreAlwaysWithCelMutation) ClearField(name string) error {
+	return fmt.Errorf("unknown IgnoreAlwaysWithCel nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *IgnoreAlwaysWithCelMutation) ResetField(name string) error {
+	switch name {
+	case ignorealwayswithcel.FieldAlwaysIgnored:
+		m.ResetAlwaysIgnored()
+		return nil
+	case ignorealwayswithcel.FieldEnforced:
+		m.ResetEnforced()
+		return nil
+	}
+	return fmt.Errorf("unknown IgnoreAlwaysWithCel field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *IgnoreAlwaysWithCelMutation) AddedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *IgnoreAlwaysWithCelMutation) AddedIDs(name string) []ent.Value {
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *IgnoreAlwaysWithCelMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *IgnoreAlwaysWithCelMutation) RemovedIDs(name string) []ent.Value {
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *IgnoreAlwaysWithCelMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *IgnoreAlwaysWithCelMutation) EdgeCleared(name string) bool {
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *IgnoreAlwaysWithCelMutation) ClearEdge(name string) error {
+	return fmt.Errorf("unknown IgnoreAlwaysWithCel unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *IgnoreAlwaysWithCelMutation) ResetEdge(name string) error {
+	return fmt.Errorf("unknown IgnoreAlwaysWithCel edge %s", name)
 }
 
 // Int32AdjacentMutation represents an operation that mutates the Int32Adjacent nodes in the graph.

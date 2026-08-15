@@ -5,6 +5,7 @@ package runtime
 import (
 	"github.com/smintz/entconnect/mixinforproto/internal/difftest/ent/doublecomparators"
 	"github.com/smintz/entconnect/mixinforproto/internal/difftest/ent/floatcomparators"
+	"github.com/smintz/entconnect/mixinforproto/internal/difftest/ent/ignorealwayswithcel"
 	"github.com/smintz/entconnect/mixinforproto/internal/difftest/ent/int32adjacent"
 	"github.com/smintz/entconnect/mixinforproto/internal/difftest/ent/int32comparators"
 	"github.com/smintz/entconnect/mixinforproto/internal/difftest/ent/int32overflow"
@@ -70,6 +71,21 @@ func init() {
 	floatcomparators.DefaultGteLteField = floatcomparatorsDescGteLteField.Default.(float32)
 	// floatcomparators.GteLteFieldValidator is a validator for the "gte_lte_field" field. It is called by the builders before save.
 	floatcomparators.GteLteFieldValidator = floatcomparatorsDescGteLteField.Validators[0].(func(float32) error)
+	ignorealwayswithcelMixin := schema.IgnoreAlwaysWithCel{}.Mixin()
+	ignorealwayswithcelMixinHooks0 := ignorealwayswithcelMixin[0].Hooks()
+	ignorealwayswithcel.Hooks[0] = ignorealwayswithcelMixinHooks0[0]
+	ignorealwayswithcelMixinFields0 := ignorealwayswithcelMixin[0].Fields()
+	_ = ignorealwayswithcelMixinFields0
+	ignorealwayswithcelFields := schema.IgnoreAlwaysWithCel{}.Fields()
+	_ = ignorealwayswithcelFields
+	// ignorealwayswithcelDescAlwaysIgnored is the schema descriptor for always_ignored field.
+	ignorealwayswithcelDescAlwaysIgnored := ignorealwayswithcelMixinFields0[0].Descriptor()
+	// ignorealwayswithcel.DefaultAlwaysIgnored holds the default value on creation for the always_ignored field.
+	ignorealwayswithcel.DefaultAlwaysIgnored = ignorealwayswithcelDescAlwaysIgnored.Default.(string)
+	// ignorealwayswithcelDescEnforced is the schema descriptor for enforced field.
+	ignorealwayswithcelDescEnforced := ignorealwayswithcelMixinFields0[1].Descriptor()
+	// ignorealwayswithcel.DefaultEnforced holds the default value on creation for the enforced field.
+	ignorealwayswithcel.DefaultEnforced = ignorealwayswithcelDescEnforced.Default.(string)
 	int32adjacentMixin := schema.Int32Adjacent{}.Mixin()
 	int32adjacentMixinHooks0 := int32adjacentMixin[0].Hooks()
 	int32adjacent.Hooks[0] = int32adjacentMixinHooks0[0]

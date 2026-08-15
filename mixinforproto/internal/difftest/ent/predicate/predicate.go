@@ -12,6 +12,9 @@ type DoubleComparators func(*sql.Selector)
 // FloatComparators is the predicate function for floatcomparators builders.
 type FloatComparators func(*sql.Selector)
 
+// IgnoreAlwaysWithCel is the predicate function for ignorealwayswithcel builders.
+type IgnoreAlwaysWithCel func(*sql.Selector)
+
 // Int32Adjacent is the predicate function for int32adjacent builders.
 type Int32Adjacent func(*sql.Selector)
 

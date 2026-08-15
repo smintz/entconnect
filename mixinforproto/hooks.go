@@ -107,6 +107,13 @@ type fieldEvaluator struct {
 	fd       protoreflect.FieldDescriptor
 	class    string
 	programs []celProgram
+	// ignore is fd's resolved (buf.validate.field).ignore mode
+	// (validate.Ignore_IGNORE_UNSPECIFIED when the field carries none),
+	// resolved ONCE here at schema load — VAL-04's "compiled once at
+	// schema load" wording extends to this decision too, so evaluate()
+	// must never call protovalidate.ResolveFieldRules at mutation time
+	// (CR-02 gap closure, 03-06-PLAN.md).
+	ignore validate.Ignore
 }
 
 // hookState is the schema-load-time compiled state behind one
@@ -224,37 +231,66 @@ func buildHookState(md protoreflect.MessageDescriptor, opts ...Option) (*hookSta
 			continue
 		}
 
+		// CR-02 gap closure (03-06-PLAN.md): resolve fd's ignore mode
+		// ONCE here, at schema load, exactly the way every other
+		// per-field decision in this loop is resolved once. When it is
+		// IGNORE_ALWAYS, the local cel.Env compilation below is skipped
+		// entirely — programs stays nil — so evaluate()'s residual-CEL
+		// half never has a program to run for this field, matching what
+		// protovalidate's own boundary evaluator already does for the
+		// standard half (buf.build/go/protovalidate's own Ignore
+		// handling, verified against validate.proto's own doc comment
+		// on the Ignore enum). IGNORE_IF_ZERO_VALUE is NOT handled here
+		// — it is a mutation-time (value-dependent) decision, gated
+		// inside evaluate()'s celFields loop by isZeroForKind (Task 2),
+		// not a compile-time one.
+		ignoreMode := rules.GetIgnore()
+
 		var programs []celProgram
-		for _, r := range rules.GetCel() {
-			prg, cerr := compileCELRule(fd, r)
-			if cerr != nil {
-				failures = append(failures, failure{
-					message:     msgName,
-					field:       name,
-					fieldIndex:  int(fd.Index()),
-					rule:        "hook",
-					description: cerr.Error(),
-					remedy:      "fix the CEL expression in the contract's (buf.validate.field).cel rule",
+		if ignoreMode != validate.Ignore_IGNORE_ALWAYS {
+			for _, r := range rules.GetCel() {
+				prg, cerr := compileCELRule(fd, r)
+				if cerr != nil {
+					failures = append(failures, failure{
+						message:     msgName,
+						field:       name,
+						fieldIndex:  int(fd.Index()),
+						rule:        "hook",
+						description: cerr.Error(),
+						remedy:      "fix the CEL expression in the contract's (buf.validate.field).cel rule",
+					})
+					continue
+				}
+				celCompileCount.Add(1)
+				programs = append(programs, celProgram{
+					ruleID:     r.GetId(),
+					message:    r.GetMessage(),
+					expression: r.GetExpression(),
+					prg:        prg,
 				})
-				continue
 			}
-			celCompileCount.Add(1)
-			programs = append(programs, celProgram{
-				ruleID:     r.GetId(),
-				message:    r.GetMessage(),
-				expression: r.GetExpression(),
-				prg:        prg,
-			})
 		}
 
 		// D-02: this field is in scope for the standard-rule evaluator
 		// regardless of whether it has any CEL programs above — a field
 		// with only a standard rule (e.g. string.max_len) still needs an
 		// entry so evaluate() includes it in the Filter scope.
+		//
+		// This entry is kept EVEN for an IGNORE_ALWAYS field — dropping
+		// it would be wrong in two ways: (a) protovalidate's own
+		// evaluator already honors ignore for the standard-rule half, so
+		// leaving the field in the standardFields Filter scope produces
+		// the boundary-identical answer (zero violations) with no
+		// reimplementation of ignore semantics for structural rules
+		// needed here; (b) a field a message-level rule references via
+		// extraFields must still be reverse-converted into the
+		// reconstructed dyn message, or D-03's phantom-violation
+		// protection breaks at message scope — the CR-01 class.
 		hs.evaluators = append(hs.evaluators, fieldEvaluator{
 			fd:       fd,
 			class:    class,
 			programs: programs,
+			ignore:   ignoreMode,
 		})
 	}
 

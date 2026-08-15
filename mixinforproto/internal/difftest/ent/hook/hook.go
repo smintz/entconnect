@@ -33,6 +33,18 @@ func (f FloatComparatorsFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.V
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.FloatComparatorsMutation", m)
 }
 
+// The IgnoreAlwaysWithCelFunc type is an adapter to allow the use of ordinary
+// function as IgnoreAlwaysWithCel mutator.
+type IgnoreAlwaysWithCelFunc func(context.Context, *ent.IgnoreAlwaysWithCelMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f IgnoreAlwaysWithCelFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.IgnoreAlwaysWithCelMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.IgnoreAlwaysWithCelMutation", m)
+}
+
 // The Int32AdjacentFunc type is an adapter to allow the use of ordinary
 // function as Int32Adjacent mutator.
 type Int32AdjacentFunc func(context.Context, *ent.Int32AdjacentMutation) (ent.Value, error)

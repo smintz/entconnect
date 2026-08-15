@@ -33,6 +33,18 @@ var (
 		Columns:    FloatComparatorsColumns,
 		PrimaryKey: []*schema.Column{FloatComparatorsColumns[0]},
 	}
+	// IgnoreAlwaysWithCelsColumns holds the columns for the "ignore_always_with_cels" table.
+	IgnoreAlwaysWithCelsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "always_ignored", Type: field.TypeString, Default: ""},
+		{Name: "enforced", Type: field.TypeString, Default: ""},
+	}
+	// IgnoreAlwaysWithCelsTable holds the schema information for the "ignore_always_with_cels" table.
+	IgnoreAlwaysWithCelsTable = &schema.Table{
+		Name:       "ignore_always_with_cels",
+		Columns:    IgnoreAlwaysWithCelsColumns,
+		PrimaryKey: []*schema.Column{IgnoreAlwaysWithCelsColumns[0]},
+	}
 	// Int32adjacentsColumns holds the columns for the "int32adjacents" table.
 	Int32adjacentsColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt, Increment: true},
@@ -273,6 +285,7 @@ var (
 	Tables = []*schema.Table{
 		DoubleComparatorsTable,
 		FloatComparatorsTable,
+		IgnoreAlwaysWithCelsTable,
 		Int32adjacentsTable,
 		Int32comparatorsTable,
 		Int32overflowsTable,
