@@ -9,8 +9,8 @@ import (
 	"buf.build/go/protovalidate"
 
 	"github.com/smintz/entconnect/mixinforproto/internal/difftest/ent/messagerulecelexpression"
-	"github.com/smintz/entconnect/mixinforproto/internal/difftest/ent/messagerules"
 	"github.com/smintz/entconnect/mixinforproto/internal/difftest/ent/messageruleoneof"
+	"github.com/smintz/entconnect/mixinforproto/internal/difftest/ent/messagerules"
 
 	mixinforprototestv1 "github.com/smintz/entconnect/mixinforproto/internal/gen/mixinforprototestv1"
 )
