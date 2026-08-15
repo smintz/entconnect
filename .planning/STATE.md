@@ -5,15 +5,15 @@ milestone_name: milestone
 current_phase: 03
 current_phase_name: validation-fidelity
 status: executing
-stopped_at: Completed 03-05-PLAN.md (final plan of phase 03-validation-fidelity)
-last_updated: "2026-08-15T08:59:41.447Z"
-last_activity: 2026-08-14
-last_activity_desc: Phase 02 marked complete
+stopped_at: Completed 03-07-PLAN.md
+last_updated: "2026-08-15T11:29:46.149Z"
+last_activity: 2026-08-15
+last_activity_desc: Phase 03 execution started
 progress:
   total_phases: 3
-  completed_phases: 3
+  completed_phases: 2
   total_plans: 22
-  completed_plans: 19
+  completed_plans: 20
 ---
 
 # Project State
@@ -28,11 +28,11 @@ See: .planning/PROJECT.md (updated 2026-08-08)
 ## Current Position
 
 Phase: 03 (validation-fidelity) — EXECUTING
-Plan: 5 of 8
+Plan: 2 of 8
 Status: Ready to execute
-Last activity: 2026-08-15 — Phase 03 gap-closure plans 03-06..03-08 created
+Last activity: 2026-08-15 — Phase 03 execution started
 
-Progress: [████████▒▒] 86%
+Progress: [█████████░] 91%
 
 ## Performance Metrics
 
@@ -72,6 +72,7 @@ Progress: [████████▒▒] 86%
 | Phase 03 P03 | 62min | 3 tasks | 22 files |
 | Phase 03-validation-fidelity P04 | 34min | 3 tasks | 48 files |
 | Phase 03 P05 | 51min | 3 tasks | 186 files |
+| Phase 03-validation-fidelity P07 | 7min | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -124,6 +125,8 @@ Recent decisions affecting current work:
 - [Phase ?]: D-10's schema-load field-reference walk lives in buildHookState (hooks.go), not derive.go — reuses the existing failures/newDerivationError collected pattern
 - [Phase ?]: PIPE-05's constraint-class guard ground truth is scoped to rule categories actually populated in the live corpus (reflectively computed), not protovalidate's full abstract surface
 - [Phase ?]: PIPE-06's differential sweep drives a real ent.Client generically via reflection across 21 corpus messages (36 more covered-with-zero-cases), since internal/difftest cannot reach mixinforproto's unexported hookState.evaluate()
+- [Phase ?]: Phase 03 Plan 07: check-single-validationerror-site walks the whole repo from root (not per-MODULES) since VAL-07's invariant is whole-repo by definition; wired into CI's modules job rather than standalone since it has no GOWORK=off dependency
+- [Phase ?]: Phase 03 Plan 07: scripts/pipeline.sh step-count labels (1/5..5/5) updated to 1/6..6/6 to keep header documentation matching the new 6-step total; the five original steps kept their fixed order and numbers
 
 ### Pending Todos
 
@@ -147,6 +150,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-08-14T18:05:34.237Z
-Stopped at: Completed 03-05-PLAN.md (final plan of phase 03-validation-fidelity)
+Last session: 2026-08-15T11:29:46.127Z
+Stopped at: Completed 03-07-PLAN.md
 Resume file: None
