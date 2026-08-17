@@ -209,6 +209,26 @@ See `key-decisions` in frontmatter for the full list. Highlights:
   - `internal/entconnecttest/hookwiring`'s generated `ent/runtime/runtime.go` was produced by entc codegen running AGAINST THE CURRENT WORKING-TREE mixinforproto (via `go.work`), which observes `Policed`'s mixin returning exactly one `ent.Hook` (since `HookWiring` carries protovalidate rules) and hard-codes `policed.Hooks[1] = policedMixinHooks0[0]` accordingly. Under `GOWORK=off`, the OLD `v0.1.0` mixin's `Hooks()` returns an EMPTY slice (it predates any `Hooks()` implementation at all), so that hard-coded `[0]` index panics: `panic: runtime error: index out of range [0] with length 0` at `hookwiring/ent/runtime/runtime.go:33`.
   - **Precondition record:** `make test-standalone-root` was run BEFORE any Task 2 change (immediately after Task 1's commit) and FAILED with this exact panic. It was run AGAIN after Task 2's changes and FAILED IDENTICALLY — same panic, same line, same root cause. Task 2 introduced no new `GOWORK=off`-specific failure; `runtime`'s own tests (this plan's new `interceptor_test.go` included) pass cleanly under `GOWORK=off` — only the `hookwiring` package (which did not exist before this plan) is affected, and only because it is the FIRST fixture in this repo whose generated code was produced after `Hooks()` shipped (03-01/03-02/03-03's other fixtures — `update`, `write` — still carry generated code from BEFORE `Hooks()` existed and were never regenerated since, so they coincidentally still assume zero mixin hooks and do not hit this).
   - **Follow-up (Phase 1 D-19, out of this plan's scope):** a new `mixinforproto` tag must be pushed (containing 03-01/03-02/03-03's `Hooks()` implementation) and root's `go.mod` bumped to reference it, in a SEPARATE commit from the tag push — never a same-commit self-reference. Until that lands, `make test-standalone-root` (and CI's `standalone` job's corresponding step) will fail on this one fixture. This is a pre-existing, now-surfaced gap this plan's own `<precondition>` explicitly anticipated and instructed be reported rather than absorbed — not something Task 2 is scoped to fix.
+
+    > **Correction (2026-08-17, post-hoc).** The "only the `hookwiring` package is affected" scoping
+    > above was accurate when written but is **no longer true**. Commit `793c7c8` ("chore(03):
+    > regenerate stale entc trees and claims fixtures after phase 03") landed after this plan and
+    > regenerated the `read` and `write` fixture trees too — so their generated `ent/runtime/
+    > runtime.go` now also hard-codes a mixin-hook index. CI run 31889327821 on `964094a` shows the
+    > identical panic in **three** packages, not one:
+    > `hookwiring/ent/runtime/runtime.go:33`, `read/ent/runtime/runtime.go:31`, and
+    > `write/ent/runtime/runtime.go:31`. The predicted coincidence ("`update`, `write` … still carry
+    > generated code from BEFORE `Hooks()` existed") expired the moment those trees were regenerated.
+    >
+    > Root cause, fix, and D-19 sequencing are all unchanged — only the blast radius grew. Any
+    > fixture regenerated from here on will join the list, so the count is a function of how many
+    > trees have been regenerated since `Hooks()` shipped, not a property of `hookwiring`.
+    >
+    > **Release decision (2026-08-17, user):** do **not** tag from this unmerged branch. Merge Phase 3
+    > to main first, then tag `mixinforproto/v0.2.0` from main, then bump root's `go.mod` in a
+    > separate commit. Go module versions are immutable once the proxy caches them, and 03-09/03-10
+    > are still open, so tagging pre-merge risks publishing an API that still changes. CI's
+    > `standalone` job stays red until that lands — deliberately, and for a true reason.
   - `check-dep-parity` (Task 3) itself is NOT affected by this — it only compares module VERSIONS via `go list -m`, which succeeds fine under `GOWORK=off` for both modules (all five named modules resolve identically today); it does not build or run any test code.
 - No other issues.
 
