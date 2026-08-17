@@ -10,6 +10,19 @@ lint:
     # this repo does not own its package-naming convention, so linting it
     # against our own STANDARD ruleset is not meaningful.
     - buf/validate
+  ignore_only:
+    # PROTOVALIDATE's "ignore=IGNORE_ALWAYS combined with another rule
+    # should be removed" sub-check assumes the combination is always
+    # dead weight — true at the RPC boundary (protovalidate's own
+    # evaluator never runs the sibling rule once ignore=IGNORE_ALWAYS
+    # applies) but exactly the shape 03-06-PLAN.md's IgnoreAlwaysWithCel
+    # fixture needs: it proves hooks.go's LOCAL cel.Env — a second,
+    # independently-compiled evaluator with no innate notion of ignore —
+    # also skips the rule, closing CR-02. Scoped to this one file only;
+    # every other file still gets PROTOVALIDATE's full check, including
+    # its CEL-expression-compiles sub-check.
+    PROTOVALIDATE:
+      - mixinforprototest/v1/ignore.proto
 breaking:
   use:
     - FILE

@@ -115,13 +115,47 @@ Plans:
 **Requirements**: VAL-04, VAL-05, VAL-06, VAL-07, VAL-08, VAL-09, VAL-10, VAL-11, PIPE-05, PIPE-06
 **Success Criteria** (what must be TRUE):
 
-  1. Residual field-scoped protovalidate CEL rules (the long tail Tier 1 can't translate) are compiled once at schema load and evaluated by a single mixin-declared hook that only checks fields the mutation actually changed
+  1. The mixin hook evaluates the full protovalidate field-rule set for every in-scope field — translated and residual alike, not residual-only — compiled once at schema load; a Tier 1 translated rule failing at the storage layer must still carry protovalidate's own constraint ID, which a residual-only hook cannot produce (Amended 2026-08-14, D-02 — see 03-CONTEXT.md: this scope is the minimum needed for VAL-07's identity guarantee to hold)
   2. A schema-layer violation carries the same protovalidate constraint ID and message as the boundary interceptor would produce, exposed as a structured error consumable outside any RPC context — so a caller cannot tell which layer caught it
   3. Message-level (cross-field) rules stay boundary-only unless a developer opts in with `WithMessageRules(OnCreate)`; the mixin hook's ordering relative to schema-declared hooks/policies is documented and covered by a test that fails if ent changes that order; the boundary validator is built once per process, not per request
   4. CI fails when `mixinforproto`'s and `entconnect`'s resolved protovalidate/cel-go versions diverge
   5. A conformance corpus golden-asserts every field-mapping rule and protovalidate constraint class against derived fields, and a differential harness feeds random values through every corpus message asserting `protovalidate verdict == ent mutation verdict` for field-scoped rules
 
-**Plans**: TBD
+**Plans**: 10 plans (8 executed, 2 planned)
+Plans:
+**Wave 1**
+
+- [x] 03-01-PLAN.md — Tracer: one residual protovalidate CEL rule rejects a real ent Create end to end, driverless; `runtime.MapError` learns the new error type; the ROADMAP SC1 / VAL-05 / CLAUDE.md corrections land first
+
+**Wave 2** *(blocked on Wave 1)*
+
+- [x] 03-02-PLAN.md — The reverse conversion table for every derivation kind, the JSON-to-`dynamicpb` leg as its own risk-isolated task, and D-09's boundary-only rule provenance on `SourceMessage`
+
+**Wave 3** *(blocked on Wave 2; two parallel plans, disjoint files)*
+
+- [x] 03-03-PLAN.md — Hybrid completion: protovalidate's own evaluator via `WithFilter`, the mixed-rule convergence settled by test, D-06's operation-dependent scope, and the schema-load panic for uncompilable CEL
+- [x] 03-04-PLAN.md — Root-module proofs: real-client wiring, relative hook ordering across policy-bearing and policy-free schemas, once-per-process validator construction, and the VAL-11 dependency-parity gate
+
+**Wave 4** *(blocked on Wave 3)*
+
+- [x] 03-05-PLAN.md — `WithMessageRules(OnCreate)` with the excluded-field-reference gate, constraint-class corpus coverage, and the deterministically seeded differential sweep
+
+**Gap Closure Wave 1** *(closes `03-VERIFICATION.md` gaps CR-01/CR-02/CR-03/WR-07 + WR-04; runs after the five original plans; two parallel plans, disjoint files)*
+
+- [x] 03-06-PLAN.md — Gaps CR-02 and CR-03: the hook honors `(buf.validate.field).ignore` and the `Exclude`/`Override` option set, with an `ignore` corpus fixture the differential sweep drives through a real ent client
+- [x] 03-07-PLAN.md — Gap WR-07: the `check-single-validationerror-site` invariant gate, wired into `make`, `scripts/pipeline.sh` and CI the way `check-dep-parity` is, and the test comment that named a nonexistent target corrected
+
+**Gap Closure Wave 2** *(blocked on Gap Closure Wave 1)*
+
+- [x] 03-08-PLAN.md — Gap CR-01 and warning WR-04: `cel_expression` and `oneof` message-rule carriers enumerated by D-10's schema-load gate, `WithMessageRules` honoring its trigger, and two declaration-surface exhaustiveness guards that make the next omitted carrier a named test failure
+
+**Gap Closure Wave 3** *(closes `03-VERIFICATION.md`'s one remaining gap — `buf.validate.oneof`/`OneofRules`, the THIRD rule-carrier extension, distinct from the `MessageRules.oneof` carrier 03-08 closed; blocked on Gap Closure Wave 2)*
+
+- [ ] 03-09-PLAN.md — The `OneofRules` gap: `protovalidate.ResolveOneofRules` wired into `derive.go`, the constraint recorded as named boundary-only provenance that survives entc's schema-load boundary, a corpus fixture declaring `(buf.validate.oneof)`, a third declaration-surface guard, and a real-`ent.Client` proof that the boundary/storage divergence is exactly the recorded one
+
+**Gap Closure Wave 4** *(blocked on Gap Closure Wave 3; owns every documentation file so its file set stays disjoint)*
+
+- [ ] 03-10-PLAN.md — Warnings WR-01 and WR-02: `reverseEnum` stops naming the rejected value (with a class-complete sentinel-absence sweep), the README documents the `Exclude`/`Override`/`WithMessageRules` API that actually ships, both design surfaces state the `OneofRules` scope boundary, and `REQUIREMENTS.md`'s VAL-09/10/11 rows stop contradicting two verification passes
 
 ### Phase 4: Flow Binding
 
@@ -164,6 +198,6 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 |-------|----------------|--------|-----------|
 | 1. MixinForProto Core | 9/9 | In Progress|  |
 | 2. CRUD Handlers & Interceptor Chain | 0/5 | Planned | - |
-| 3. Validation Fidelity | 0/TBD | Not started | - |
+| 3. Validation Fidelity | 8/8 | In Progress|  |
 | 4. Flow Binding | 0/TBD | Not started | - |
 | 5. Full Drift Check & Reference App | 0/TBD | Not started | - |

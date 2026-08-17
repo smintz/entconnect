@@ -1,0 +1,62 @@
+// ignore.proto is Plan 03-06's corpus for CR-02's gap closure:
+// (buf.validate.field).ignore was previously invisible to
+// buildHookState's per-field loop, so a field carrying ignore =
+// IGNORE_ALWAYS or ignore = IGNORE_IF_ZERO_VALUE together with a custom
+// (buf.validate.field).cel rule produced a divergent verdict between the
+// RPC boundary (which honors ignore correctly, via protovalidate's own
+// evaluator) and the storage layer (which did not honor it at all,
+// since the local cel.Env had no notion of ignore).
+syntax = "proto3";
+
+package mixinforprototest.v1;
+
+import "buf/validate/validate.proto";
+
+// IgnoreAlwaysWithCel is Task 1's fixture: always_ignored carries BOTH
+// ignore = IGNORE_ALWAYS and a custom cel rule that a real value can
+// fail, so a real Create that fails the rule on that field alone must
+// still succeed with zero violations. enforced is the load-bearing
+// sibling: it carries the identical cel rule shape with NO ignore
+// option, so a real Create that fails ONLY enforced's rule is still
+// rejected — proving the ignore branch suppresses one field, not the
+// whole message.
+message IgnoreAlwaysWithCel {
+  string always_ignored = 1 [
+    (buf.validate.field).ignore = IGNORE_ALWAYS,
+    (buf.validate.field).cel = {
+      id: "ignore.ignore_always_with_cel.always_ignored.starts_with_x"
+      message: "value must start with X"
+      expression: "this.startsWith('X')"
+    }
+  ];
+  string enforced = 2 [(buf.validate.field).cel = {
+    id: "ignore.ignore_always_with_cel.enforced.starts_with_x"
+    message: "value must start with X"
+    expression: "this.startsWith('X')"
+  }];
+}
+
+// IgnoreIfZeroWithCel is Task 2's fixture: zeroable carries
+// ignore = IGNORE_IF_ZERO_VALUE plus a cel rule, so it is skipped only
+// when its reverse-converted value is the empty string, and enforced
+// normally otherwise. zeroable_num mirrors the same shape on a
+// non-string scalar (int32), so the zero test is proven for more than
+// one kind — hooks.go's isZeroForKind must cover both.
+message IgnoreIfZeroWithCel {
+  string zeroable = 1 [
+    (buf.validate.field).ignore = IGNORE_IF_ZERO_VALUE,
+    (buf.validate.field).cel = {
+      id: "ignore.ignore_if_zero_with_cel.zeroable.starts_with_x"
+      message: "value must start with X"
+      expression: "this.startsWith('X')"
+    }
+  ];
+  int32 zeroable_num = 2 [
+    (buf.validate.field).ignore = IGNORE_IF_ZERO_VALUE,
+    (buf.validate.field).cel = {
+      id: "ignore.ignore_if_zero_with_cel.zeroable_num.positive"
+      message: "value must be positive"
+      expression: "this > 0"
+    }
+  ];
+}

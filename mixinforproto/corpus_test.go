@@ -21,11 +21,19 @@
 //     the mixinforprototest.v1 package has a named, checked coverage
 //     claim, in both directions (the axis gap 2's single-field-message
 //     precondition lived on — see constraints.proto's header comment).
+//   - TestCorpusExercisesEveryProtovalidateConstraintClass (Plan 03-05
+//     Task 2, PIPE-05): every protovalidate rule category populated
+//     anywhere in the corpus produces recorded provenance (TranslatedIDs/
+//     ResidualIDs/LengthUnitDivergentIDs/BoundaryOnly) SOMEWHERE — the
+//     same "the corpus happens to avoid this shape" root cause, applied
+//     to protovalidate's OWN constraint vocabulary rather than
+//     mixinforproto's derivation-shape taxonomy.
 //
 // A guard that has never been observed failing is indistinguishable from
 // a guard that cannot fail — that is precisely the trap the original
-// corpus fell into. Each guard's SUMMARY entry (01-09-SUMMARY.md) records
-// it being deliberately broken and caught, not merely asserted to work.
+// corpus fell into. Each guard's SUMMARY entry (01-09-SUMMARY.md,
+// 03-05-SUMMARY.md) records it being deliberately broken and caught, not
+// merely asserted to work.
 package mixinforproto
 
 import (
@@ -36,6 +44,7 @@ import (
 	"strings"
 	"testing"
 
+	"buf.build/go/protovalidate"
 	"google.golang.org/protobuf/reflect/protoreflect"
 	"google.golang.org/protobuf/reflect/protoregistry"
 
@@ -362,6 +371,59 @@ var corpusCoverage = map[string]string{
 	"mixinforprototest.v1.Int32Overflow":             "golden:constraints_int32_overflow",
 	"mixinforprototest.v1.FloatComparators":          "golden:constraints_float_comparators",
 	"mixinforprototest.v1.DoubleComparators":         "golden:constraints_double_comparators",
+	"mixinforprototest.v1.MixedFieldRules":           "golden:constraints_mixed_field_rules",
+	"mixinforprototest.v1.ReverseScalars":            "golden:reverse_scalars",
+	"mixinforprototest.v1.ReverseEnum":               "golden:reverse_enum",
+	"mixinforprototest.v1.ReverseWkt":                "golden:reverse_wkt",
+	"mixinforprototest.v1.ReverseScalarMap":          "golden:reverse_scalar_map",
+	"mixinforprototest.v1.ReverseAsJSON":             "golden:reverse_as_json",
+	// ReversePayload is a reference-only type (ReverseAsJSON's AsJSON-
+	// opted-in field value), never derived on its own — its shape is
+	// exercised indirectly through ReverseAsJSON's own golden.
+	"mixinforprototest.v1.ReversePayload": "test:TestReverseCorpusGolden",
+
+	// Plan 03-05's WithMessageRules(OnCreate)/D-10 corpus
+	// (messagerules.proto). MessageRuleOk and MessageRuleExcludedRef both
+	// derive cleanly with no options (their own "excluded" naming only
+	// applies once a specific test opts a field out via Exclude), so they
+	// get ordinary golden fixtures like every other plain corpus message.
+	// The rest deliberately fail full derivation under specific options,
+	// or exist purely to prove a schema-load property with no field-level
+	// shape of its own interest — named tests, per this map's own
+	// documented convention above.
+	"mixinforprototest.v1.MessageRuleOk":              "golden:messagerules_ok",
+	"mixinforprototest.v1.MessageRuleExcludedRef":     "golden:messagerules_excluded_ref",
+	"mixinforprototest.v1.MessageRuleTwoExcludedRefs": "test:TestBuildHookState_MessageRuleTwoExcludedRefsFailsInOnePass",
+	// Plan 03-08's CR-01 gap-closure corpus: the cel_expression and oneof
+	// MessageRules carriers, previously never read by
+	// checkMessageRuleReferences. Each is a named test (not a golden), same
+	// as MessageRuleTwoExcludedRefs above — every one of these fixtures
+	// exists to prove a schema-load property, not a field-derivation shape
+	// of its own interest.
+	"mixinforprototest.v1.MessageRuleCelExpressionOk":          "test:TestBuildHookState_MessageRuleCelExpressionRefsSeedExtraFields",
+	"mixinforprototest.v1.MessageRuleCelExpressionExcludedRef": "test:TestBuildHookState_MessageRuleCelExpressionExcludedRefFailsSchemaLoad",
+	"mixinforprototest.v1.MessageRuleOneofOk":                  "test:TestBuildHookState_MessageRuleOneofRefsSeedExtraFields",
+	"mixinforprototest.v1.MessageRuleOneofExcludedRef":         "test:TestBuildHookState_MessageRuleOneofExcludedRefFailsSchemaLoad",
+	"mixinforprototest.v1.MessageRuleMultiCarrierExcludedRef":  "test:TestBuildHookState_MessageRuleMultiCarrierExcludedRefFailsInOnePass",
+	"mixinforprototest.v1.MessageRuleCelExpressionNoFieldRef":  "test:TestBuildHookState_MessageRuleCelExpressionNoFieldRefIsLegalNoOp",
+	// MessageRuleDetail is a reference-only type (MessageRuleUnderivableRef's
+	// message-typed "detail" field value, deliberately never AsJSON-opted-in) —
+	// its role is exercised indirectly through MessageRuleUnderivableRef's own test.
+	"mixinforprototest.v1.MessageRuleDetail":         "test:TestBuildHookState_MessageRuleUnderivableRefFailsSchemaLoad",
+	"mixinforprototest.v1.MessageRuleUnderivableRef": "test:TestBuildHookState_MessageRuleUnderivableRefFailsSchemaLoad",
+	"mixinforprototest.v1.MessageRuleNone":           "test:TestBuildHookState_MessageRuleNoneIsLegalNoOp",
+	"mixinforprototest.v1.MessageRuleLookalike":      "test:TestBuildHookState_MessageRuleLookalikeDoesNotFalsePositive",
+
+	// Plan 03-06's ignore.proto corpus (CR-02 gap closure): a field
+	// carrying (buf.validate.field).ignore together with a custom cel
+	// rule, proven through internal/difftest's real ent.Client rather
+	// than a golden fixture, so the storage-vs-boundary identity
+	// comparison is the recorded coverage claim.
+	"mixinforprototest.v1.IgnoreAlwaysWithCel": "test:TestIgnoreAlways_SuppressedFieldProducesZeroViolations",
+	// Plan 03-06 Task 2's IGNORE_IF_ZERO_VALUE fixture — proven both by
+	// hooks_test.go's direct hookState.evaluate zero/non-zero cases and
+	// by ignore_test.go's real ent.Client differential proof.
+	"mixinforprototest.v1.IgnoreIfZeroWithCel": "test:TestEvaluate_IgnoreIfZeroValue_ZeroStringProducesNoViolation",
 }
 
 // TestCorpusMessagesHaveRecordedCoverage checks corpusCoverage in BOTH
@@ -429,4 +491,292 @@ func TestCorpusMessagesHaveRecordedCoverage(t *testing.T) {
 			t.Fatalf("corpusCoverage golden claim(s) point at a nonexistent testdata fixture:\n  %s", strings.Join(missingGolden, "\n  "))
 		}
 	})
+
+	// Plan 03-05 Task 2 (PIPE-05): two messages must never share the same
+	// "golden:<name>" claim. A merged/reused golden is exactly how a
+	// message's own behavior stops being independently checked while
+	// this guard stays green — two messages exercising the same
+	// constraint class must each carry their own entry (see this guard's
+	// own package doc comment).
+	t.Run("no two corpus messages share the same golden claim", func(t *testing.T) {
+		byGolden := map[string][]string{}
+		for name, claim := range corpusCoverage {
+			goldenName, ok := strings.CutPrefix(claim, "golden:")
+			if !ok {
+				continue
+			}
+			byGolden[goldenName] = append(byGolden[goldenName], name)
+		}
+		var dupes []string
+		for golden, names := range byGolden {
+			if len(names) < 2 {
+				continue
+			}
+			sort.Strings(names)
+			dupes = append(dupes, fmt.Sprintf("golden:%s claimed by %s", golden, strings.Join(names, ", ")))
+		}
+		if len(dupes) > 0 {
+			sort.Strings(dupes)
+			t.Fatalf("duplicate golden claim(s) — each message must carry its OWN coverage entry, never a merged/shared one:\n  %s", strings.Join(dupes, "\n  "))
+		}
+	})
+}
+
+// --- Plan 03-05 Task 2: PIPE-05's constraint-class coverage guard -------
+//
+// TestCorpusExercisesEveryFieldClass (above) proves every fieldClass —
+// mixinforproto's OWN derivation-shape taxonomy — is produced by some
+// corpus fixture. TestCorpusMessagesHaveRecordedCoverage proves every
+// MESSAGE has a written coverage claim. Neither proves every
+// PROTOVALIDATE CONSTRAINT CATEGORY (buf.validate.field's own rule
+// vocabulary — string/int32/required/cel/repeated/...) is actually
+// exercised by some field's real, MACHINE-RECORDED provenance. That is
+// PIPE-05's own root cause, restated: "the corpus does not contain the
+// shape that triggers this branch" was a silent condition, not a
+// detectable one, three separate times in Phase 1. This guard is the
+// same two-part shape applied to that axis.
+//
+// Part A (ground truth): every protovalidate rule category — a
+// validate.FieldRules "type" oneof member name, or the standalone
+// "required"/"cel" categories — that is POPULATED on at least one field
+// across the WHOLE mixinforprototest.v1 corpus, reflectively enumerated
+// via fieldRuleClasses (the identical protoreflect.Message.Range
+// mechanism fieldmap.go's boundaryOnlyRuleIDs already uses for
+// provenance, applied here to EVERY field regardless of whether it
+// ultimately derives — never a hand-typed list of proto option names).
+// enum.defined_only is the one documented exception
+// (constraintClassExceptions): it needs no residual/translated record
+// because field.Enum's own construction already enforces it (D-14,
+// mapEnum's doc comment) — excluded here for that reason, not by
+// oversight. "part A: ground truth matches a hand-maintained sanity
+// list" is a SEPARATE, deliberately small, human-reviewable cross-check
+// on top of that reflective computation: if a future .proto edit
+// introduces a new rule category, this sub-test fails and a reviewer
+// must consciously decide whether the new category needs a witness too,
+// rather than the guard silently absorbing it.
+//
+// Part B (witness): for every class in the ground truth, at least one
+// corpus field's SourceField.TranslatedIDs/ResidualIDs/
+// LengthUnitDivergentIDs, or some corpus message's
+// SourceMessage.BoundaryOnly, must record an ID whose class prefix
+// matches — derived from RECORDED PROVENANCE, never a hand-written
+// message-to-class list, so the guard cannot drift from reality. A field
+// is derived first with no options; if the WHOLE MESSAGE fails to derive
+// that way (a field whose derivation kind mixinforproto rejects outright
+// unless excluded — e.g. a repeated scalar, MIX-02/01-06-PLAN.md), the
+// guard retries with ONLY that field excluded, so the rule's category
+// still surfaces via BoundaryOnly (D-09) rather than the guard silently
+// having no opinion about it. This mirrors, and does not duplicate,
+// TestRepeatedCardinality's own fixture (fieldmap_test.go) — that test
+// proves the FAILURE mode; this guard proves the rule's CATEGORY is
+// still provenance-visible once excluded.
+//
+// A guard failure here is closed by ADDING coverage — a new fixture, or
+// an Exclude(...) path that lets an already-declared rule surface via
+// provenance — never by deleting this assertion, weakening the
+// comparison, or adding a class to constraintClassExceptions without a
+// design reason as real as enum's.
+
+// constraintClassOf returns id's class prefix — the substring before its
+// first '.', or id itself when there is none (a bare BoundaryOnly class
+// name like "repeated", or "required"/"cel").
+func constraintClassOf(id string) string {
+	if i := strings.Index(id, "."); i >= 0 {
+		return id[:i]
+	}
+	return id
+}
+
+// fieldRuleClasses returns the set of protovalidate rule categories fd's
+// resolved FieldRules populates, via the identical generic
+// protoreflect.Message.Range mechanism fieldmap.go's boundaryOnlyRuleIDs
+// uses for provenance — applied here to every field regardless of
+// whether it ultimately derives, so it can serve as this guard's Part A
+// ground truth.
+func fieldRuleClasses(fd protoreflect.FieldDescriptor) ([]string, error) {
+	rules, err := protovalidate.ResolveFieldRules(fd)
+	if err != nil {
+		return nil, err
+	}
+	if rules == nil {
+		return nil, nil
+	}
+	var classes []string
+	if rules.HasRequired() && rules.GetRequired() {
+		classes = append(classes, "required")
+	}
+	if len(rules.GetCel()) > 0 || len(rules.GetCelExpression()) > 0 {
+		classes = append(classes, "cel")
+	}
+	rules.ProtoReflect().Range(func(rfd protoreflect.FieldDescriptor, _ protoreflect.Value) bool {
+		if name := string(rfd.Name()); !boundaryOnlyNonConstraintFields[name] {
+			classes = append(classes, name)
+		}
+		return true
+	})
+	return classes, nil
+}
+
+// constraintClassExceptions are protovalidate rule categories deliberately
+// excluded from this guard's Part A ground truth, each with the design
+// reason it is exempt — never a silent omission.
+var constraintClassExceptions = map[string]string{
+	"enum": "enum.defined_only is satisfied by field.Enum's own construction and needs no residual/translated record of its own — D-14, mapEnum's doc comment (fieldmap.go)",
+	// 03-08-PLAN.md Task 2: a message-level `oneof` rule (buf.validate.
+	// MessageRules field 4) is structurally invisible to THIS guard's
+	// witness half (Part B, recordConstraintWitness below), which walks
+	// only derive.go's own output (SourceField.TranslatedIDs/ResidualIDs/
+	// LengthUnitDivergentIDs and SourceMessage.BoundaryOnly) — and
+	// derive.go, by design, never consults message-level rules at all
+	// (messagerules.go's own doc comment: "never from derive.go:
+	// Fields()/Annotations() need no knowledge of message-level rules").
+	// checkMessageRuleReferences lives in hooks.go instead, and its own
+	// coverage is real and machine-checked — messagerules_test.go's
+	// TestBuildHookState_MessageRuleOneofRefsSeedExtraFields/
+	// TestBuildHookState_MessageRuleOneofExcludedRefFailsSchemaLoad and
+	// corpusCoverage's MessageRuleOneofOk/MessageRuleOneofExcludedRef
+	// entries — just not through the SourceField/SourceMessage provenance
+	// channel this specific guard inspects. Adding a fixture or an
+	// Exclude(...) path (this guard's own stated remedy) cannot close
+	// this gap: no code path in derive.go writes ANY provenance for a
+	// message-level oneof rule, regardless of which fields the corpus
+	// fixture excludes.
+	"oneof": "message-level oneof rules are witnessed by messagerules_test.go/corpusCoverage directly, not by SourceField/SourceMessage provenance — derive.go never consults message-level rules by design (messagerules.go's own doc comment); see this map's own comment for the full reasoning",
+}
+
+// recordConstraintWitness folds d's derived provenance into witnessed,
+// keyed by constraint class.
+func recordConstraintWitness(witnessed map[string]bool, d *derivation) {
+	for _, f := range d.fields {
+		for _, a := range f.Descriptor().Annotations {
+			sf, ok := a.(SourceField)
+			if !ok {
+				continue
+			}
+			for _, id := range sf.TranslatedIDs {
+				witnessed[constraintClassOf(id)] = true
+			}
+			for _, id := range sf.ResidualIDs {
+				witnessed[constraintClassOf(id)] = true
+			}
+			for _, id := range sf.LengthUnitDivergentIDs {
+				witnessed[constraintClassOf(id)] = true
+			}
+		}
+	}
+	for _, b := range d.message.BoundaryOnly {
+		for _, id := range b.RuleIDs {
+			witnessed[constraintClassOf(id)] = true
+		}
+	}
+}
+
+// sortedSetKeys returns m's keys sorted (D-24: never range a map into
+// diagnostic output).
+func sortedSetKeys(m map[string]bool) []string {
+	out := make([]string, 0, len(m))
+	for k := range m {
+		out = append(out, k)
+	}
+	sort.Strings(out)
+	return out
+}
+
+func TestCorpusExercisesEveryProtovalidateConstraintClass(t *testing.T) {
+	msgs := corpusMessages(t)
+
+	// --- Part A: ground truth -------------------------------------------
+	groundTruth := map[string]bool{}
+	for _, md := range msgs {
+		fds := md.Fields()
+		for i := 0; i < fds.Len(); i++ {
+			fd := fds.Get(i)
+			classes, err := fieldRuleClasses(fd)
+			if err != nil {
+				t.Fatalf("fieldRuleClasses(%s.%s): %v", md.FullName(), fd.Name(), err)
+			}
+			for _, c := range classes {
+				if _, excepted := constraintClassExceptions[c]; excepted {
+					continue
+				}
+				groundTruth[c] = true
+			}
+		}
+		// Message-level rules aren't a FieldRules category; scanned
+		// separately via ResolveMessageRules so a message-level cel OR
+		// cel_expression rule also counts toward the "cel" ground truth
+		// — field-level and message-level custom CEL share the same
+		// provenance vocabulary (fieldRuleClasses folds field-level `cel`
+		// and `cel_expression` into "cel" the identical way, above). A
+		// message-level `oneof` rule is a structurally different
+		// carrier — no CEL involved at all — so it witnesses its OWN
+		// named class ("oneof") rather than being folded into "cel" or
+		// silently invisible (03-08-PLAN.md Task 2).
+		mr, merr := protovalidate.ResolveMessageRules(md)
+		if merr != nil {
+			t.Fatalf("ResolveMessageRules(%s): %v", md.FullName(), merr)
+		}
+		if mr != nil {
+			if len(mr.GetCel()) > 0 || len(mr.GetCelExpression()) > 0 {
+				groundTruth["cel"] = true
+			}
+			if len(mr.GetOneof()) > 0 {
+				if _, excepted := constraintClassExceptions["oneof"]; !excepted {
+					groundTruth["oneof"] = true
+				}
+			}
+		}
+	}
+	if len(groundTruth) == 0 {
+		t.Fatal("groundTruth is empty — registry-linkage regression? (mirrors corpusMessages' own T-01G-17 guard)")
+	}
+
+	t.Run("part A: ground truth matches a hand-maintained sanity list", func(t *testing.T) {
+		want := map[string]bool{
+			"string": true, "int32": true, "float": true, "double": true,
+			"required": true, "cel": true, "repeated": true,
+		}
+		if len(want) != len(groundTruth) {
+			t.Fatalf("expected sanity list has %d classes, corpus ground truth has %d — a rule category was added to or removed from the corpus without updating this list: got %v, want %v", len(want), len(groundTruth), sortedSetKeys(groundTruth), sortedSetKeys(want))
+		}
+		for c := range want {
+			if !groundTruth[c] {
+				t.Fatalf("expected class %q is not in the reflectively computed ground truth — a .proto fixture using it may have been removed", c)
+			}
+		}
+	})
+
+	// --- Part B: witness -------------------------------------------------
+	witnessed := map[string]bool{}
+	for _, md := range msgs {
+		d, err := deriveFromDescriptor(md)
+		if err != nil {
+			fds := md.Fields()
+			for i := 0; i < fds.Len(); i++ {
+				fd := fds.Get(i)
+				classes, cerr := fieldRuleClasses(fd)
+				if cerr != nil || len(classes) == 0 {
+					continue
+				}
+				d2, derr := deriveFromDescriptor(md, Exclude(string(fd.Name())))
+				if derr != nil {
+					continue
+				}
+				recordConstraintWitness(witnessed, d2)
+			}
+			continue
+		}
+		recordConstraintWitness(witnessed, d)
+	}
+
+	var missing []string
+	for c := range groundTruth {
+		if !witnessed[c] {
+			missing = append(missing, c)
+		}
+	}
+	if len(missing) > 0 {
+		sort.Strings(missing)
+		t.Fatalf("protovalidate constraint class(es) with zero corpus witness in TranslatedIDs/ResidualIDs/LengthUnitDivergentIDs/BoundaryOnly — a rule category populated somewhere in the corpus's .proto sources produces no recorded provenance anywhere: %s. Add a fixture (or an Exclude(...) path) that lets this category's rule surface via provenance; do NOT delete or weaken this assertion.", strings.Join(missing, ", "))
+	}
 }

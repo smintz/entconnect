@@ -4,6 +4,13 @@ on:
   push:
     branches: ["**"]
   pull_request:
+  # workflow_dispatch (manual trigger only) is required infrastructure
+  # for the sweep-exploratory job below (Plan 03-05 Task 3, D-14) to be
+  # dispatchable at all — it carries no schedule and no branch filter of
+  # its own, so it changes nothing about when push/pull_request fire.
+  # The sweep-exploratory job's own `if:` gate is what keeps it off the
+  # push/pull_request event path even though this trigger now exists.
+  workflow_dispatch:
 
 # Concurrency note: scripts/pipeline.sh documents itself as serial-only
 # because steps 2/3 write generated output to fixed paths. These three
@@ -54,6 +61,16 @@ jobs:
       # already happened unnoticed twice this phase.
       - name: Verify mixinforproto/go.mod's go directive pin
         run: make check-goversion
+
+      # WR-07 gap closure (03-07): a whole-repo, source-text invariant with
+      # no module resolution at all -- unlike check-dep-parity, this gate
+      # has no GOWORK=off requirement, so the `modules` job (which already
+      # runs make build/vet/test) is the natural host. Deliberately NOT
+      # added to the `standalone` job below, which exists specifically for
+      # the GOWORK=off proof; adding it there would imply a
+      # workspace-resolution dependency this gate does not have.
+      - name: Verify VAL-07's single ValidationError construction site
+        run: make check-single-validationerror-site
 
       - name: Install buf (pinned)
         run: go install github.com/bufbuild/buf/cmd/buf@v1.72.0
@@ -106,6 +123,15 @@ jobs:
       - name: Build and test the root module standalone (GOWORK=off)
         run: make test-standalone-root
 
+      # VAL-11/D-15: this job is the correct (and only) host for the
+      # dependency-parity gate — GOWORK=off is what makes root and
+      # mixinforproto resolve D-15's five named modules INDEPENDENTLY;
+      # go.work's workspace unification would otherwise mask a real
+      # version skew between the two go.mod files. See the Makefile
+      # target's own doc comment for the full rationale.
+      - name: Verify D-15 dependency parity between root and mixinforproto (GOWORK=off)
+        run: make check-dep-parity
+
   # stubs: the Pitfall 9 / D-22 staleness gate (scripts/check-stubs.sh).
   # Copies the working tree's proto/ into an empty temp root (never the
   # committed checkout's generated output — a CI job must not mutate the
@@ -139,3 +165,39 @@ jobs:
         run: |
           export PATH="$PATH:$(go env GOPATH)/bin"
           make check-stubs
+
+  # sweep-exploratory: Plan 03-05 Task 3's opt-in, time-seeded run of the
+  # PIPE-06 differential sweep (mixinforproto/internal/difftest/
+  # sweep_test.go, D-14). workflow_dispatch ONLY — deliberately absent
+  # from the `on:` push/pull_request block above, which stays unchanged —
+  # so this job never makes REQUIRED CI flaky: the required `modules` job
+  # already runs this same sweep under its own name-derived, clock-free
+  # seed (make test-determinism), which is what -count=5 checks for
+  # order-independence. This job instead explores value space a fixed
+  # seed structurally cannot reach, by setting SWEEP_EXPLORATORY_SEED
+  # from the shell's own clock (`date +%s`) — sweep_test.go's Go code
+  # itself never imports "time" and never reads the clock directly (see
+  # sweep_test.go's exploratorySeedOffset doc comment); only this job's
+  # own shell step does, keeping sweepSeedFor's "pure function of the
+  # message name" property intact for every other caller.
+  #
+  # Whether this job ALSO runs on a schedule (e.g. nightly) is a
+  # CI-policy call deliberately left out of this phase — workflow_dispatch
+  # (manual trigger) is the only entry point Task 3 adds.
+  sweep-exploratory:
+    name: sweep-exploratory
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.26"
+
+      - name: Run the PIPE-06 differential sweep with a time-derived seed
+        working-directory: mixinforproto
+        run: |
+          export SWEEP_EXPLORATORY_SEED="$(date +%s)"
+          echo "SWEEP_EXPLORATORY_SEED=${SWEEP_EXPLORATORY_SEED}"
+          go test ./internal/difftest/... -run TestSweep_DriverlessDifferential -v

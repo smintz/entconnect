@@ -26,6 +26,9 @@ func init() {
 			return next.Mutate(ctx, m)
 		})
 	}
+	itemMixinHooks0 := itemMixin[0].Hooks()
+
+	item.Hooks[1] = itemMixinHooks0[0]
 	itemMixinFields0 := itemMixin[0].Fields()
 	_ = itemMixinFields0
 	itemFields := schema.Item{}.Fields()

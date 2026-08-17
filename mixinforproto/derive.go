@@ -2,6 +2,7 @@ package mixinforproto
 
 import (
 	"fmt"
+	"sort"
 	"strings"
 
 	"entgo.io/ent"
@@ -30,12 +31,25 @@ type derivation struct {
 // deriving the same or different message types never share memory
 // (MIX-01 concurrency edge).
 func derive[M proto.Message](opts ...Option) (*derivation, error) {
-	o := applyOptions(opts)
-
 	// (*new(M)).ProtoReflect() is safe on a nil generated pointer —
 	// M's zero value is a nil *T, and ProtoReflect() is documented safe
-	// on that (verified, see 01-RESEARCH.md).
+	// on that (verified, see 01-RESEARCH.md). M is used for exactly this
+	// one line — deriveFromDescriptor below is the actual, descriptor-
+	// driven core; M's only job is producing md.
 	md := (*new(M)).ProtoReflect().Descriptor()
+	return deriveFromDescriptor(md, opts...)
+}
+
+// deriveFromDescriptor is derive[M]'s descriptor-driven core, extracted
+// (Plan 03-05 Task 2) so a caller already holding a
+// protoreflect.MessageDescriptor — corpus_test.go's constraint-class
+// coverage guard walks every corpusMessages() entry generically, with no
+// compile-time M type parameter available per message — can run the
+// identical derivation core derive[M] uses, rather than a second,
+// divergent implementation. derive[M] above is now a one-line wrapper
+// around this function; no behavior changed by this extraction.
+func deriveFromDescriptor(md protoreflect.MessageDescriptor, opts ...Option) (*derivation, error) {
+	o := applyOptions(opts)
 	msgName := string(md.FullName())
 
 	// Every name supplied to Exclude/Override/AsJSON is validated
@@ -55,6 +69,7 @@ func derive[M proto.Message](opts ...Option) (*derivation, error) {
 	// inventory, so they can never disagree on order.
 	inventory := make([]FieldRef, 0, fds.Len())
 	fields := make([]ent.Field, 0, fds.Len())
+	boundaryOnly := []BoundaryOnlyRule{}
 
 	for i := 0; i < fds.Len(); i++ {
 		fd := fds.Get(i)
@@ -71,10 +86,19 @@ func derive[M proto.Message](opts ...Option) (*derivation, error) {
 		})
 
 		if o.isExcluded(name) {
+			recordBoundaryOnly(&boundaryOnly, &failures, msgName, fd, BoundaryOnlyExcluded)
 			continue
 		}
 
 		if of, isOverridden := o.overriddenField(name); isOverridden {
+			// D-09: an override suppresses validation relay for this
+			// field entirely (option.go's own documented semantics),
+			// so any contract rule on it is boundary-only by
+			// construction — recorded regardless of whether the
+			// supplied replacement was nil (a nil replacement is
+			// already collected as its own failure by
+			// validateOptionNames above).
+			recordBoundaryOnly(&boundaryOnly, &failures, msgName, fd, BoundaryOnlyOverridden)
 			// A nil replacement was already collected as a failure by
 			// validateOptionNames above; skip installing it here
 			// rather than appending a nil ent.Field that would panic
@@ -98,6 +122,12 @@ func derive[M proto.Message](opts ...Option) (*derivation, error) {
 			continue
 		}
 		if f == nil {
+			// D-09: this field's derivation kind produces no ent field
+			// at all (a message-valued map, an un-opted-in message
+			// field, a skipped well-known type, an unresolved
+			// real-oneof member) — its contract rules, if any, are
+			// recorded as boundary-only.
+			recordBoundaryOnly(&boundaryOnly, &failures, msgName, fd, BoundaryOnlyNoEntField)
 			continue
 		}
 
@@ -113,8 +143,27 @@ func derive[M proto.Message](opts ...Option) (*derivation, error) {
 			continue
 		}
 
+		// D-09's BoundaryOnlyUnbindable case: f derives, but its
+		// derivation kind is one reverse.go cannot yet reverse-convert.
+		// Dormant today (see that constant's doc comment) but checked
+		// unconditionally so a future derivation kind fieldmap.go adds
+		// before reverse.go catches up to it is recorded, not silently
+		// left enforced-sounding when it is not.
+		if kind := sourceFieldKind(f); kind != "" && !reverseBindableKinds[kind] {
+			recordBoundaryOnly(&boundaryOnly, &failures, msgName, fd, BoundaryOnlyUnbindable)
+		}
+
 		fields = append(fields, f)
 	}
+
+	// D-24: sort boundaryOnly by field name so the annotation is
+	// deterministic across runs — never range a map into ordered output
+	// (this loop already avoids that; this sort guards the append order
+	// itself, since a future edit reordering the branches above must not
+	// silently change BoundaryOnly's output order).
+	sort.Slice(boundaryOnly, func(i, j int) bool {
+		return boundaryOnly[i].Field < boundaryOnly[j].Field
+	})
 
 	// MIX-10's unresolved-oneof gate needs the full set of real oneofs
 	// on the message and each member's resolution status — context only
@@ -134,8 +183,41 @@ func derive[M proto.Message](opts ...Option) (*derivation, error) {
 			Fields:          inventory,
 			Excluded:        o.excludedNames(),
 			Overridden:      o.overriddenNames(),
+			BoundaryOnly:    boundaryOnly,
 		},
 	}, nil
+}
+
+// recordBoundaryOnly resolves fd's protovalidate rule IDs
+// (fieldmap.go's boundaryOnlyRuleIDs) and, when the set is non-empty,
+// appends a BoundaryOnlyRule naming fd, its sorted rule IDs, and reason
+// to *boundaryOnly (D-09's still-unenforced-rule provenance). A
+// rule-resolution failure is collected into *failures as a schema-load
+// failure (D-08/D-09's collected-failure discipline), never silently
+// swallowed — this is an infrastructure/descriptor-resolution problem,
+// not a contract error, so its remedy text says so rather than pointing
+// at Exclude/Override.
+func recordBoundaryOnly(boundaryOnly *[]BoundaryOnlyRule, failures *[]failure, msgName string, fd protoreflect.FieldDescriptor, reason string) {
+	ids, err := boundaryOnlyRuleIDs(fd)
+	if err != nil {
+		*failures = append(*failures, failure{
+			message:     msgName,
+			field:       string(fd.Name()),
+			fieldIndex:  int(fd.Index()),
+			rule:        "boundaryOnly",
+			description: fmt.Sprintf("resolving protovalidate field rules for boundary-only provenance: %v", err),
+			remedy:      "this is a protovalidate/descriptor-resolution failure, not a contract error — check the field's proto options",
+		})
+		return
+	}
+	if len(ids) == 0 {
+		return
+	}
+	*boundaryOnly = append(*boundaryOnly, BoundaryOnlyRule{
+		Field:   string(fd.Name()),
+		RuleIDs: ids,
+		Reason:  reason,
+	})
 }
 
 // validateOptionNames validates every name supplied to Exclude and

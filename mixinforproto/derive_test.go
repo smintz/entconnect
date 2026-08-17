@@ -8,6 +8,8 @@ import (
 
 	"buf.build/go/protovalidate"
 
+	"entgo.io/ent/schema/field"
+
 	mixinforprototestv1 "github.com/smintz/entconnect/mixinforproto/internal/gen/mixinforprototestv1"
 )
 
@@ -129,6 +131,123 @@ func TestDerive_EmptyMessageYieldsEmptyNotNil(t *testing.T) {
 	}
 	if d.message.Excluded == nil || d.message.Overridden == nil {
 		t.Fatal("want non-nil empty Excluded/Overridden slices")
+	}
+	if d.message.BoundaryOnly == nil {
+		t.Fatal("want non-nil empty BoundaryOnly slice")
+	}
+	if len(d.message.BoundaryOnly) != 0 {
+		t.Fatalf("want zero-length BoundaryOnly for an empty message, got %v", d.message.BoundaryOnly)
+	}
+}
+
+// TestDerive_BoundaryOnlyRecordsSkippedFieldRule pins D-09's second half
+// (03-02 Task 3): messages.proto's singular_message field carries a
+// required rule and is skipped by default (never opted into AsJSON), so
+// it can never be enforced at the storage layer. SourceMessage.
+// BoundaryOnly must contain exactly one entry naming it, with a non-empty
+// RuleIDs slice and BoundaryOnlyNoEntField as the reason — this field's
+// derivation kind (a plain, un-opted-in message field) produces no ent
+// field at all, distinct from the excluded/overridden causes below.
+func TestDerive_BoundaryOnlyRecordsSkippedFieldRule(t *testing.T) {
+	d, err := derive[*mixinforprototestv1.Messages](AsJSON("as_json_target"))
+	if err != nil {
+		t.Fatalf("derive: %v", err)
+	}
+	var entries []BoundaryOnlyRule
+	for _, e := range d.message.BoundaryOnly {
+		if e.Field == "singular_message" {
+			entries = append(entries, e)
+		}
+	}
+	if len(entries) != 1 {
+		t.Fatalf("want exactly 1 BoundaryOnly entry for singular_message, got %d: %v", len(entries), d.message.BoundaryOnly)
+	}
+	got := entries[0]
+	if len(got.RuleIDs) == 0 {
+		t.Fatalf("want a non-empty RuleIDs slice, got %v", got.RuleIDs)
+	}
+	if got.Reason != BoundaryOnlyNoEntField {
+		t.Fatalf("want reason %q, got %q", BoundaryOnlyNoEntField, got.Reason)
+	}
+	// repeated_message and as_json_target carry no protovalidate rules
+	// at all, so neither should appear in BoundaryOnly (an empty
+	// RuleIDs set is never recorded — see recordBoundaryOnly).
+	for _, name := range []string{"repeated_message", "as_json_target"} {
+		for _, e := range d.message.BoundaryOnly {
+			if e.Field == name {
+				t.Fatalf("want no BoundaryOnly entry for rule-free field %q, got %v", name, e)
+			}
+		}
+	}
+}
+
+// TestDerive_BoundaryOnlyExcludedAndOverridden proves the other two
+// reasons: RequiredString's "value" field carries `required = true`
+// (constraints.proto); excluding it or overriding it each suppress its
+// derivation entirely, and each must be recorded with the matching
+// reason (BoundaryOnlyExcluded / BoundaryOnlyOverridden), distinct from
+// BoundaryOnlyNoEntField.
+func TestDerive_BoundaryOnlyExcludedAndOverridden(t *testing.T) {
+	t.Run("Excluded", func(t *testing.T) {
+		d, err := derive[*mixinforprototestv1.RequiredString](Exclude("value"))
+		if err != nil {
+			t.Fatalf("derive: %v", err)
+		}
+		if len(d.message.BoundaryOnly) != 1 {
+			t.Fatalf("want exactly 1 BoundaryOnly entry, got %d: %v", len(d.message.BoundaryOnly), d.message.BoundaryOnly)
+		}
+		got := d.message.BoundaryOnly[0]
+		if got.Field != "value" || got.Reason != BoundaryOnlyExcluded || len(got.RuleIDs) == 0 {
+			t.Fatalf("want {value, non-empty RuleIDs, %q}, got %+v", BoundaryOnlyExcluded, got)
+		}
+	})
+
+	t.Run("Overridden", func(t *testing.T) {
+		d, err := derive[*mixinforprototestv1.RequiredString](Override("value", field.Bool("value")))
+		if err != nil {
+			t.Fatalf("derive: %v", err)
+		}
+		if len(d.message.BoundaryOnly) != 1 {
+			t.Fatalf("want exactly 1 BoundaryOnly entry, got %d: %v", len(d.message.BoundaryOnly), d.message.BoundaryOnly)
+		}
+		got := d.message.BoundaryOnly[0]
+		if got.Field != "value" || got.Reason != BoundaryOnlyOverridden || len(got.RuleIDs) == 0 {
+			t.Fatalf("want {value, non-empty RuleIDs, %q}, got %+v", BoundaryOnlyOverridden, got)
+		}
+	})
+}
+
+// TestDerive_BoundaryOnlySortedAndDeterministic pins D-24 for BoundaryOnly
+// specifically: MixedFieldRules (constraints.proto) carries three
+// rule-bearing fields; excluding all three produces three BoundaryOnly
+// entries that must come back sorted by field name and byte-identical
+// (via reflect.DeepEqual on the decoded struct) across repeated derive
+// calls, never in map-iteration order.
+func TestDerive_BoundaryOnlySortedAndDeterministic(t *testing.T) {
+	opts := []Option{Exclude("both", "standard_only", "cel_only")}
+
+	first, err := derive[*mixinforprototestv1.MixedFieldRules](opts...)
+	if err != nil {
+		t.Fatalf("derive: %v", err)
+	}
+	if len(first.message.BoundaryOnly) != 3 {
+		t.Fatalf("want 3 BoundaryOnly entries, got %d: %v", len(first.message.BoundaryOnly), first.message.BoundaryOnly)
+	}
+	wantOrder := []string{"both", "cel_only", "standard_only"}
+	for i, want := range wantOrder {
+		if got := first.message.BoundaryOnly[i].Field; got != want {
+			t.Fatalf("BoundaryOnly[%d].Field = %q, want %q (want sorted order %v)", i, got, want, wantOrder)
+		}
+	}
+
+	for i := 0; i < 10; i++ {
+		d, err := derive[*mixinforprototestv1.MixedFieldRules](opts...)
+		if err != nil {
+			t.Fatalf("run %d: derive: %v", i, err)
+		}
+		if !reflect.DeepEqual(d.message.BoundaryOnly, first.message.BoundaryOnly) {
+			t.Fatalf("run %d: BoundaryOnly changed: got %v, want %v", i, d.message.BoundaryOnly, first.message.BoundaryOnly)
+		}
 	}
 }
 

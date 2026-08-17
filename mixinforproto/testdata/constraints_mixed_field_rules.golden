@@ -1,0 +1,77 @@
+[
+  {
+    "name": "both",
+    "typeKind": "string",
+    "nillable": false,
+    "optional": false,
+    "immutable": false,
+    "default": "\"\"",
+    "validatorCount": 1,
+    "storageKey": "",
+    "comment": "",
+    "sourceField": {
+      "contractVersion": 1,
+      "name": "both",
+      "number": 1,
+      "kind": "scalar",
+      "translatedIDs": [
+        "string.min_len"
+      ],
+      "residualIDs": [
+        "cel.constraints.mixed_field_rules.both.starts_with_x"
+      ],
+      "residualFingerprint": "8d9ffd382d47a7fba033a048269ae9d3f96e6ea45ff60a611cab417c10faad08",
+      "lengthUnitDivergentIDs": [
+        "string.min_len"
+      ]
+    }
+  },
+  {
+    "name": "standard_only",
+    "typeKind": "string",
+    "nillable": false,
+    "optional": false,
+    "immutable": false,
+    "default": "\"\"",
+    "validatorCount": 1,
+    "storageKey": "",
+    "comment": "",
+    "sourceField": {
+      "contractVersion": 1,
+      "name": "standard_only",
+      "number": 2,
+      "kind": "scalar",
+      "translatedIDs": [
+        "string.min_len"
+      ],
+      "residualIDs": [],
+      "residualFingerprint": "",
+      "lengthUnitDivergentIDs": [
+        "string.min_len"
+      ]
+    }
+  },
+  {
+    "name": "cel_only",
+    "typeKind": "string",
+    "nillable": false,
+    "optional": false,
+    "immutable": false,
+    "default": "\"\"",
+    "validatorCount": 0,
+    "storageKey": "",
+    "comment": "",
+    "sourceField": {
+      "contractVersion": 1,
+      "name": "cel_only",
+      "number": 3,
+      "kind": "scalar",
+      "translatedIDs": [],
+      "residualIDs": [
+        "cel.constraints.mixed_field_rules.cel_only.starts_with_x"
+      ],
+      "residualFingerprint": "8d9ffd382d47a7fba033a048269ae9d3f96e6ea45ff60a611cab417c10faad08",
+      "lengthUnitDivergentIDs": []
+    }
+  }
+]

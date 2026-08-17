@@ -53,7 +53,65 @@ type SourceMessage struct {
 	Fields          []FieldRef `json:"fields"`
 	Excluded        []string   `json:"excluded"`
 	Overridden      []string   `json:"overridden"`
+	// BoundaryOnly records every protovalidate constraint on a field
+	// that mixinforproto cannot enforce at the storage layer — D-09's
+	// still-unenforced-rule provenance, added under ContractVersion=1's
+	// additive-only policy. Visible to Phase 5's drift check. Empty
+	// (never omitted) when every rule-bearing field derives an ent
+	// field mixinforproto can reverse-bind.
+	BoundaryOnly []BoundaryOnlyRule `json:"boundaryOnly"`
 }
+
+// BoundaryOnlyRule records one protovalidate constraint that could not be
+// enforced by mixinforproto at the storage layer because the field it
+// applies to never derives an ent field (excluded, overridden, or its
+// derivation kind produces no ent field at all), or derives one that
+// mixinforproto's reverse-conversion table (reverse.go) cannot yet
+// reverse-bind. D-09's second half: this defect is either a deliberate
+// developer choice (Exclude/Override) or mixinforproto's own gap — never
+// the contract's — so it is recorded as provenance rather than panicked
+// on, keeping a schema that loaded fine under Phases 1-2 loading fine
+// here too.
+type BoundaryOnlyRule struct {
+	// Field is the proto field name this rule applies to.
+	Field string `json:"field"`
+	// RuleIDs are the protovalidate constraint identifiers found on
+	// Field, sorted and deduplicated (D-24) — standard-rule names in
+	// the same self-assigned "kind.constraint" shape fieldmap.go's
+	// Tier 1 translation uses elsewhere (e.g. "required"), and each
+	// (buf.validate.field).cel rule's ID or expression fingerprint
+	// (celRuleResidual's own fallback).
+	RuleIDs []string `json:"ruleIDs"`
+	// Reason is one of the BoundaryOnly* constants below — a small,
+	// closed set naming WHY Field is boundary-only.
+	Reason string `json:"reason"`
+}
+
+// Boundary-only reason strings (D-09) — a small, closed set a downstream
+// consumer (Phase 5's drift check) can switch on. Values are additive-only
+// under ContractVersion's own policy: never renamed or repurposed once
+// shipped.
+const (
+	// BoundaryOnlyExcluded: the field was named in Exclude(...).
+	BoundaryOnlyExcluded = "excluded"
+	// BoundaryOnlyOverridden: the field was replaced wholesale via
+	// Override(...), which suppresses validation relay for it entirely
+	// (option.go's own documented Override semantics) — its contract
+	// rules are boundary-only by construction.
+	BoundaryOnlyOverridden = "overridden"
+	// BoundaryOnlyNoEntField: the field's derivation kind produces no
+	// ent field at all — a message-valued map, an un-opted-in message
+	// field, a skipped well-known type (FieldMask/Duration), or an
+	// unresolved real-oneof member (mapField's (nil, nil) return).
+	BoundaryOnlyNoEntField = "no-ent-field"
+	// BoundaryOnlyUnbindable: the field DOES derive an ent field, but
+	// its derivation kind is one reverse.go cannot yet reverse-convert
+	// — mixinforproto's own gap, not the contract's. Dormant as of
+	// 03-02 Task 2 (reverse.go binds every currently-derivable kind),
+	// kept as a named, closed-set outcome for a future derivation kind
+	// fieldmap.go adds before reverse.go catches up to it.
+	BoundaryOnlyUnbindable = "unbindable"
+)
 
 // Name implements entgo.io/ent/schema.Annotation.
 func (SourceMessage) Name() string {

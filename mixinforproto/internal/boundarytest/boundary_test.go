@@ -62,6 +62,45 @@ func TestAnnotationsCrossSchemaLoadBoundary(t *testing.T) {
 	}
 }
 
+// TestBoundaryOnlyCrossSchemaLoadBoundary proves D-09's second half
+// (03-02 Task 3): SourceMessage.BoundaryOnly survives the real
+// entc.LoadGraph schema-load subprocess boundary the same way every
+// other provenance field in this package does — decoded out of the real
+// *gen.Graph, not asserted only against derive's in-process return value
+// (derive_test.go's TestDerive_BoundaryOnlyRecordsSkippedFieldRule proves
+// that half; this proves the JSON round trip on top of it).
+func TestBoundaryOnlyCrossSchemaLoadBoundary(t *testing.T) {
+	graph, err := entc.LoadGraph("./ent/schema", &gen.Config{
+		Target:  t.TempDir(),
+		Package: "github.com/smintz/entconnect/mixinforproto/internal/boundarytest/ent",
+	})
+	if err != nil {
+		t.Fatalf("entc.LoadGraph: %v", err)
+	}
+
+	msgType := findType(t, graph, "BoundaryOnlyFixture")
+	sm := decodeAnnotation[mixinforproto.SourceMessage](t, msgType.Annotations, mixinforproto.MixinForProtoMessage)
+
+	if len(sm.BoundaryOnly) == 0 {
+		t.Fatal("want a non-empty SourceMessage.BoundaryOnly decoded from the real entc.LoadGraph graph")
+	}
+	var got *mixinforproto.BoundaryOnlyRule
+	for i, e := range sm.BoundaryOnly {
+		if e.Field == "singular_message" {
+			got = &sm.BoundaryOnly[i]
+		}
+	}
+	if got == nil {
+		t.Fatalf("want a BoundaryOnly entry for singular_message, got %v", sm.BoundaryOnly)
+	}
+	if len(got.RuleIDs) == 0 {
+		t.Fatalf("want a non-empty RuleIDs slice, got %v", got.RuleIDs)
+	}
+	if got.Reason != mixinforproto.BoundaryOnlyNoEntField {
+		t.Fatalf("want reason %q, got %q", mixinforproto.BoundaryOnlyNoEntField, got.Reason)
+	}
+}
+
 func findType(t *testing.T, graph *gen.Graph, name string) *gen.Type {
 	t.Helper()
 	for _, n := range graph.Nodes {

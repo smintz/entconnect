@@ -5,12 +5,19 @@ syntax = "proto3";
 
 package mixinforprototest.v1;
 
+import "buf/validate/validate.proto";
+
 message Inner {
   string value = 1;
 }
 
+// singular_message carries a required rule (D-09's BoundaryOnly fixture,
+// 03-02 Task 3): it is skipped by default (never opted into AsJSON), so
+// this rule can never be enforced at the storage layer — SourceMessage.
+// BoundaryOnly must record it, naming the field, the rule, and
+// BoundaryOnlyNoEntField as the reason.
 message Messages {
-  Inner singular_message = 1;
+  Inner singular_message = 1 [(buf.validate.field).required = true];
   repeated Inner repeated_message = 2;
   Inner as_json_target = 3;
 }

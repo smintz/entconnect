@@ -9,7 +9,7 @@
 # where auto-discovery would silently do the wrong thing.
 MODULES := . ./mixinforproto
 
-.PHONY: build vet test test-determinism test-standalone check-modules check-stubs check-goversion pipeline
+.PHONY: build vet test test-determinism test-standalone check-modules check-stubs check-goversion check-dep-parity check-single-validationerror-site pipeline
 
 ## build: go build ./... in every module in MODULES, cd'd into each.
 build:
@@ -130,6 +130,115 @@ check-goversion:
 		exit 1; \
 	fi; \
 	echo "OK: mixinforproto/go.mod declares '$$actual'"
+
+## check-dep-parity: fail if the root module and mixinforproto resolve
+## DIFFERENT versions of any of D-15's explicit five modules (VAL-11).
+## This set is deliberately broader than VAL-11's literal "protovalidate/
+## cel-go" wording: a protobuf-runtime or ent skew shifts a storage-layer
+## validation verdict away from the boundary's just as easily as a
+## protovalidate skew does, and a gate that says nothing about them gives
+## false assurance. It is just as deliberately NOT "every shared
+## dependency" — that fires on incidental transitive skew a maintainer
+## can't act on, and a gate that cries wolf gets disabled, taking the
+## real signal with it. Adding a module to this list is therefore a
+## visible, reviewable Makefile diff, never silent.
+##
+## GOWORK=off on every `go list -m` call is load-bearing, not incidental:
+## with go.work's workspace unification in effect, both modules trivially
+## "agree" because they are resolved as one build — exactly the condition
+## this gate exists to catch (D-15). This target must keep running inside
+## the existing GOWORK=off standalone CI job, in a checkout that still
+## CONTAINS go.work, matching test-standalone/test-standalone-root's own
+## discipline above.
+##
+## A module ABSENT from either go.mod's resolved build list is a FAILURE,
+## never treated as agreement — `go list -m` prints nothing and exits
+## non-zero for an unresolvable module, so an empty result on either side
+## is distinguished in the failure message from a genuine version
+## mismatch (D-15: "a gate that passes because it found nothing to
+## compare is exactly the false assurance this exists to prevent").
+DEP_PARITY_MODULES := \
+	buf.build/go/protovalidate \
+	buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go \
+	github.com/google/cel-go \
+	google.golang.org/protobuf \
+	entgo.io/ent
+check-dep-parity:
+	@fail=0; \
+	for mod in $(DEP_PARITY_MODULES); do \
+		v_root=$$(GOWORK=off go list -m -f '{{.Version}}' "$$mod" 2>/dev/null); \
+		v_mixin=$$(cd mixinforproto && GOWORK=off go list -m -f '{{.Version}}' "$$mod" 2>/dev/null); \
+		if [ -z "$$v_root" ] || [ -z "$$v_mixin" ]; then \
+			echo "FAIL: $$mod not found in one of the two go.mod files (root=$${v_root:-<not found>}, mixinforproto=$${v_mixin:-<not found>}) -- absence is not agreement (D-15)"; \
+			fail=1; \
+		elif [ "$$v_root" != "$$v_mixin" ]; then \
+			echo "FAIL: $$mod versions differ -- root=$$v_root, mixinforproto=$$v_mixin"; \
+			fail=1; \
+		else \
+			echo "OK: $$mod: $$v_root (both modules agree)"; \
+		fi; \
+	done; \
+	exit $$fail
+
+## check-single-validationerror-site: fail if any production (non-test) .go
+## file OTHER than mixinforproto/violation.go constructs a
+## *protovalidate.ValidationError{ (VAL-07, WR-07). D-01 makes this exact Go
+## type mixinforproto's published, adopter-facing error surface, and D-07
+## consequence 3 requires error construction to be single-pathed even
+## though evaluation is not (protovalidate's own evaluator for the
+## standard-rule half, hooks.go's local cel.Env for the residual
+## custom-CEL half). A second construction site is precisely how the two
+## evaluation paths stop agreeing without anyone noticing -- the
+## CR-01/CR-02/CR-03 bug class this gate exists to keep shut.
+##
+## Two filters, neither optional:
+##   - _test.go files are excluded entirely. Without this the gate is red
+##     on day one: runtime/errormap_test.go legitimately constructs a
+##     ValidationError twice to exercise runtime.MapError, and forbidding
+##     that would forbid testing the error-mapping path at all.
+##   - `//`-prefixed comment LINES are stripped before the literal is
+##     searched for. Without this the gate is self-invalidating:
+##     mixinforproto/violation_test.go's own doc comment mentions the
+##     literal in prose, and any future production-file doc comment naming
+##     the type would turn a documentation improvement into a red build.
+##
+## Generated trees are excluded by path, so a future generator emitting the
+## type cannot make this gate mysteriously red without a human decision:
+##   - ./internal/gen/ and ./mixinforproto/internal/gen/ (buf-generated stubs)
+##   - any directory literally named `ent` anywhere in the tree (entc's own
+##     generated-output convention, e.g. internal/entconnecttest/*/ent)
+##
+## Walks the whole repo from the root, not per-module (MODULES) -- the
+## invariant is whole-repo by definition, not module-scoped.
+check-single-validationerror-site:
+	@fail=0; \
+	found=""; \
+	files=$$(find . -name '*.go' \
+		! -name '*_test.go' \
+		! -path './internal/gen/*' \
+		! -path './mixinforproto/internal/gen/*' \
+		! -path '*/ent/*' \
+		! -path './.git/*' \
+		| sort); \
+	for f in $$files; do \
+		matches=$$(grep -n 'protovalidate\.ValidationError{' "$$f" 2>/dev/null | grep -vE ':[[:space:]]*//' || true); \
+		if [ -n "$$matches" ]; then \
+			echo "$$matches" | sed "s|^|SITE: $$f:|"; \
+			found="$$found $$f"; \
+		fi; \
+	done; \
+	numfiles=$$(echo $$found | wc -w); \
+	if [ "$$numfiles" != "1" ] || [ "$$found" != " ./mixinforproto/violation.go" ]; then \
+		echo "FAIL: protovalidate.ValidationError{ must be constructed at exactly one production site, ./mixinforproto/violation.go -- found $$numfiles site(s):$$found"; \
+		echo "      D-01 makes *protovalidate.ValidationError mixinforproto's published, adopter-facing error type,"; \
+		echo "      and D-07 consequence 3 requires error construction to be single-pathed even though evaluation is"; \
+		echo "      not -- a second construction site is how the two evaluation paths stop agreeing silently."; \
+		echo "      Route through mixinforproto/violation.go's newValidationError instead."; \
+		fail=1; \
+	else \
+		echo "OK: protovalidate.ValidationError{ constructed at exactly one production site: ./mixinforproto/violation.go"; \
+	fi; \
+	exit $$fail
 
 ## pipeline: run the canonical five-step pipeline script (PIPE-01, D-20).
 pipeline:

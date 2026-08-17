@@ -1,0 +1,37 @@
+[
+  {
+    "name": "status",
+    "typeKind": "string",
+    "nillable": false,
+    "optional": false,
+    "immutable": false,
+    "default": "",
+    "validatorCount": 0,
+    "enums": [
+      {
+        "n": "STATUS_UNSPECIFIED",
+        "v": "STATUS_UNSPECIFIED"
+      },
+      {
+        "n": "STATUS_ACTIVE",
+        "v": "STATUS_ACTIVE"
+      },
+      {
+        "n": "STATUS_INACTIVE",
+        "v": "STATUS_INACTIVE"
+      }
+    ],
+    "storageKey": "",
+    "comment": "",
+    "sourceField": {
+      "contractVersion": 1,
+      "name": "status",
+      "number": 1,
+      "kind": "enum",
+      "translatedIDs": [],
+      "residualIDs": [],
+      "residualFingerprint": "",
+      "lengthUnitDivergentIDs": []
+    }
+  }
+]

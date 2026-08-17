@@ -46,7 +46,7 @@ func ValidColumn(column string) bool {
 //
 //	import _ "github.com/smintz/entconnect/internal/entconnecttest/read/ent/runtime"
 var (
-	Hooks  [1]ent.Hook
+	Hooks  [2]ent.Hook
 	Policy ent.Policy
 	// DefaultCustomer holds the default value on creation for the "customer" field.
 	DefaultCustomer string

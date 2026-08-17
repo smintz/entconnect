@@ -147,18 +147,49 @@ release closes this gap generically.
 
 A mixin's `Hooks()`, `Interceptors()`, and `Policy()` all run **before** the ones a
 schema author declares directly on the schema — this is `ent.Mixin`'s own documented
-contract, not something `mixinforproto`-specific. This release ships no hook (Tier 2 CEL
-passthrough is a later release), but the ordering fact is documented now, ahead of the
-hook actually existing, so a future release is not the first time you learn it.
+contract, not something `mixinforproto`-specific. As of Phase 3, `mixinforproto` ships a
+real `Hooks()` entry: every protovalidate field-rule (standard and residual CEL alike)
+is compiled once at schema load and evaluated at mutation time, rejecting a mutation
+before any SQL is issued.
 
-Relatedly: **this release does not enforce every protovalidate constraint.** Constraints
-with a native ent equivalent (Tier 1 — `MinLen`, `Match`, `Min`/`Max`/`Range`, and
-friends) are translated into real ent builder calls and enforced at mutation time.
-Constraints Tier 1 cannot translate today are **recorded as provenance on the derived
-field's `SourceField` annotation, but not enforced at the storage layer** — a later
-release adds a Tier 2 CEL hook that closes this gap. Do not mistake this release's
-storage layer for a complete guarantee of contract conformance; check `SourceField`'s
-`ResidualIDs` if you need to know what isn't enforced yet.
+The full, verified order — for both Create and Update — is:
+
+```
+defaults() -> privacy Policy (when declared) -> mixin hooks -> schema hooks -> sqlSave() -> check()
+```
+
+On Create, `defaults()` materializes every `Default()`-bearing field into the mutation
+before any hook fires; on Update, only `UpdateDefault()`-tagged fields are applied, and
+none of `MixinForProto`'s derived fields carry `UpdateDefault`. If the schema (or any of
+its mixins) declares a `Policy()`, that policy's combined `EvalMutation` runs first —
+`ent`'s own generated wiring installs it at `Hooks[0]` **whenever any policy exists
+anywhere on the schema**, not at a fixed index — so an unauthorized caller is always
+denied before any constraint is evaluated. Because privacy always precedes the
+validation hook whenever a policy is declared, **there is no constraint-existence
+leak**: a denied caller's error is `privacy.Deny`, never a
+`*protovalidate.ValidationError`, so nothing about which constraints exist on the
+entity is observable to them. With no policy anywhere on the schema there is no
+authorization gate to leak around, so the scenario is moot — and in that case the
+mixin's validation hook simply IS `Hooks[0]`.
+
+This order is pinned by a test that fails if `ent` changes it:
+`mixinforproto`'s own `internal/entconnecttest/hookwiring` fixture (root module) proves
+the relative sequence "privacy policy (if any) -> mixin hook -> schema-declared hooks"
+against a real, generated `ent.Client`, in both a policy-bearing and a policy-free
+schema configuration — asserted by relative sequence, never by a hard-coded index into
+any hooks slice, so an application merely adding or removing a `Policy()` is never a
+false regression.
+
+Relatedly: **field-scoped protovalidate constraints — translated and residual alike —
+are now enforced at both the storage layer and the RPC boundary, with identical
+verdicts.** Constraints with a native ent equivalent (Tier 1 — `MinLen`, `Match`,
+`Min`/`Max`/`Range`, and friends) are translated into real ent builder calls; the mixin
+hook now enforces the full protovalidate field-rule set ahead of them, so those native
+builders are effectively shadowed rather than the last word. Message-level (cross-field)
+rules stay **boundary-only by default** — the storage layer only enforces them if a
+schema opts in with `WithMessageRules(OnCreate)`. Check `SourceField`'s `ResidualIDs` for
+provenance of which constraints originated as residual CEL rather than a Tier 1
+translation — not for "what isn't enforced yet".
 
 ## Known limitation: derived-name collisions
 

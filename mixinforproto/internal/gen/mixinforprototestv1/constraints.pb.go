@@ -1251,6 +1251,71 @@ func (x *DoubleComparators) GetGteLteField() float64 {
 	return 0
 }
 
+// MixedFieldRules is Plan 03-03's fixture for settling RESEARCH Pitfall 1
+// (D-07/D-08's hybrid-evaluator convergence risk): one field carries BOTH
+// a standard rule (string.min_len) AND a custom (buf.validate.field).cel
+// rule, a sibling field carries only the standard rule, and a sibling
+// carries only the custom CEL rule.
+type MixedFieldRules struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Both          string                 `protobuf:"bytes,1,opt,name=both,proto3" json:"both,omitempty"`
+	StandardOnly  string                 `protobuf:"bytes,2,opt,name=standard_only,json=standardOnly,proto3" json:"standard_only,omitempty"`
+	CelOnly       string                 `protobuf:"bytes,3,opt,name=cel_only,json=celOnly,proto3" json:"cel_only,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *MixedFieldRules) Reset() {
+	*x = MixedFieldRules{}
+	mi := &file_mixinforprototest_v1_constraints_proto_msgTypes[22]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *MixedFieldRules) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*MixedFieldRules) ProtoMessage() {}
+
+func (x *MixedFieldRules) ProtoReflect() protoreflect.Message {
+	mi := &file_mixinforprototest_v1_constraints_proto_msgTypes[22]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use MixedFieldRules.ProtoReflect.Descriptor instead.
+func (*MixedFieldRules) Descriptor() ([]byte, []int) {
+	return file_mixinforprototest_v1_constraints_proto_rawDescGZIP(), []int{22}
+}
+
+func (x *MixedFieldRules) GetBoth() string {
+	if x != nil {
+		return x.Both
+	}
+	return ""
+}
+
+func (x *MixedFieldRules) GetStandardOnly() string {
+	if x != nil {
+		return x.StandardOnly
+	}
+	return ""
+}
+
+func (x *MixedFieldRules) GetCelOnly() string {
+	if x != nil {
+		return x.CelOnly
+	}
+	return ""
+}
+
 var File_mixinforprototest_v1_constraints_proto protoreflect.FileDescriptor
 
 const file_mixinforprototest_v1_constraints_proto_rawDesc = "" +
@@ -1329,7 +1394,13 @@ const file_mixinforprototest_v1_constraints_proto_rawDesc = "" +
 	"\x1d\x00\x00\x18A-\x00\x00\xc0?R\vgteLteField\"{\n" +
 	"\x11DoubleComparators\x12)\n" +
 	"\bgt_field\x18\x01 \x01(\x01B\x0e\xbaH\v\x12\t!\x00\x00\x00\x00\x00\x00\xf8?R\agtField\x12;\n" +
-	"\rgte_lte_field\x18\x02 \x01(\x01B\x17\xbaH\x14\x12\x12\x19\x00\x00\x00\x00\x00\x00#@)\x00\x00\x00\x00\x00\x00\xf8?R\vgteLteFieldB\xea\x01\n" +
+	"\rgte_lte_field\x18\x02 \x01(\x01B\x17\xbaH\x14\x12\x12\x19\x00\x00\x00\x00\x00\x00#@)\x00\x00\x00\x00\x00\x00\xf8?R\vgteLteField\"\xc9\x02\n" +
+	"\x0fMixedFieldRules\x12\x7f\n" +
+	"\x04both\x18\x01 \x01(\tBk\xbaHh\xba\x01a\n" +
+	"0constraints.mixed_field_rules.both.starts_with_x\x12\x17value must start with X\x1a\x14this.startsWith('X')r\x02\x10\x03R\x04both\x12,\n" +
+	"\rstandard_only\x18\x02 \x01(\tB\a\xbaH\x04r\x02\x10\x03R\fstandardOnly\x12\x86\x01\n" +
+	"\bcel_only\x18\x03 \x01(\tBk\xbaHh\xba\x01e\n" +
+	"4constraints.mixed_field_rules.cel_only.starts_with_x\x12\x17value must start with X\x1a\x14this.startsWith('X')R\acelOnlyB\xea\x01\n" +
 	"\x18com.mixinforprototest.v1B\x10ConstraintsProtoP\x01ZKgithub.com/smintz/entconnect/mixinforproto/internal/gen/mixinforprototestv1\xa2\x02\x03MXX\xaa\x02\x14Mixinforprototest.V1\xca\x02\x14Mixinforprototest\\V1\xe2\x02 Mixinforprototest\\V1\\GPBMetadata\xea\x02\x15Mixinforprototest::V1b\x06proto3"
 
 var (
@@ -1344,7 +1415,7 @@ func file_mixinforprototest_v1_constraints_proto_rawDescGZIP() []byte {
 	return file_mixinforprototest_v1_constraints_proto_rawDescData
 }
 
-var file_mixinforprototest_v1_constraints_proto_msgTypes = make([]protoimpl.MessageInfo, 22)
+var file_mixinforprototest_v1_constraints_proto_msgTypes = make([]protoimpl.MessageInfo, 23)
 var file_mixinforprototest_v1_constraints_proto_goTypes = []any{
 	(*NoRules)(nil),                   // 0: mixinforprototest.v1.NoRules
 	(*StringByteBounds)(nil),          // 1: mixinforprototest.v1.StringByteBounds
@@ -1368,10 +1439,11 @@ var file_mixinforprototest_v1_constraints_proto_goTypes = []any{
 	(*Int32Overflow)(nil),             // 19: mixinforprototest.v1.Int32Overflow
 	(*FloatComparators)(nil),          // 20: mixinforprototest.v1.FloatComparators
 	(*DoubleComparators)(nil),         // 21: mixinforprototest.v1.DoubleComparators
-	(Status)(0),                       // 22: mixinforprototest.v1.Status
+	(*MixedFieldRules)(nil),           // 22: mixinforprototest.v1.MixedFieldRules
+	(Status)(0),                       // 23: mixinforprototest.v1.Status
 }
 var file_mixinforprototest_v1_constraints_proto_depIdxs = []int32{
-	22, // 0: mixinforprototest.v1.EnumDefinedOnlyField.status:type_name -> mixinforprototest.v1.Status
+	23, // 0: mixinforprototest.v1.EnumDefinedOnlyField.status:type_name -> mixinforprototest.v1.Status
 	1,  // [1:1] is the sub-list for method output_type
 	1,  // [1:1] is the sub-list for method input_type
 	1,  // [1:1] is the sub-list for extension type_name
@@ -1394,7 +1466,7 @@ func file_mixinforprototest_v1_constraints_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_mixinforprototest_v1_constraints_proto_rawDesc), len(file_mixinforprototest_v1_constraints_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   22,
+			NumMessages:   23,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

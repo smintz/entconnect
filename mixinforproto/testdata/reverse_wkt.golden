@@ -1,0 +1,65 @@
+[
+  {
+    "name": "timestamp_field",
+    "typeKind": "time.Time",
+    "nillable": false,
+    "optional": false,
+    "immutable": false,
+    "default": "",
+    "validatorCount": 0,
+    "storageKey": "",
+    "comment": "",
+    "sourceField": {
+      "contractVersion": 1,
+      "name": "timestamp_field",
+      "number": 1,
+      "kind": "wkt",
+      "translatedIDs": [],
+      "residualIDs": [],
+      "residualFingerprint": "",
+      "lengthUnitDivergentIDs": []
+    }
+  },
+  {
+    "name": "struct_field",
+    "typeKind": "json.RawMessage",
+    "nillable": false,
+    "optional": false,
+    "immutable": false,
+    "default": "",
+    "validatorCount": 0,
+    "storageKey": "",
+    "comment": "",
+    "sourceField": {
+      "contractVersion": 1,
+      "name": "struct_field",
+      "number": 2,
+      "kind": "wkt",
+      "translatedIDs": [],
+      "residualIDs": [],
+      "residualFingerprint": "",
+      "lengthUnitDivergentIDs": []
+    }
+  },
+  {
+    "name": "value_field",
+    "typeKind": "json.RawMessage",
+    "nillable": false,
+    "optional": false,
+    "immutable": false,
+    "default": "",
+    "validatorCount": 0,
+    "storageKey": "",
+    "comment": "",
+    "sourceField": {
+      "contractVersion": 1,
+      "name": "value_field",
+      "number": 3,
+      "kind": "wkt",
+      "translatedIDs": [],
+      "residualIDs": [],
+      "residualFingerprint": "",
+      "lengthUnitDivergentIDs": []
+    }
+  }
+]
